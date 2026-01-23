@@ -1419,10 +1419,24 @@ export function createMockWebGL2Context(
 ): WebGL2RenderingContext {
   // Start with WebGL1 context and add WebGL2 methods
   const gl1 = createMockWebGLContext(canvas, { ...config, version: 2 });
-  const callLog: CanvasCallRecord[] = (gl1 as unknown as { __getCallLog: () => CanvasCallRecord[] }).__getCallLog();
+
+  // Get direct reference to the internal call log array (not a copy)
+  // We need to push to the same array the WebGL1 context uses
+  const gl1WithLog = gl1 as unknown as {
+    __getCallLog: () => CanvasCallRecord[];
+    __clearCallLog: () => void;
+    __internalCallLog?: CanvasCallRecord[];
+  };
+
+  // Create a shared call log that both WebGL1 and WebGL2 methods will use
+  const sharedCallLog: CanvasCallRecord[] = [];
+
+  // Copy any existing calls from WebGL1 context
+  const existingCalls = gl1WithLog.__getCallLog();
+  sharedCallLog.push(...existingCalls);
 
   const logCall = (method: string, ...args: unknown[]) => {
-    callLog.push({ method, args, timestamp: Date.now() });
+    sharedCallLog.push({ method, args, timestamp: Date.now() });
   };
 
   let nextVaoId = 1;
@@ -1704,6 +1718,12 @@ export function createMockWebGL2Context(
     getIndexedParameter(target: number, index: number): unknown {
       logCall('getIndexedParameter', target, index);
       return null;
+    },
+
+    // Override test utilities to use shared call log
+    __getCallLog: () => [...sharedCallLog],
+    __clearCallLog: () => {
+      sharedCallLog.length = 0;
     },
   };
 
