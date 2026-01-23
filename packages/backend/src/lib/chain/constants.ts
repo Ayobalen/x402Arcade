@@ -155,6 +155,116 @@ export const NATIVE_CURRENCY: NativeCurrencyConfig = {
 export const USDC_NAME = 'Bridged USDC (Stargate)';
 
 /**
+ * USDC Token Decimals
+ *
+ * The number of decimal places for the USDC token.
+ * Unlike most ERC-20 tokens that use 18 decimals, USDC uses 6 decimals.
+ *
+ * This means:
+ * - 1 USDC = 1,000,000 (10^6) smallest units
+ * - $0.01 = 10,000 smallest units
+ * - $0.000001 = 1 smallest unit (minimum precision)
+ *
+ * @example
+ * // Convert 1.5 USDC to smallest units
+ * const amount = 1.5 * (10 ** USDC_DECIMALS); // 1,500,000
+ *
+ * // Convert smallest units back to USDC
+ * const usdc = 1500000 / (10 ** USDC_DECIMALS); // 1.5
+ */
+export const USDC_DECIMALS: 6 = 6;
+
+/**
+ * Parse a human-readable USDC amount into the smallest unit representation
+ *
+ * Converts a decimal USDC value (e.g., "1.50" or 1.5) into the integer
+ * representation used on-chain (e.g., 1500000).
+ *
+ * @param amount - The USDC amount as a string or number (e.g., "1.50", 1.5, "0.01")
+ * @returns The amount in smallest units as a bigint
+ * @throws Error if amount is negative or invalid
+ *
+ * @example
+ * parseUSDC("1.50")    // => 1500000n
+ * parseUSDC(0.01)      // => 10000n
+ * parseUSDC("100")     // => 100000000n
+ */
+export function parseUSDC(amount: string | number): bigint {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+  if (isNaN(numAmount)) {
+    throw new Error(`Invalid USDC amount: ${amount}`);
+  }
+
+  if (numAmount < 0) {
+    throw new Error(`USDC amount cannot be negative: ${amount}`);
+  }
+
+  // Multiply by 10^6 and round to avoid floating point issues
+  const multiplier = 10 ** USDC_DECIMALS;
+  const smallestUnits = Math.round(numAmount * multiplier);
+
+  return BigInt(smallestUnits);
+}
+
+/**
+ * Format a smallest unit USDC amount into a human-readable string
+ *
+ * Converts the on-chain integer representation (e.g., 1500000) into
+ * a human-readable decimal string (e.g., "1.50").
+ *
+ * @param amount - The amount in smallest units as a bigint, number, or string
+ * @param decimalPlaces - Number of decimal places to show (default: 2)
+ * @returns Formatted string with the specified decimal places
+ *
+ * @example
+ * formatUSDC(1500000n)       // => "1.50"
+ * formatUSDC(10000n)         // => "0.01"
+ * formatUSDC(100000000n)     // => "100.00"
+ * formatUSDC(1500000n, 6)    // => "1.500000"
+ * formatUSDC(1n, 6)          // => "0.000001"
+ */
+export function formatUSDC(
+  amount: bigint | number | string,
+  decimalPlaces: number = 2,
+): string {
+  const bigAmount =
+    typeof amount === 'bigint'
+      ? amount
+      : BigInt(typeof amount === 'string' ? amount : Math.floor(amount));
+
+  const divisor = BigInt(10 ** USDC_DECIMALS);
+  const wholePart = bigAmount / divisor;
+  const fractionalPart = bigAmount % divisor;
+
+  // Pad fractional part with leading zeros
+  const fractionalStr = fractionalPart.toString().padStart(USDC_DECIMALS, '0');
+
+  // Truncate or pad to desired decimal places
+  const truncatedFractional = fractionalStr.slice(0, decimalPlaces).padEnd(decimalPlaces, '0');
+
+  return `${wholePart}.${truncatedFractional}`;
+}
+
+/**
+ * Format a USDC amount with currency symbol
+ *
+ * @param amount - The amount in smallest units as a bigint, number, or string
+ * @param decimalPlaces - Number of decimal places to show (default: 2)
+ * @returns Formatted string with $ prefix (e.g., "$1.50")
+ *
+ * @example
+ * formatUSDCWithSymbol(1500000n)  // => "$1.50"
+ * formatUSDCWithSymbol(10000n)    // => "$0.01"
+ */
+export function formatUSDCWithSymbol(
+  amount: bigint | number | string,
+  decimalPlaces: number = 2,
+): string {
+  return `$${formatUSDC(amount, decimalPlaces)}`;
+}
+
+/**
  * Default USDC Contract Address (devUSDC.e) on Cronos Testnet
  *
  * The bridged USDC (Stargate) contract address for payment processing.
@@ -223,6 +333,7 @@ export const chainConstants = {
   CRONOS_TESTNET_EXPLORER_URL,
   NATIVE_CURRENCY,
   USDC_NAME,
+  USDC_DECIMALS,
   DEFAULT_USDC_CONTRACT_ADDRESS,
   USDC_CONTRACT_ADDRESS,
   getCronosTestnetRpcUrl,
@@ -230,6 +341,9 @@ export const chainConstants = {
   getExplorerAddressUrl,
   isValidAddress,
   getUsdcContractAddress,
+  parseUSDC,
+  formatUSDC,
+  formatUSDCWithSymbol,
 } as const;
 
 export default chainConstants;
