@@ -115,9 +115,14 @@ export interface UseX402Actions {
    */
   pay: (request: PaymentRequest) => Promise<PaymentResult>
   /**
-   * Reset the hook state
+   * Reset the hook state (clears error, status, and lastPayment)
    */
   reset: () => void
+  /**
+   * Clear only the error state for retry attempts
+   * Keeps status as 'idle' and preserves lastPayment
+   */
+  clearError: () => void
   /**
    * Create a signed authorization without submitting
    * @param request - Payment request parameters
@@ -208,6 +213,19 @@ export function useX402(options: UseX402Options = {}): UseX402Result {
     setError(null)
     setLastPayment(null)
   }, [])
+
+  /**
+   * Clear error state for retry attempts
+   *
+   * Resets error to null and sets status to 'idle' so the user
+   * can attempt another payment. Preserves lastPayment for reference.
+   */
+  const clearError = useCallback(() => {
+    setError(null)
+    if (status === 'error') {
+      setStatus('idle')
+    }
+  }, [status])
 
   /**
    * Handle successful payment
@@ -305,6 +323,7 @@ export function useX402(options: UseX402Options = {}): UseX402Result {
     // Actions
     pay,
     reset,
+    clearError,
     createAuthorization,
   }
 }
