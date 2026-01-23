@@ -95,3 +95,36 @@ export {
   type ExtendedRenderHookResult,
   type MockDependencies,
 } from './hook-utils';
+
+// Zustand store test utilities
+export {
+  // Core store creation
+  createTestStore as createZustandTestStore,
+  withInitialState,
+  // Selector testing
+  mockSelector,
+  createTrackedSelector,
+  // Snapshots
+  storeSnapshot,
+  compareSnapshots,
+  // History tracking
+  createHistoryTrackedStore,
+  // Cleanup
+  resetAllStores,
+  clearStoreRegistry,
+  getRegisteredStoreCount,
+  getRegisteredStoreNames,
+  // Action utilities
+  createActionSpy,
+  waitForStoreState,
+  // Example stores (for testing documentation)
+  createExampleWalletStore,
+  createExampleGameStore,
+  // Types
+  type CreateTestStoreOptions,
+  type SnapshotOptions,
+  type TestStore,
+  type MockedSelector,
+  type ExampleWalletState,
+  type ExampleGameState,
+} from './store-utils';
