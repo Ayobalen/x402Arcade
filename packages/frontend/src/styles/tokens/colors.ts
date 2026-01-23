@@ -177,14 +177,48 @@ export const accents = {
  *
  * Colors that convey meaning: success, warning, error states.
  * Used for feedback, alerts, and status indicators.
+ * Each semantic color includes light and dark variants for flexibility.
  */
 export const semantic = {
-  /** Neon green - success states, confirmations, positive feedback (#00ff00) */
-  success: '#00ff00',
-  /** Yellow - warnings, cautions, pending states (#ffff00) */
-  warning: '#ffff00',
-  /** Red - errors, destructive actions, alerts (#ff4444) */
-  error: '#ff4444',
+  /** Success Colors - Neon Green (#00ff88) */
+  /** Base success color - vibrant neon green for positive feedback */
+  success: '#00ff88',
+  /** Light success - brighter variant for backgrounds and highlights */
+  successLight: '#66ffbb',
+  /** Dark success - deeper variant for text on light success backgrounds */
+  successDark: '#00cc6a',
+  /** Success glow - semi-transparent for shadow effects */
+  successGlow: 'rgba(0, 255, 136, 0.4)',
+
+  /** Warning Colors - Neon Orange (#ffaa00) */
+  /** Base warning color - vibrant neon orange for cautions and pending states */
+  warning: '#ffaa00',
+  /** Light warning - brighter variant for backgrounds and highlights */
+  warningLight: '#ffcc66',
+  /** Dark warning - deeper variant for text on light warning backgrounds */
+  warningDark: '#cc8800',
+  /** Warning glow - semi-transparent for shadow effects */
+  warningGlow: 'rgba(255, 170, 0, 0.4)',
+
+  /** Error Colors - Neon Red (#ff3366) */
+  /** Base error color - vibrant neon red for errors and destructive actions */
+  error: '#ff3366',
+  /** Light error - brighter variant for backgrounds and highlights */
+  errorLight: '#ff7799',
+  /** Dark error - deeper variant for text on light error backgrounds */
+  errorDark: '#cc2952',
+  /** Error glow - semi-transparent for shadow effects */
+  errorGlow: 'rgba(255, 51, 102, 0.4)',
+
+  /** Info Colors - Neon Blue (#3388ff) */
+  /** Base info color - for informational states and neutral feedback */
+  info: '#3388ff',
+  /** Light info - brighter variant for backgrounds */
+  infoLight: '#77aaff',
+  /** Dark info - deeper variant for text */
+  infoDark: '#2266cc',
+  /** Info glow - semi-transparent for shadow effects */
+  infoGlow: 'rgba(51, 136, 255, 0.4)',
 } as const;
 
 /**
@@ -230,7 +264,23 @@ export const glows = {
   magenta: 'rgba(255, 0, 255, 0.3)',
   /** Magenta glow - stronger for hover states */
   magentaStrong: 'rgba(255, 0, 255, 0.5)',
-  /** Green glow for success states */
+  /** Success glow - neon green for success states */
+  success: 'rgba(0, 255, 136, 0.3)',
+  /** Success glow - stronger for hover states */
+  successStrong: 'rgba(0, 255, 136, 0.5)',
+  /** Warning glow - neon orange for warning states */
+  warning: 'rgba(255, 170, 0, 0.3)',
+  /** Warning glow - stronger for hover states */
+  warningStrong: 'rgba(255, 170, 0, 0.5)',
+  /** Error glow - neon red for error states */
+  error: 'rgba(255, 51, 102, 0.3)',
+  /** Error glow - stronger for hover states */
+  errorStrong: 'rgba(255, 51, 102, 0.5)',
+  /** Info glow - neon blue for info states */
+  info: 'rgba(51, 136, 255, 0.3)',
+  /** Info glow - stronger for hover states */
+  infoStrong: 'rgba(51, 136, 255, 0.5)',
+  /** Green glow for legacy compatibility */
   green: 'rgba(0, 255, 0, 0.3)',
 } as const;
 
