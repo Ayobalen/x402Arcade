@@ -389,6 +389,7 @@ function WaveVisualization({
   yOffset,
 }: WaveVisualizationProps) {
   const lineRef = useRef<THREE.Line>(null)
+  const pointsRef = useRef<THREE.Points>(null)
 
   // Create wave points
   const points = useMemo(() => {
@@ -405,6 +406,36 @@ function WaveVisualization({
     return new THREE.BufferGeometry().setFromPoints(points)
   }, [points])
 
+  // Create clone geometry for points
+  const pointsGeometry = useMemo(() => {
+    return geometry.clone()
+  }, [geometry])
+
+  // Create gradient material that blends low to high frequency colors
+  const material = useMemo(() => {
+    // Use midpoint color for the line
+    const midColor = new THREE.Color().lerpColors(lowFreqColor, highFreqColor, 0.5)
+    return new THREE.LineBasicMaterial({
+      color: midColor,
+      linewidth: 3,
+    })
+  }, [lowFreqColor, highFreqColor])
+
+  // Create points material for glow effect
+  const pointsMaterial = useMemo(() => {
+    return new THREE.PointsMaterial({
+      color: highFreqColor,
+      size: 0.05 * glowIntensity,
+      transparent: true,
+      opacity: glowIntensity * 0.5,
+    })
+  }, [highFreqColor, glowIntensity])
+
+  // Create the THREE.Line object
+  const lineObject = useMemo(() => {
+    return new THREE.Line(geometry, material)
+  }, [geometry, material])
+
   // Animate wave based on frequency data
   useFrame(() => {
     if (!lineRef.current || !frequencyData) return
@@ -420,17 +451,22 @@ function WaveVisualization({
     }
 
     positions.needsUpdate = true
+
+    // Update points geometry to match
+    if (pointsRef.current) {
+      const pointsPositions = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute
+      for (let i = 0; i <= barCount; i++) {
+        pointsPositions.setY(i, positions.getY(i))
+      }
+      pointsPositions.needsUpdate = true
+    }
   })
 
-  const material = useMemo(() => {
-    return new THREE.LineBasicMaterial({
-      color: lowFreqColor,
-      linewidth: 3,
-    })
-  }, [lowFreqColor])
-
   return (
-    <line ref={lineRef} geometry={geometry} material={material} />
+    <group>
+      <primitive object={lineObject} ref={lineRef} />
+      <points ref={pointsRef} geometry={pointsGeometry} material={pointsMaterial} />
+    </group>
   )
 }
 
@@ -469,9 +505,14 @@ export function useSoundVisualizer(
   const analyserRef = useRef<AnalyserNode | null>(null)
   const sourceRef = useRef<MediaElementAudioSourceNode | MediaStreamAudioSourceNode | null>(null)
   const isConnectedRef = useRef(false)
-  const frequencyDataRef = useRef<Uint8Array | null>(null)
+  const frequencyDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
 
-  const mergedConfig = { ...DEFAULT_ANALYZER_CONFIG, ...config }
+  // Memoize merged config to prevent unnecessary re-renders
+  // We intentionally only depend on specific config properties, not the config object itself
+  const mergedConfig = useMemo(
+    () => ({ ...DEFAULT_ANALYZER_CONFIG, ...config }),
+    [config?.fftSize, config?.smoothingTimeConstant, config?.minDecibels, config?.maxDecibels] // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const connect = useCallback((source: HTMLAudioElement | MediaStream) => {
     // Clean up existing connections
@@ -604,9 +645,13 @@ export function SoundVisualizer3D({
   const audioCtxRef = useRef<AudioContext | null>(audioContext || null)
   const analyserRef = useRef<AnalyserNode | null>(externalAnalyser || null)
   const sourceRef = useRef<MediaElementAudioSourceNode | MediaStreamAudioSourceNode | null>(null)
-  const frequencyDataRef = useRef<Uint8Array | null>(null)
+  const frequencyDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
 
-  const mergedAnalyzerConfig = { ...DEFAULT_ANALYZER_CONFIG, ...analyzerConfig }
+  // Memoize merged analyzer config to prevent unnecessary re-renders
+  const mergedAnalyzerConfig = useMemo(
+    () => ({ ...DEFAULT_ANALYZER_CONFIG, ...analyzerConfig }),
+    [analyzerConfig]
+  )
 
   // Convert color strings to THREE.Color objects
   const lowFreqColor = useMemo(() => hexToColor(lowFrequencyColor), [lowFrequencyColor])

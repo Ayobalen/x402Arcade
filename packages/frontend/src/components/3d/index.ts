@@ -127,3 +127,33 @@ export {
   type ExplosionPreset,
   type UseExplosionResult,
 } from './ExplosionParticles'
+
+export {
+  LightingRig,
+  ArcadeLighting,
+  NeonLighting,
+  GameStateLighting,
+  useLightingRig,
+  LIGHTING_PRESETS,
+  type LightingRigProps,
+  type LightingPreset,
+  type PointLightConfig,
+  type DirectionalLightConfig,
+  type AmbientLightConfig,
+  type ArcadeLightingProps,
+  type NeonLightingProps,
+  type GameStateLightingProps,
+  type UseLightingRigOptions,
+  type UseLightingRigResult,
+} from './LightingRig'
+
+export {
+  SoundVisualizer3D,
+  useSoundVisualizer,
+  VISUALIZER_PRESETS,
+  getVisualizerPreset,
+  type SoundVisualizer3DProps,
+  type AudioAnalyzerConfig,
+  type UseSoundVisualizerResult,
+  type VisualizerPreset,
+} from './SoundVisualizer3D'
