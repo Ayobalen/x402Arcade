@@ -167,6 +167,50 @@ export function createX402Middleware(config: X402Config): X402Middleware {
         throw X402Error.invalidScheme(paymentData.scheme || 'missing');
       }
 
+      // Check for missing required fields before conversion
+      // This provides clear error messages with the schema definition
+      const missingFields: string[] = [];
+      // Cast to loose type for safe property access checking
+      const header = paymentData as unknown as { x402Version?: string; scheme?: string; network?: string; payload?: { message?: Record<string, unknown>; v?: number; r?: string; s?: string } };
+
+      // Check top-level fields
+      if (!header.network) missingFields.push('network');
+
+      // Check nested payload fields
+      if (!header.payload) {
+        missingFields.push('payload');
+      } else {
+        if (!header.payload.message) {
+          missingFields.push('payload.message');
+        } else {
+          const msg = header.payload.message;
+          if (msg.from === undefined || msg.from === null || msg.from === '') missingFields.push('from');
+          if (msg.to === undefined || msg.to === null || msg.to === '') missingFields.push('to');
+          if (msg.value === undefined || msg.value === null || msg.value === '') missingFields.push('value');
+          if (msg.validAfter === undefined || msg.validAfter === null) missingFields.push('validAfter');
+          if (msg.validBefore === undefined || msg.validBefore === null) missingFields.push('validBefore');
+          if (msg.nonce === undefined || msg.nonce === null || msg.nonce === '') missingFields.push('nonce');
+        }
+        if (header.payload.v === undefined || header.payload.v === null) missingFields.push('v');
+        if (header.payload.r === undefined || header.payload.r === null || header.payload.r === '') missingFields.push('r');
+        if (header.payload.s === undefined || header.payload.s === null || header.payload.s === '') missingFields.push('s');
+      }
+
+      if (missingFields.length > 0) {
+        // Log missing fields attempt for debugging
+        console.warn('[x402] Missing required fields in payload:', {
+          missingFields,
+          missingCount: missingFields.length,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Throw with schema information for client reference
+        throw X402ValidationError.missingRequiredFields(
+          missingFields,
+          PAYMENT_PAYLOAD_SCHEMA,
+        );
+      }
+
       // Convert to flat payload for easier validation
       const payload = headerToPayload(paymentData);
 
