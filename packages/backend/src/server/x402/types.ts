@@ -457,40 +457,349 @@ export function validatePaymentPayload(payload: PaymentPayload): {
 }
 
 /**
- * x402 Settlement Request
+ * x402 Settlement Request (Structured Format)
  *
  * The request sent to the facilitator to settle a payment.
+ * This interface uses a structured format with authorization and signature
+ * as separate objects for clarity and type safety.
+ *
+ * **Request Flow:**
+ * 1. Receive signed authorization from player via X-Payment header
+ * 2. Parse and validate the payment header
+ * 3. Construct SettlementRequest with chainId and tokenAddress
+ * 4. POST to facilitator settle endpoint
+ * 5. Facilitator executes transferWithAuthorization on-chain
+ * 6. Receive SettlementResponse with transaction details
+ *
+ * @example
+ * ```typescript
+ * const request: X402SettlementRequest = {
+ *   authorization: {
+ *     from: playerAddress,
+ *     to: arcadeWallet,
+ *     value: '10000',
+ *     validAfter: '0',
+ *     validBefore: '1735689600',
+ *     nonce: '0x1234...5678'
+ *   },
+ *   signature: { v: 27, r: '0x...', s: '0x...' },
+ *   chainId: 338,
+ *   tokenAddress: '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0'
+ * };
+ * ```
+ *
+ * @see https://facilitator.cronoslabs.org/docs - Facilitator API Documentation
+ * @see https://eips.ethereum.org/EIPS/eip-3009 - Transfer With Authorization
  */
 export interface X402SettlementRequest {
   /**
-   * The authorization message that was signed
+   * The authorization message that was signed by the payer
+   * Contains from, to, value, validAfter, validBefore, nonce
    */
   authorization: TransferWithAuthorizationMessage;
 
   /**
-   * Signature components
+   * ECDSA signature components
+   * Split signature format for contract verification
    */
   signature: {
+    /** Signature recovery identifier (27 or 28) */
     v: number;
+    /** First 32 bytes of the ECDSA signature (0x + 64 hex chars) */
     r: string;
+    /** Second 32 bytes of the ECDSA signature (0x + 64 hex chars) */
     s: string;
   };
 
   /**
-   * The chain ID for the settlement
+   * The blockchain chain ID for the settlement
+   * Used to ensure the settlement happens on the correct network
+   * @example 338 for Cronos Testnet
    */
   chainId: number;
 
   /**
-   * The token contract address
+   * The ERC-20 token contract address
+   * Must be a token that supports EIP-3009 transferWithAuthorization
+   * @example '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0' for devUSDC.e
    */
   tokenAddress: string;
+}
+
+/**
+ * Settlement Request (Facilitator API Format)
+ *
+ * Alternative settlement request format that matches the exact Cronos Labs
+ * facilitator API specification where signature components are nested
+ * inside the authorization object.
+ *
+ * **Facilitator API POST /v2/x402/settle:**
+ * ```json
+ * {
+ *   "authorization": {
+ *     "from": "0x...",
+ *     "to": "0x...",
+ *     "value": "10000",
+ *     "validAfter": "0",
+ *     "validBefore": "1735689600",
+ *     "nonce": "0x...",
+ *     "v": 27,
+ *     "r": "0x...",
+ *     "s": "0x..."
+ *   },
+ *   "chainId": 338,
+ *   "tokenAddress": "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0"
+ * }
+ * ```
+ *
+ * Use `createSettlementRequest()` to convert from X402SettlementRequest
+ * to this API format.
+ *
+ * @see https://facilitator.cronoslabs.org/docs - Facilitator API Documentation
+ */
+export interface SettlementRequest {
+  /**
+   * Combined authorization message with signature
+   * This is the format expected by the facilitator API
+   */
+  authorization: {
+    /** Token sender's address (the signer/payer) */
+    from: string;
+    /** Token recipient's address (the arcade) */
+    to: string;
+    /** Amount to transfer in smallest units (as string for uint256) */
+    value: string;
+    /** Unix timestamp after which the authorization is valid */
+    validAfter: string;
+    /** Unix timestamp before which the authorization is valid */
+    validBefore: string;
+    /** Unique 32-byte nonce (0x + 64 hex chars) */
+    nonce: string;
+    /** ECDSA signature recovery identifier (27 or 28) */
+    v: number;
+    /** First 32 bytes of the ECDSA signature */
+    r: string;
+    /** Second 32 bytes of the ECDSA signature */
+    s: string;
+  };
+
+  /**
+   * The blockchain chain ID for the settlement
+   * @example 338 for Cronos Testnet
+   */
+  chainId: number;
+
+  /**
+   * The ERC-20 token contract address supporting EIP-3009
+   * @example '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0' for devUSDC.e
+   */
+  tokenAddress: string;
+}
+
+/**
+ * Create a settlement request from structured data
+ *
+ * Converts the structured X402SettlementRequest format (with separate
+ * authorization and signature objects) to the SettlementRequest format
+ * expected by the facilitator API.
+ *
+ * @param request - The structured settlement request
+ * @returns SettlementRequest in facilitator API format
+ *
+ * @example
+ * ```typescript
+ * const structured: X402SettlementRequest = {
+ *   authorization: { from, to, value, validAfter, validBefore, nonce },
+ *   signature: { v, r, s },
+ *   chainId: 338,
+ *   tokenAddress: USDC_ADDRESS
+ * };
+ *
+ * const apiRequest = createSettlementRequest(structured);
+ * const response = await fetch(getFacilitatorSettleUrl(), {
+ *   method: 'POST',
+ *   headers: { 'Content-Type': 'application/json' },
+ *   body: JSON.stringify(apiRequest)
+ * });
+ * ```
+ */
+export function createSettlementRequest(
+  request: X402SettlementRequest,
+): SettlementRequest {
+  return {
+    authorization: {
+      from: request.authorization.from,
+      to: request.authorization.to,
+      value:
+        typeof request.authorization.value === 'bigint'
+          ? request.authorization.value.toString()
+          : String(request.authorization.value),
+      validAfter:
+        typeof request.authorization.validAfter === 'bigint'
+          ? request.authorization.validAfter.toString()
+          : String(request.authorization.validAfter),
+      validBefore:
+        typeof request.authorization.validBefore === 'bigint'
+          ? request.authorization.validBefore.toString()
+          : String(request.authorization.validBefore),
+      nonce: request.authorization.nonce,
+      v: request.signature.v,
+      r: request.signature.r,
+      s: request.signature.s,
+    },
+    chainId: request.chainId,
+    tokenAddress: request.tokenAddress,
+  };
+}
+
+/**
+ * Create a settlement request from payment payload and config
+ *
+ * Convenience function to create a SettlementRequest directly from
+ * the parsed PaymentPayload and x402 configuration.
+ *
+ * @param payload - The parsed payment payload from X-Payment header
+ * @param config - The x402 configuration
+ * @returns SettlementRequest ready for facilitator API
+ *
+ * @example
+ * ```typescript
+ * const payload = headerToPayload(x402Header);
+ * const settlementReq = createSettlementRequestFromPayload(payload, x402Config);
+ * ```
+ */
+export function createSettlementRequestFromPayload(
+  payload: PaymentPayload,
+  config: X402Config,
+): SettlementRequest {
+  return {
+    authorization: {
+      from: payload.from,
+      to: payload.to,
+      value: payload.value,
+      validAfter: payload.validAfter,
+      validBefore: payload.validBefore,
+      nonce: payload.nonce,
+      v: payload.v,
+      r: payload.r,
+      s: payload.s,
+    },
+    chainId: config.chainId,
+    tokenAddress: config.tokenAddress,
+  };
+}
+
+/**
+ * Validate a settlement request before sending to facilitator
+ *
+ * Performs comprehensive validation on the settlement request to catch
+ * issues before making the API call.
+ *
+ * @param request - The settlement request to validate
+ * @returns Validation result with any errors found
+ *
+ * @example
+ * ```typescript
+ * const validation = validateSettlementRequest(request);
+ * if (!validation.valid) {
+ *   console.error('Settlement request invalid:', validation.errors);
+ *   return;
+ * }
+ * // Proceed with settlement
+ * ```
+ */
+export function validateSettlementRequest(request: SettlementRequest): {
+  valid: boolean;
+  errors: string[];
+} {
+  // Import validator at runtime to avoid circular deps
+  const { isValidAddress } = require('../../lib/chain/constants.js');
+
+  const errors: string[] = [];
+
+  // Validate addresses
+  if (!isValidAddress(request.authorization.from)) {
+    errors.push(`Invalid 'from' address: ${request.authorization.from}`);
+  }
+
+  if (!isValidAddress(request.authorization.to)) {
+    errors.push(`Invalid 'to' address: ${request.authorization.to}`);
+  }
+
+  if (!isValidAddress(request.tokenAddress)) {
+    errors.push(`Invalid token address: ${request.tokenAddress}`);
+  }
+
+  // Validate value
+  if (!request.authorization.value || !/^\d+$/.test(request.authorization.value)) {
+    errors.push(`Invalid value: ${request.authorization.value}`);
+  } else if (BigInt(request.authorization.value) <= 0n) {
+    errors.push('Value must be positive');
+  }
+
+  // Validate timestamps
+  if (!/^\d+$/.test(request.authorization.validAfter)) {
+    errors.push(`Invalid validAfter: ${request.authorization.validAfter}`);
+  }
+
+  if (!/^\d+$/.test(request.authorization.validBefore)) {
+    errors.push(`Invalid validBefore: ${request.authorization.validBefore}`);
+  }
+
+  // Validate nonce (32 bytes = 64 hex chars + 0x prefix = 66 chars)
+  if (!/^0x[a-fA-F0-9]{64}$/.test(request.authorization.nonce)) {
+    errors.push(`Invalid nonce format: ${request.authorization.nonce}`);
+  }
+
+  // Validate signature
+  if (request.authorization.v !== 27 && request.authorization.v !== 28) {
+    errors.push(`Invalid v value: ${request.authorization.v}, expected 27 or 28`);
+  }
+
+  if (!/^0x[a-fA-F0-9]{64}$/.test(request.authorization.r)) {
+    errors.push(`Invalid r value format: ${request.authorization.r}`);
+  }
+
+  if (!/^0x[a-fA-F0-9]{64}$/.test(request.authorization.s)) {
+    errors.push(`Invalid s value format: ${request.authorization.s}`);
+  }
+
+  // Validate chainId
+  if (!request.chainId || request.chainId <= 0) {
+    errors.push(`Invalid chainId: ${request.chainId}`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
 }
 
 /**
  * x402 Settlement Response
  *
  * The response from the facilitator after settlement attempt.
+ * This interface represents the internal representation of a settlement result,
+ * enriched with additional metadata beyond what the facilitator API returns.
+ *
+ * @example
+ * ```typescript
+ * // Successful settlement
+ * const success: X402SettlementResponse = {
+ *   success: true,
+ *   transactionHash: '0x1234...5678',
+ *   blockNumber: 12345678,
+ *   settledAt: '2026-01-23T12:00:00.000Z'
+ * };
+ *
+ * // Failed settlement
+ * const failed: X402SettlementResponse = {
+ *   success: false,
+ *   errorCode: 'INSUFFICIENT_BALANCE',
+ *   errorMessage: 'Payer has insufficient USDC balance',
+ *   settledAt: '2026-01-23T12:00:00.000Z'
+ * };
+ * ```
  */
 export interface X402SettlementResponse {
   /**
@@ -500,6 +809,7 @@ export interface X402SettlementResponse {
 
   /**
    * The on-chain transaction hash (if successful)
+   * Hex string with 0x prefix, 66 characters total
    */
   transactionHash?: string;
 
@@ -510,6 +820,7 @@ export interface X402SettlementResponse {
 
   /**
    * Error code if settlement failed
+   * @see X402SettlementErrorCode for standard error codes
    */
   errorCode?: string;
 
@@ -517,6 +828,213 @@ export interface X402SettlementResponse {
    * Human-readable error message if settlement failed
    */
   errorMessage?: string;
+
+  /**
+   * ISO timestamp when the settlement was processed
+   * Set by the middleware after receiving facilitator response
+   */
+  settledAt: string;
+}
+
+/**
+ * Settlement Response (Facilitator API Format)
+ *
+ * The raw response structure returned by the Cronos Labs facilitator API.
+ * This interface matches the exact format of the /v2/x402/settle response.
+ *
+ * **Success Response:**
+ * ```json
+ * {
+ *   "success": true,
+ *   "transaction": {
+ *     "hash": "0x...",
+ *     "blockNumber": 12345678
+ *   }
+ * }
+ * ```
+ *
+ * **Error Response:**
+ * ```json
+ * {
+ *   "success": false,
+ *   "error": {
+ *     "code": "INSUFFICIENT_BALANCE",
+ *     "message": "Payer has insufficient USDC balance"
+ *   }
+ * }
+ * ```
+ *
+ * Use `parseSettlementResponse()` to convert this API response
+ * to the internal X402SettlementResponse format.
+ *
+ * @see https://facilitator.cronoslabs.org/docs - Facilitator API Documentation
+ */
+export interface SettlementResponse {
+  /**
+   * Whether the settlement was successful
+   */
+  success: boolean;
+
+  /**
+   * Transaction details (present if success is true)
+   */
+  transaction?: {
+    /**
+     * The on-chain transaction hash
+     * Hex string with 0x prefix
+     */
+    hash: string;
+
+    /**
+     * The block number containing the transaction
+     */
+    blockNumber: number;
+  };
+
+  /**
+   * Error details (present if success is false)
+   */
+  error?: {
+    /**
+     * Machine-readable error code
+     * @see X402SettlementErrorCode for standard codes
+     */
+    code: string;
+
+    /**
+     * Human-readable error description
+     */
+    message: string;
+  };
+}
+
+/**
+ * Parse facilitator API response to internal format
+ *
+ * Converts the raw facilitator API SettlementResponse to the
+ * enriched X402SettlementResponse format used internally.
+ *
+ * @param response - The raw facilitator API response
+ * @param settledAt - Optional timestamp override (defaults to now)
+ * @returns Internal settlement response format
+ *
+ * @example
+ * ```typescript
+ * const apiResponse = await fetch(facilitatorUrl).then(r => r.json());
+ * const settlement = parseSettlementResponse(apiResponse);
+ *
+ * if (settlement.success) {
+ *   console.log(`Settled in tx ${settlement.transactionHash}`);
+ * } else {
+ *   console.error(`Settlement failed: ${settlement.errorMessage}`);
+ * }
+ * ```
+ */
+export function parseSettlementResponse(
+  response: SettlementResponse,
+  settledAt?: Date,
+): X402SettlementResponse {
+  const timestamp = (settledAt ?? new Date()).toISOString();
+
+  if (response.success && response.transaction) {
+    return {
+      success: true,
+      transactionHash: response.transaction.hash,
+      blockNumber: response.transaction.blockNumber,
+      settledAt: timestamp,
+    };
+  }
+
+  return {
+    success: false,
+    errorCode: response.error?.code ?? 'UNKNOWN_ERROR',
+    errorMessage: response.error?.message ?? 'Settlement failed with unknown error',
+    settledAt: timestamp,
+  };
+}
+
+/**
+ * Create a successful settlement response
+ *
+ * Factory function to create a success response with proper typing.
+ *
+ * @param transactionHash - The on-chain transaction hash
+ * @param blockNumber - The block number containing the transaction
+ * @param settledAt - Optional timestamp override
+ * @returns Successful settlement response
+ *
+ * @example
+ * ```typescript
+ * const response = createSuccessSettlementResponse(
+ *   '0x1234567890abcdef...',
+ *   12345678
+ * );
+ * ```
+ */
+export function createSuccessSettlementResponse(
+  transactionHash: string,
+  blockNumber: number,
+  settledAt?: Date,
+): X402SettlementResponse {
+  return {
+    success: true,
+    transactionHash,
+    blockNumber,
+    settledAt: (settledAt ?? new Date()).toISOString(),
+  };
+}
+
+/**
+ * Create a failed settlement response
+ *
+ * Factory function to create an error response with proper typing.
+ *
+ * @param errorCode - The error code
+ * @param errorMessage - Human-readable error message
+ * @param settledAt - Optional timestamp override
+ * @returns Failed settlement response
+ *
+ * @example
+ * ```typescript
+ * const response = createFailedSettlementResponse(
+ *   'INSUFFICIENT_BALANCE',
+ *   'Payer has insufficient USDC balance'
+ * );
+ * ```
+ */
+export function createFailedSettlementResponse(
+  errorCode: string,
+  errorMessage: string,
+  settledAt?: Date,
+): X402SettlementResponse {
+  return {
+    success: false,
+    errorCode,
+    errorMessage,
+    settledAt: (settledAt ?? new Date()).toISOString(),
+  };
+}
+
+/**
+ * Check if a settlement response indicates success
+ *
+ * Type guard to narrow settlement response type.
+ *
+ * @param response - The settlement response to check
+ * @returns True if settlement was successful
+ */
+export function isSuccessfulSettlement(
+  response: X402SettlementResponse,
+): response is X402SettlementResponse & {
+  success: true;
+  transactionHash: string;
+  blockNumber: number;
+} {
+  return (
+    response.success === true &&
+    typeof response.transactionHash === 'string' &&
+    response.transactionHash.length > 0
+  );
 }
 
 /**
