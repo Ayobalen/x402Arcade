@@ -2,29 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import design system CSS variables */
+@import './styles/variables.css';
+
 /* Import fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-:root {
-  /* Primary Background */
-  --bg-main: #0a0a0a;
-  --bg-secondary: #1a1a2e;
-  --bg-surface: #16162a;
-
-  /* Accent Colors */
-  --primary: #00ffff;
-  --secondary: #ff00ff;
-  --success: #00ff00;
-  --warning: #ffff00;
-  --error: #ff4444;
-
-  /* Text Colors */
-  --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-
-  /* Border */
-  --border: #2d2d4a;
-}
 
 * {
   margin: 0;
