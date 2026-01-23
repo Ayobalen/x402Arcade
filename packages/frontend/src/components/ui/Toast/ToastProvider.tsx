@@ -22,55 +22,25 @@
  */
 
 import {
-  createContext,
   useCallback,
   useState,
   useMemo,
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Toast } from './Toast'
-import type { ToastData, ToastPosition, ToastVariant } from './Toast.types'
+import {
+  ToastContext,
+  type ToastOptions,
+  type ToastContextValue,
+} from './ToastContext'
+import type { ToastData, ToastPosition } from './Toast.types'
 
-/**
- * Options for creating a new toast
- */
-export interface ToastOptions {
-  /** Visual variant for the toast */
-  variant?: ToastVariant
-  /** Title text */
-  title?: string
-  /** Description text */
-  description?: ReactNode
-  /** Duration in milliseconds (0 for persistent) */
-  duration?: number
-  /** Optional action button */
-  action?: {
-    label: string
-    onClick: () => void
-  }
-}
-
-/**
- * Toast context value interface
- */
-export interface ToastContextValue {
-  /** Add a new toast */
-  addToast: (options: ToastOptions) => string
-  /** Remove a toast by ID */
-  removeToast: (id: string) => void
-  /** Remove all toasts */
-  clearToasts: () => void
-  /** Convenience methods for each variant */
-  toast: {
-    success: (title: string, description?: ReactNode) => string
-    error: (title: string, description?: ReactNode) => string
-    warning: (title: string, description?: ReactNode) => string
-    info: (title: string, description?: ReactNode) => string
-  }
-}
+// Re-export types from ToastContext for backward compatibility
+export type { ToastOptions, ToastContextValue } from './ToastContext'
+export { ToastContext } from './ToastContext'
 
 /**
  * Toast Provider Props
@@ -85,11 +55,6 @@ export interface ToastProviderProps {
   /** Default duration for toasts (ms) */
   defaultDuration?: number
 }
-
-/**
- * Create the Toast context
- */
-export const ToastContext = createContext<ToastContextValue | null>(null)
 
 /**
  * Generate unique ID for toasts
@@ -113,6 +78,11 @@ const positionStyles: Record<ToastPosition, string> = {
 
 /**
  * Animation variants for toast entrance/exit
+ *
+ * - Slide in from top or bottom edge depending on position
+ * - Fade in/out with opacity
+ * - Scale slightly for visual polish
+ * - Respects reduced-motion preference via separate variants
  */
 const toastVariants = {
   initial: (position: ToastPosition) => ({
@@ -141,6 +111,28 @@ const toastVariants = {
 }
 
 /**
+ * Reduced motion variants - only opacity, no transforms
+ * Used when user prefers reduced motion for accessibility
+ */
+const reducedMotionVariants = {
+  initial: {
+    opacity: 0,
+  },
+  animate: {
+    opacity: 1,
+    transition: {
+      duration: 0.1,
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      duration: 0.1,
+    },
+  },
+}
+
+/**
  * Toast Provider Component
  *
  * Provides toast state management and renders the toast container.
@@ -152,6 +144,9 @@ export function ToastProvider({
   defaultDuration = 5000,
 }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastData[]>([])
+
+  // Detect user's reduced motion preference
+  const prefersReducedMotion = useReducedMotion()
 
   /**
    * Add a new toast to the stack
@@ -246,11 +241,11 @@ export function ToastProvider({
                 <motion.div
                   key={toastData.id}
                   custom={position}
-                  variants={toastVariants}
+                  variants={prefersReducedMotion ? reducedMotionVariants : toastVariants}
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  layout
+                  layout={!prefersReducedMotion}
                   className="pointer-events-auto"
                 >
                   <Toast
