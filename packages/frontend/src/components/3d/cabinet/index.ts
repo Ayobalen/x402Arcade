@@ -203,3 +203,19 @@ export {
   type HoverGlowPreset,
   default as CabinetHoverGlowDefault,
 } from './CabinetHoverGlow';
+
+// Marquee Component (Illuminated Sign)
+export {
+  Marquee,
+  SimpleMarquee,
+  useMarquee,
+  getMarqueePreset,
+  MARQUEE_PRESETS,
+  type MarqueeProps,
+  type MarqueeHandle,
+  type SimpleMarqueeProps,
+  type UseMarqueeOptions,
+  type UseMarqueeResult,
+  type MarqueePreset,
+  default as MarqueeDefault,
+} from './Marquee';
