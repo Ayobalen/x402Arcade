@@ -16,8 +16,12 @@
     "test:coverage": "pnpm test:coverage:frontend && pnpm test:coverage:backend",
     "coverage:badges": "node scripts/generate-coverage-badges.js",
     "test:all": "pnpm test:frontend && pnpm test:backend",
+    "test:ci:frontend": "pnpm --dir packages/frontend test:ci",
+    "test:ci:backend": "pnpm --dir packages/backend test:ci",
+    "test:ci:all": "pnpm test:ci:frontend && pnpm test:ci:backend",
     "lint:frontend": "pnpm --dir packages/frontend lint",
-    "lint:backend": "pnpm --dir packages/backend lint"
+    "lint:backend": "pnpm --dir packages/backend lint",
+    "lint:all": "pnpm lint:frontend && pnpm lint:backend"
   },
   "keywords": [
     "cronos",
