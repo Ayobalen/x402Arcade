@@ -11,3 +11,13 @@ export {
   type UsePerformanceMonitorOptions,
   type UsePerformanceMonitorResult,
 } from './usePerformanceMonitor'
+
+export {
+  useGracefulDegradation,
+  QUALITY_TIERS,
+  type QualityTier,
+  type QualitySettings,
+  type GracefulDegradationState,
+  type UseGracefulDegradationResult,
+  type UseGracefulDegradationOptions,
+} from './useGracefulDegradation'
