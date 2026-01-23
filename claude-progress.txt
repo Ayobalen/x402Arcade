@@ -12,6 +12,8 @@
 - Design system: Retro arcade theme with cyan (#00ffff) and magenta (#ff00ff) accents
 - Database: SQLite with better-sqlite3
 - GOTCHA: Jest in ESM mode requires `import { jest } from '@jest/globals'` for mock functions
+- GOTCHA: Browser API mocks (matchMedia, ResizeObserver, etc.) must use class-based
+  implementations, NOT vi.fn().mockImplementation(), or they get cleared by restoreAllMocks
 - Test directories:
   - Frontend: packages/frontend/__tests__/ (components, hooks, pages, utils)
   - Backend: packages/backend/__tests__/ (unit, integration, fixtures, mocks)
@@ -358,3 +360,63 @@
   - Integration test harness
 
 **Next:** Continue with remaining TDD infrastructure features (MSW setup, E2E skeleton, etc.)
+
+### Session 6 (TDD Infrastructure - React Testing Library Setup)
+**Completed:**
+- Feature #366: Set up React Testing Library ✅
+  - Installed @testing-library/user-event package
+  - Created packages/frontend/__tests__/utils/rtl-helpers.tsx
+  - Implemented renderWithProviders() with React Router and React Query
+  - Added renderSimple(), renderWithRouter(), renderWithQueryClient()
+  - Created waitForLoadingToComplete() and getByTestIdWithFallback() helpers
+  - Added MockWalletState interface for wallet testing
+  - Updated __tests__/setup.ts with RTL cleanup
+  - Written 19 comprehensive tests in App.test.tsx
+
+- Feature #367: Configure jsdom environment ✅
+  - Verified vitest.config.ts has environment: 'jsdom' configured
+  - Fixed browser API mocks to use class-based implementations
+    - matchMedia mock now returns proper MediaQueryList objects
+    - ResizeObserver/IntersectionObserver use proper class implementations
+  - Removed vi.restoreAllMocks() from afterEach to preserve mocks
+  - Fixed localStorage/sessionStorage to be separate instances
+  - Added scrollTo, requestAnimationFrame, cancelAnimationFrame mocks
+  - Written 35 comprehensive tests in jsdom-verification.test.ts
+
+- Feature #368: Create component test utilities ✅
+  - Created packages/frontend/__tests__/utils/component-utils.tsx
+  - Implemented renderWithWallet() with MockWalletProvider
+  - Created renderWithStore() for React Query context
+  - Implemented renderWithAll() combining router, query, and wallet contexts
+  - Added customRender alias for renderWithAll
+  - Created wallet state factories:
+    - defaultWalletState, disconnectedWalletState, connectingWalletState
+    - createConnectedWallet(), createDisconnectedWallet()
+    - createInsufficientBalanceWallet(), createWrongNetworkWallet()
+  - Added generateTestAddress() for unique test addresses
+  - Created defaultWalletActions and failingWalletActions
+  - Added assertion helpers: expectLoadingState, expectErrorState, expectWalletConnected
+  - Written 34 comprehensive tests in component-utils.test.tsx
+
+**GOTCHA FIXED:** Browser API mocks using vi.fn().mockImplementation() were being
+reset by vi.restoreAllMocks() in afterEach. Fixed by using class-based implementations
+that don't get cleared by Vitest mock restoration.
+
+**Test Summary:**
+- App.test.tsx: 19 tests passing
+- jsdom-verification.test.ts: 35 tests passing
+- component-utils.test.tsx: 34 tests passing
+- Total frontend tests: 93 passing
+
+**Progress:** 27/1215 features passing (2.2%)
+
+**Session Summary:**
+- Total features completed this session: 3 (#366-#368)
+- Total tests written this session: 88 tests
+- Frontend TDD infrastructure now includes:
+  - React Testing Library with custom render functions
+  - Browser API mocks (jsdom properly configured)
+  - Component test utilities with provider wrappers
+  - Wallet context testing support
+
+**Next:** Continue with remaining TDD infrastructure features
