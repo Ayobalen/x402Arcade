@@ -175,6 +175,38 @@ export const USDC_NAME = 'Bridged USDC (Stargate)';
 export const USDC_DECIMALS: 6 = 6;
 
 /**
+ * USDC EIP-712 Domain Version
+ *
+ * The version string used in the EIP-712 domain separator for the USDC contract.
+ * This value MUST match the version used in the deployed contract's domain separator,
+ * otherwise TransferWithAuthorization and ReceiveWithAuthorization signatures will fail.
+ *
+ * **CRITICAL**: The version differs between networks:
+ * - Testnet (devUSDC.e): "1"
+ * - Mainnet (USDC): "2"
+ *
+ * The domain separator is constructed as:
+ * ```
+ * keccak256(
+ *   abi.encode(
+ *     keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+ *     keccak256(bytes(name)),
+ *     keccak256(bytes(version)),  // <-- This constant
+ *     chainId,
+ *     verifyingContract
+ *   )
+ * )
+ * ```
+ *
+ * If the version doesn't match the deployed contract, the domain separator hash
+ * will be different, causing all EIP-3009 signatures to be rejected as invalid.
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-712 - EIP-712 Typed Data
+ * @see https://eips.ethereum.org/EIPS/eip-3009 - Transfer With Authorization
+ */
+export const USDC_VERSION = '1';
+
+/**
  * Parse a human-readable USDC amount into the smallest unit representation
  *
  * Converts a decimal USDC value (e.g., "1.50" or 1.5) into the integer
@@ -334,6 +366,7 @@ export const chainConstants = {
   NATIVE_CURRENCY,
   USDC_NAME,
   USDC_DECIMALS,
+  USDC_VERSION,
   DEFAULT_USDC_CONTRACT_ADDRESS,
   USDC_CONTRACT_ADDRESS,
   getCronosTestnetRpcUrl,
