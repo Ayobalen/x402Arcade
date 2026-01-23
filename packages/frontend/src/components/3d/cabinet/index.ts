@@ -235,3 +235,33 @@ export {
   type UseCabinetLightingResult,
   default as CabinetLightingDefault,
 } from './CabinetLighting';
+
+// Cabinet Performance Optimization
+export {
+  CabinetLOD,
+  InstancedCabinets,
+  PerformanceProfiler,
+  PerformanceProvider,
+  PerformanceContext,
+  useOptimizedMaterial,
+  usePerformanceContext,
+  useFrustumCulling,
+  createOptimizedCabinetGeometry,
+  createBillboardGeometry,
+  mergeGeometries,
+  optimizeTexture,
+  createPlaceholderTexture,
+  clearMaterialCache,
+  DEFAULT_LOD_DISTANCES,
+  DEFAULT_HYSTERESIS,
+  type CabinetLODProps,
+  type CabinetLODHandle,
+  type InstancedCabinetsProps,
+  type InstancedCabinetsHandle,
+  type OptimizedMaterialProps,
+  type PerformanceMetrics,
+  type PerformanceProfilerProps,
+  type PerformanceProviderProps,
+  type LODLevel,
+  default as CabinetPerformanceDefault,
+} from './CabinetPerformance';
