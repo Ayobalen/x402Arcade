@@ -154,6 +154,14 @@ export interface WalletState {
    * @returns Promise resolving to connection result
    */
   connectWallet: () => Promise<WalletConnection | null>
+
+  /**
+   * Switch to required chain or add it if not present
+   * Uses wallet_switchEthereumChain and wallet_addEthereumChain
+   * @param targetChainId - Optional chain ID to switch to (defaults to REQUIRED_CHAIN_ID)
+   * @returns Promise resolving to success boolean
+   */
+  switchChain: (targetChainId?: ChainId) => Promise<boolean>
 }
 
 // ============================================================================
@@ -185,6 +193,7 @@ type WalletActions = Pick<
   | 'setChainId'
   | 'reset'
   | 'connectWallet'
+  | 'switchChain'
 >
 
 // ============================================================================
