@@ -22,7 +22,7 @@
  * </Modal>
  */
 
-import { forwardRef, useEffect, useCallback } from 'react'
+import { forwardRef, useEffect, useCallback, useRef, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -34,6 +34,163 @@ import type {
   ModalFooterProps,
   ModalSize,
 } from './Modal.types'
+
+/**
+ * Selector for all focusable elements within a container
+ */
+const FOCUSABLE_SELECTORS = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+  'audio[controls]',
+  'video[controls]',
+  '[contenteditable]:not([contenteditable="false"])',
+].join(',')
+
+/**
+ * Custom hook for focus trapping within a container
+ * Implements WAI-ARIA modal dialog pattern
+ *
+ * Features:
+ * - Traps Tab and Shift+Tab within the container
+ * - Auto-focuses first focusable element on mount
+ * - Returns focus to previously focused element on unmount
+ * - Handles dynamically added/removed focusable elements
+ */
+function useFocusTrap(
+  containerRef: RefObject<HTMLElement>,
+  isActive: boolean,
+  options: {
+    /** Auto-focus first element when trap activates */
+    autoFocus?: boolean
+    /** Return focus to trigger element on deactivate */
+    returnFocus?: boolean
+    /** Initial element to focus (selector or element) */
+    initialFocus?: string | HTMLElement
+  } = {}
+): void {
+  const { autoFocus = true, returnFocus = true, initialFocus } = options
+
+  // Store the element that had focus before the trap activated
+  const previouslyFocusedElement = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!isActive || !containerRef.current) return
+
+    const container = containerRef.current
+
+    // Store currently focused element to restore later
+    if (returnFocus) {
+      previouslyFocusedElement.current = document.activeElement as HTMLElement
+    }
+
+    /**
+     * Get all focusable elements within the container
+     */
+    const getFocusableElements = (): HTMLElement[] => {
+      return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS))
+        .filter((el) => {
+          // Filter out elements that are hidden or have display:none
+          const style = window.getComputedStyle(el)
+          return style.display !== 'none' && style.visibility !== 'hidden'
+        })
+    }
+
+    /**
+     * Focus the initial element or first focusable element
+     */
+    const focusInitialElement = () => {
+      if (!autoFocus) return
+
+      const focusableElements = getFocusableElements()
+
+      if (initialFocus) {
+        // Focus specific element
+        const initialElement = typeof initialFocus === 'string'
+          ? container.querySelector<HTMLElement>(initialFocus)
+          : initialFocus
+
+        if (initialElement && focusableElements.includes(initialElement)) {
+          initialElement.focus()
+          return
+        }
+      }
+
+      // Focus first focusable element
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus()
+      } else {
+        // If no focusable elements, focus the container itself
+        container.setAttribute('tabindex', '-1')
+        container.focus()
+      }
+    }
+
+    /**
+     * Handle Tab key to cycle focus within container
+     */
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+
+      const focusableElements = getFocusableElements()
+      if (focusableElements.length === 0) {
+        event.preventDefault()
+        return
+      }
+
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+      const activeElement = document.activeElement
+
+      // Shift + Tab: Move to previous element
+      if (event.shiftKey) {
+        if (activeElement === firstElement || !focusableElements.includes(activeElement as HTMLElement)) {
+          event.preventDefault()
+          lastElement.focus()
+        }
+      }
+      // Tab: Move to next element
+      else {
+        if (activeElement === lastElement || !focusableElements.includes(activeElement as HTMLElement)) {
+          event.preventDefault()
+          firstElement.focus()
+        }
+      }
+    }
+
+    /**
+     * Handle focus leaving the container (for edge cases)
+     */
+    const handleFocusIn = (event: FocusEvent) => {
+      if (!container.contains(event.target as Node)) {
+        // Focus escaped the container, bring it back
+        const focusableElements = getFocusableElements()
+        if (focusableElements.length > 0) {
+          focusableElements[0].focus()
+        }
+      }
+    }
+
+    // Set up focus trap
+    focusInitialElement()
+    container.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('focusin', handleFocusIn)
+
+    // Cleanup
+    return () => {
+      container.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('focusin', handleFocusIn)
+
+      // Return focus to previously focused element
+      if (returnFocus && previouslyFocusedElement.current) {
+        previouslyFocusedElement.current.focus()
+      }
+    }
+  }, [isActive, containerRef, autoFocus, returnFocus, initialFocus])
+}
 
 /**
  * Animation variants for the backdrop

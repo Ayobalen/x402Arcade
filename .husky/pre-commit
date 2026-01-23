@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# Husky pre-commit hook
+# Runs lint-staged to enforce code quality on staged files
+
+# Run lint-staged for code quality checks
+npx lint-staged
