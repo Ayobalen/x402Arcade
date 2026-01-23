@@ -111,14 +111,48 @@ export function createX402Middleware(config: X402Config): X402Middleware {
       // Record when we received the payment
       const receivedAt = new Date();
 
-      // Decode and parse the payment header (base64-encoded JSON)
+      // Step 1: Decode base64-encoded X-Payment header
+      let decoded: string;
+      try {
+        decoded = Buffer.from(paymentHeader, 'base64').toString('utf-8');
+
+        // Validate the decoded string looks like JSON (starts with { or [)
+        // This helps catch corrupt base64 that decodes to garbage
+        if (!decoded.trim().startsWith('{') && !decoded.trim().startsWith('[')) {
+          throw new Error('Decoded content is not valid JSON structure');
+        }
+      } catch (error) {
+        // Log malformed base64 payload attempt for security monitoring
+        console.warn('[x402] Malformed base64 payload attempt:', {
+          headerLength: paymentHeader.length,
+          headerPreview: paymentHeader.substring(0, 50) + (paymentHeader.length > 50 ? '...' : ''),
+          error: error instanceof Error ? error.message : String(error),
+          clientIp: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown',
+          timestamp: new Date().toISOString(),
+        });
+
+        throw X402ValidationError.invalidJson(
+          `Invalid base64 encoding: ${error instanceof Error ? error.message : 'malformed payload'}. ` +
+          'Expected format: base64-encoded JSON string containing x402 payment data',
+        );
+      }
+
+      // Step 2: Parse the decoded JSON string
       let paymentData: X402PaymentHeader;
       try {
-        const decoded = Buffer.from(paymentHeader, 'base64').toString('utf-8');
         paymentData = JSON.parse(decoded) as X402PaymentHeader;
       } catch (error) {
+        // Log JSON parse failure for debugging
+        if (config.debug) {
+          console.warn('[x402] JSON parse failure:', {
+            decodedPreview: decoded.substring(0, 100) + (decoded.length > 100 ? '...' : ''),
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+
         throw X402Error.invalidJson(
-          error instanceof Error ? error.message : 'Invalid JSON',
+          error instanceof Error ? error.message : 'Invalid JSON structure',
         );
       }
 
