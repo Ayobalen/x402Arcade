@@ -30,7 +30,7 @@ import {
   createPaymentInfo,
   validateX402Config,
 } from './types.js';
-import { X402Error } from './errors.js';
+import { X402Error, X402ValidationError } from './errors.js';
 import { getDefaultNonceStore } from './nonce-store.js';
 
 /**
@@ -156,9 +156,29 @@ export function createX402Middleware(config: X402Config): X402Middleware {
         );
       }
 
-      // Validate payment recipient matches our wallet
-      if (payload.to.toLowerCase() !== config.payTo.toLowerCase()) {
-        throw X402Error.recipientMismatch(config.payTo, payload.to);
+      // Validate payment recipient matches our configured payTo address
+      // Normalize both addresses to checksummed format for consistent comparison
+      const normalizedPayloadTo = payload.to.toLowerCase();
+      const normalizedConfigPayTo = config.payTo.toLowerCase();
+
+      // Log recipient verification for debugging
+      if (config.debug) {
+        console.log('[x402] Verifying payment recipient:', {
+          payloadTo: payload.to,
+          configPayTo: config.payTo,
+          normalizedPayloadTo,
+          normalizedConfigPayTo,
+          matches: normalizedPayloadTo === normalizedConfigPayTo,
+        });
+      }
+
+      if (normalizedPayloadTo !== normalizedConfigPayTo) {
+        // Log recipient mismatch
+        console.warn('[x402] Payment recipient mismatch:', {
+          expected: config.payTo,
+          received: payload.to,
+        });
+        throw X402ValidationError.recipientMismatch(config.payTo, payload.to);
       }
 
       // Validate authorization timing with clock skew tolerance
