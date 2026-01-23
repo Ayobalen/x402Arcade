@@ -97,12 +97,42 @@ export function getExplorerAddressUrl(address: string): string {
   return `${CRONOS_TESTNET_EXPLORER_URL}/address/${addr}`;
 }
 
+/**
+ * Native Currency Configuration
+ *
+ * Configuration for the native currency on Cronos Testnet.
+ * Used for wallet display and transaction fee calculations.
+ */
+export interface NativeCurrencyConfig {
+  /** Full name of the native currency */
+  name: string;
+  /** Token symbol (e.g., 'TCRO') */
+  symbol: string;
+  /** Number of decimal places (18 for most EVM chains) */
+  decimals: number;
+}
+
+/**
+ * Cronos Testnet Native Currency (TCRO)
+ *
+ * Configuration for the native currency on Cronos Testnet.
+ * TCRO is used for gas fees and native token transfers.
+ *
+ * @see https://docs.cronos.org/cronos-zkevm/for-developers/dev-tools-and-integrations/chain-integration
+ */
+export const NATIVE_CURRENCY: NativeCurrencyConfig = {
+  name: 'Cronos Testnet',
+  symbol: 'TCRO',
+  decimals: 18,
+} as const;
+
 // Chain constants object containing all defined constants
 export const chainConstants = {
   CRONOS_TESTNET_CHAIN_ID,
   DEFAULT_CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_EXPLORER_URL,
+  NATIVE_CURRENCY,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,

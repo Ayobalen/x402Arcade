@@ -8,9 +8,11 @@ import {
   DEFAULT_CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_EXPLORER_URL,
+  NATIVE_CURRENCY,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
+  type NativeCurrencyConfig,
 } from '../../../../src/lib/chain/constants.js';
 
 describe('Chain Constants', () => {
@@ -36,6 +38,7 @@ describe('Chain Constants', () => {
       expect(chainConstants.CRONOS_TESTNET_CHAIN_ID).toBe(338);
       expect(chainConstants.DEFAULT_CRONOS_TESTNET_RPC_URL).toBe('https://evm-t3.cronos.org/');
       expect(chainConstants.CRONOS_TESTNET_EXPLORER_URL).toBe('https://explorer.cronos.org/testnet');
+      expect(chainConstants.NATIVE_CURRENCY).toBe(NATIVE_CURRENCY);
     });
   });
 
@@ -187,6 +190,41 @@ describe('Chain Constants', () => {
 
       it('should be included in chainConstants object', () => {
         expect(chainConstants.getExplorerAddressUrl).toBe(getExplorerAddressUrl);
+      });
+    });
+  });
+
+  describe('Native Currency Configuration', () => {
+    describe('NATIVE_CURRENCY', () => {
+      it('should be exported directly', () => {
+        expect(NATIVE_CURRENCY).toBeDefined();
+      });
+
+      it('should be an object', () => {
+        expect(typeof NATIVE_CURRENCY).toBe('object');
+      });
+
+      it('should have name property set to "Cronos Testnet"', () => {
+        expect(NATIVE_CURRENCY.name).toBe('Cronos Testnet');
+      });
+
+      it('should have symbol property set to "TCRO"', () => {
+        expect(NATIVE_CURRENCY.symbol).toBe('TCRO');
+      });
+
+      it('should have decimals property set to 18', () => {
+        expect(NATIVE_CURRENCY.decimals).toBe(18);
+      });
+
+      it('should conform to NativeCurrencyConfig interface', () => {
+        const config: NativeCurrencyConfig = NATIVE_CURRENCY;
+        expect(config.name).toBeDefined();
+        expect(config.symbol).toBeDefined();
+        expect(config.decimals).toBeDefined();
+      });
+
+      it('should be included in chainConstants object', () => {
+        expect(chainConstants.NATIVE_CURRENCY).toBe(NATIVE_CURRENCY);
       });
     });
   });
