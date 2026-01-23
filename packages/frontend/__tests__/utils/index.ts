@@ -128,3 +128,51 @@ export {
   type ExampleWalletState,
   type ExampleGameState,
 } from './store-utils';
+
+// Animation test utilities
+export {
+  // Types
+  type AnimationState,
+  type AnimationMockConfig,
+  type TransitionEventData,
+  type AnimationEventData,
+  type AnimationRecord,
+  type MockedFramerMotion,
+  type RAFController,
+  // Framer Motion mocking
+  mockFramerMotion,
+  createFramerMotionMock,
+  // CSS animation event firing
+  fireTransitionEnd,
+  fireTransitionStart,
+  fireTransitionCancel,
+  fireAnimationEnd,
+  fireAnimationStart,
+  fireAnimationIteration,
+  fireAnimationCancel,
+  // Animation waiting
+  waitForAnimation,
+  waitForTransition,
+  waitForAllAnimations,
+  // Animation assertions
+  assertAnimationState,
+  assertHasTransition,
+  assertFramerProps,
+  // Animation control
+  disableAnimations,
+  enableAnimations,
+  setTransitionMultiplier,
+  getTransitionMultiplier,
+  areAnimationsEnabled,
+  // Animation tracking
+  clearAnimationRecords,
+  getAnimationRecords,
+  getAnimationRecordsByType,
+  trackAnimation,
+  // RAF controller
+  createRAFController,
+  // Computed style mocking
+  mockComputedStyleAnimations,
+  // Setup helpers
+  setupAnimationTesting,
+} from './animation-utils';
