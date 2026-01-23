@@ -526,15 +526,5 @@ export function createGameStateMachine<TContext = unknown>(
   })
 }
 
-// ============================================================================
-// Exports
-// ============================================================================
-
-export type {
-  StateDefinition,
-  TransitionDefinition,
-  StateChangeEvent,
-  StateEventListener,
-  StateMachineConfig,
-  StateMachine,
-}
+// Note: All types are exported at their definitions via `export interface`
+// No need for redundant re-exports here

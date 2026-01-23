@@ -646,15 +646,5 @@ export function isTouchSupported(): boolean {
   )
 }
 
-// ============================================================================
-// Exports
-// ============================================================================
-
-export {
-  type TouchInputHandler,
-  type TouchInputConfig,
-  type TouchInputState,
-  type TouchInputCallbacks,
-  type TouchPoint,
-  type SwipeGesture,
-}
+// Note: All types are exported at their definitions via `export interface`
+// No need for redundant re-exports here
