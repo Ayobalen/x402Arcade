@@ -149,3 +149,33 @@
 **Progress:** 14/1215 features passing (1.2%)
 
 **Next:** Continue with remaining TDD infrastructure features or start Phase 1 setup
+
+### Session 4 (TDD Infrastructure - Facilitator Mock Server)
+**Completed:**
+- Feature #356: Create facilitator mock server ✅
+  - Created packages/backend/__tests__/mocks/facilitator-mock.ts
+  - Implemented MockFacilitatorServer class simulating Cronos x402 facilitator
+  - Added endpoint mocks: /verify, /settle, /refund, /supported
+  - Created response generators for various scenarios (success, failure, etc.)
+  - Implemented latency simulation for timeout testing
+  - Added comprehensive request logging for test debugging
+  - Implemented custom validator support for flexible testing
+  - Created 82 comprehensive integration tests in facilitator-mock.test.ts
+  - Exported all types and utilities from mocks/index.ts
+
+**Key Features Implemented:**
+- Full settlement flow simulation with nonce tracking
+- Transaction verification with stored settlement data
+- Refund processing with duplicate detection
+- Support for custom validators and error scenarios
+- EIP-3009 transferWithAuthorization mock support
+- All 16 facilitator error codes with descriptive messages
+
+**Test Summary:**
+- facilitator-mock.test.ts: 82 tests passing
+
+**GOTCHA:** better-sqlite3 native module requires `pnpm approve-builds` to compile native bindings. In sandbox environment, this may not be available. The db-test-utils.test.ts tests fail due to this, but it's an environment limitation, not a code issue.
+
+**Progress:** 15/1215 features passing (1.2%)
+
+**Next:** Continue with remaining TDD infrastructure features
