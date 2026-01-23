@@ -12,3 +12,21 @@ export * from './types.js';
 
 // Export error classes
 export * from './errors.js';
+
+// Export middleware factory functions
+export {
+  createX402Middleware,
+  createX402MiddlewareWithOptions,
+  createX402MockMiddleware,
+  hasPaymentInfo,
+  getPaymentInfo,
+} from './middleware.js';
+
+// Export header detection utilities
+export {
+  detectXPaymentHeader,
+  hasXPaymentHeader,
+  extractXPaymentHeader,
+  extractXPaymentHeaderFromRequest,
+  type XPaymentHeaderDetectionResult,
+} from './header-detection.js';
