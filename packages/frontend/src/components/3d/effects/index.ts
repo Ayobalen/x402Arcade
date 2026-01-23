@@ -19,3 +19,18 @@ export {
   type UseStarfieldResult,
   default as StarfieldDefault,
 } from './Starfield'
+
+// Nebula fog effect
+export {
+  Nebula,
+  useNebula,
+  getNebulaPreset,
+  NEBULA_PRESETS,
+  type NebulaProps,
+  type NebulaHandle,
+  type NebulaPreset,
+  type NebulaCloudConfig,
+  type UseNebulaOptions,
+  type UseNebulaResult,
+  default as NebulaDefault,
+} from './Nebula'
