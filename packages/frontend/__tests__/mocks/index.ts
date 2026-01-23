@@ -117,3 +117,66 @@ export {
   type RequestHandler,
   type ProviderCallRecord,
 } from './web3-provider-mock';
+
+// Three.js and React Three Fiber mocks
+export {
+  // Types
+  type MockWebGLRendererConfig,
+  type RenderCallRecord,
+  type MockVector3,
+  type MockEuler,
+  type MockColor,
+  // Math classes
+  MockVector3Impl,
+  MockEulerImpl,
+  MockColorImpl,
+  MockMatrix4,
+  // Scene graph
+  MockObject3D,
+  MockScene,
+  MockGroup,
+  MockMesh,
+  // Cameras
+  MockCamera,
+  MockPerspectiveCamera,
+  MockOrthographicCamera,
+  // Lights
+  MockLight,
+  MockAmbientLight,
+  MockDirectionalLight,
+  MockPointLight,
+  MockSpotLight,
+  // Geometries
+  MockBufferGeometry,
+  MockBoxGeometry,
+  MockSphereGeometry,
+  MockPlaneGeometry,
+  MockCylinderGeometry,
+  // Materials
+  MockMaterial,
+  MockMeshBasicMaterial,
+  MockMeshStandardMaterial,
+  MockMeshPhongMaterial,
+  MockShaderMaterial,
+  // Renderer
+  MockWebGLRenderer,
+  // Loaders
+  MockTextureLoader,
+  MockTexture,
+  // Mock namespace
+  mockTHREE,
+  // React Three Fiber mocks
+  MockCanvas,
+  mockUseThree,
+  mockUseFrame,
+  mockUseLoader,
+  // Factory functions
+  createThreeMock,
+  createReactThreeFiberMock,
+  // Test utilities
+  createTestScene,
+  createTestMesh,
+  assertSceneObjectCount,
+  assertMeshGeometry,
+  assertRenderCallCount,
+} from './three-mock';
