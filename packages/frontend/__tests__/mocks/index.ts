@@ -180,3 +180,36 @@ export {
   assertMeshGeometry,
   assertRenderCallCount,
 } from './three-mock';
+
+// MSW-like API mocking server
+export {
+  // Core
+  MockServer,
+  setupServer,
+  rest,
+  // Types
+  type HttpMethod,
+  type MockRequestInfo,
+  type MockResponseContext,
+  type MockResponse,
+  type RequestHandlerFn,
+  type RequestHandler as ApiRequestHandler,
+  type ServerOptions,
+  type FetchCallRecord,
+  // URL helpers
+  apiUrl,
+  API_BASE_URL,
+  // Response factories
+  jsonSuccess,
+  jsonError,
+  delayedResponse,
+  networkError,
+  // Arcade API
+  createArcadeApiHandlers,
+  createArcadeApiServer,
+  defaultGameSession,
+  defaultLeaderboard,
+  defaultPrizePool,
+  // Test setup helpers
+  setupTestServer,
+} from './msw-server';
