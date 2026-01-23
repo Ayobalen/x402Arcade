@@ -78,3 +78,42 @@ export {
   type MockPerformanceConfig,
   type MockAnimationFrameConfig,
 } from './canvas-mock';
+
+// Web3 Provider mocks
+export {
+  // Main class
+  MockEthereumProvider,
+  // Error utilities
+  RPC_ERROR_CODES,
+  createRpcError,
+  userRejectedRpcError,
+  chainNotAddedError,
+  unsupportedMethodError,
+  // Chain utilities
+  CHAIN_CONFIGS,
+  chainIdToHex,
+  hexToChainId,
+  // Factory functions
+  createConnectedProvider,
+  createDisconnectedProvider,
+  createRejectingProvider,
+  // Window utilities
+  installMockProvider,
+  mockWindowEthereum,
+  // Assertions
+  assertMethodCalled,
+  assertAccountsRequested,
+  assertChainSwitched,
+  assertSignatureRequested,
+  // Types
+  type RequestArguments,
+  type EIP1193Provider,
+  type ChainConfig,
+  type RpcError,
+  type ProviderEventType,
+  type EventListener,
+  type MockProviderConfig,
+  type MockProviderState,
+  type RequestHandler,
+  type ProviderCallRecord,
+} from './web3-provider-mock';
