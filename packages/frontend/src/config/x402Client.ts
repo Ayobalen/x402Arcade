@@ -299,6 +299,63 @@ export async function parse402Response(
 }
 
 // ============================================================================
+// Fetching Functions
+// ============================================================================
+
+/**
+ * Fetch payment requirements from an x402-protected endpoint
+ *
+ * Makes a request to the endpoint without a payment header to trigger
+ * a 402 response, then parses and returns the payment requirements.
+ *
+ * @param endpoint - The URL of the x402-protected endpoint
+ * @param options - Optional fetch options (method, headers, etc.)
+ * @returns Payment requirements from the 402 response
+ * @throws {X402Error} If the endpoint doesn't return 402 or response is invalid
+ * @throws {Error} If the request fails entirely
+ *
+ * @example
+ * ```typescript
+ * // Get requirements for a game endpoint
+ * const requirements = await getPaymentRequirements('/api/play/snake')
+ * console.log(`Pay ${requirements.amount} ${requirements.currency} to play`)
+ *
+ * // With custom options
+ * const requirements = await getPaymentRequirements('/api/premium', {
+ *   method: 'POST',
+ *   headers: { 'Content-Type': 'application/json' },
+ *   body: JSON.stringify({ gameId: 'snake' }),
+ * })
+ * ```
+ */
+export async function getPaymentRequirements(
+  endpoint: string,
+  options?: RequestInit
+): Promise<PaymentRequirements> {
+  // Make request without X-Payment header to get 402 response
+  const response = await fetch(endpoint, {
+    ...options,
+    // Ensure we don't send any payment header
+    headers: {
+      ...options?.headers,
+      // Remove X-Payment if present
+    },
+  })
+
+  // Check if we got a 402 response
+  if (!is402Response(response)) {
+    throw new X402Error(
+      'INVALID_RESPONSE',
+      `Expected 402 Payment Required, got ${response.status} ${response.statusText}. ` +
+        'The endpoint may not require payment or may have an error.'
+    )
+  }
+
+  // Parse and return the payment requirements
+  return parse402Response(response)
+}
+
+// ============================================================================
 // Utility Functions
 // ============================================================================
 
