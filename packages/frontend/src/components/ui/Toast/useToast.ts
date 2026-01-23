@@ -29,7 +29,7 @@
  */
 
 import { useContext } from 'react'
-import { ToastContext, type ToastContextValue } from './ToastProvider'
+import { ToastContext, type ToastContextValue } from './ToastContext'
 
 /**
  * useToast Hook
