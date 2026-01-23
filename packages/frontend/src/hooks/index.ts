@@ -63,6 +63,7 @@ export {
   type WalletStatus,
   type WalletError,
   type WalletClient,
+  type SignTypedDataParams,
   type UseWalletState,
   type UseWalletActions,
   type UseWalletOptions,
