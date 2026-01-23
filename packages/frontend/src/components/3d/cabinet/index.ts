@@ -187,3 +187,19 @@ export {
   type UseMultiSelectionResult,
   default as CabinetSelectionDefault,
 } from './CabinetSelection';
+
+// Cabinet Hover Glow Interaction Component
+export {
+  CabinetHoverGlow,
+  useCabinetHover,
+  applyHoverGlow,
+  createHoverGlowMaterial,
+  HOVER_GLOW_PRESETS,
+  getHoverGlowPreset,
+  type CabinetHoverGlowProps,
+  type CabinetHoverGlowHandle,
+  type UseCabinetHoverOptions,
+  type UseCabinetHoverResult,
+  type HoverGlowPreset,
+  default as CabinetHoverGlowDefault,
+} from './CabinetHoverGlow';
