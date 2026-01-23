@@ -50,11 +50,12 @@ export default tseslint.config(
       'react-refresh/only-export-components': 'off',
     },
   },
-  // Relaxed rules for hooks (performance monitoring, timers, etc.)
+  // Relaxed rules for hooks (performance monitoring, timers, capability detection, etc.)
   {
     files: ['**/hooks/**/*.{ts,tsx}'],
     rules: {
       'react-hooks/purity': 'off', // Performance monitoring hooks need impure functions
+      'react-hooks/set-state-in-effect': 'off', // Capability detection hooks initialize state in effects
     },
   },
   // Relaxed rules for context providers (they often export hooks alongside providers)

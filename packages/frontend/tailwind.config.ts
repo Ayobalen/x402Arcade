@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss';
-import { backgrounds, surfaces, primary, secondary, semantic, text, borders, accents, glows } from './src/styles/tokens/colors';
+import { backgrounds, surfaces, primary, secondary, semantic, text, borders, accents } from './src/styles/tokens/colors';
 import { fontFamilies, fontSizes, fontWeights, lineHeights, letterSpacing } from './src/styles/tokens/typography';
 import { spacing, negativeSpacing } from './src/styles/tokens/spacing';
 import { borderRadius, borderWidth } from './src/styles/tokens/borders';
