@@ -122,4 +122,72 @@ describe('Chain Constants', () => {
       });
     });
   });
+
+  describe('Explorer URL Constants', () => {
+    describe('CRONOS_TESTNET_EXPLORER_URL', () => {
+      it('should be exported directly', () => {
+        expect(CRONOS_TESTNET_EXPLORER_URL).toBeDefined();
+      });
+
+      it('should equal the Cronos Testnet explorer URL', () => {
+        expect(CRONOS_TESTNET_EXPLORER_URL).toBe('https://explorer.cronos.org/testnet');
+      });
+
+      it('should be a string type', () => {
+        expect(typeof CRONOS_TESTNET_EXPLORER_URL).toBe('string');
+      });
+
+      it('should be a valid HTTPS URL', () => {
+        expect(CRONOS_TESTNET_EXPLORER_URL).toMatch(/^https:\/\//);
+      });
+
+      it('should be included in chainConstants object', () => {
+        expect(chainConstants.CRONOS_TESTNET_EXPLORER_URL).toBe(CRONOS_TESTNET_EXPLORER_URL);
+      });
+    });
+
+    describe('getExplorerTxUrl()', () => {
+      it('should be a function', () => {
+        expect(typeof getExplorerTxUrl).toBe('function');
+      });
+
+      it('should generate correct transaction URL with 0x prefix', () => {
+        const txHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+        const expectedUrl = `${CRONOS_TESTNET_EXPLORER_URL}/tx/${txHash}`;
+        expect(getExplorerTxUrl(txHash)).toBe(expectedUrl);
+      });
+
+      it('should add 0x prefix if missing', () => {
+        const txHash = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+        const expectedUrl = `${CRONOS_TESTNET_EXPLORER_URL}/tx/0x${txHash}`;
+        expect(getExplorerTxUrl(txHash)).toBe(expectedUrl);
+      });
+
+      it('should be included in chainConstants object', () => {
+        expect(chainConstants.getExplorerTxUrl).toBe(getExplorerTxUrl);
+      });
+    });
+
+    describe('getExplorerAddressUrl()', () => {
+      it('should be a function', () => {
+        expect(typeof getExplorerAddressUrl).toBe('function');
+      });
+
+      it('should generate correct address URL with 0x prefix', () => {
+        const address = '0x1234567890123456789012345678901234567890';
+        const expectedUrl = `${CRONOS_TESTNET_EXPLORER_URL}/address/${address}`;
+        expect(getExplorerAddressUrl(address)).toBe(expectedUrl);
+      });
+
+      it('should add 0x prefix if missing', () => {
+        const address = '1234567890123456789012345678901234567890';
+        const expectedUrl = `${CRONOS_TESTNET_EXPLORER_URL}/address/0x${address}`;
+        expect(getExplorerAddressUrl(address)).toBe(expectedUrl);
+      });
+
+      it('should be included in chainConstants object', () => {
+        expect(chainConstants.getExplorerAddressUrl).toBe(getExplorerAddressUrl);
+      });
+    });
+  });
 });
