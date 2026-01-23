@@ -486,6 +486,54 @@ export class X402Error extends Error {
   }
 
   /**
+   * Create a Network Connectivity Error (503 Service Unavailable)
+   *
+   * Used when the facilitator cannot be reached due to network issues.
+   * Returns HTTP 503 to indicate the service is temporarily unavailable
+   * and the client should retry after the specified delay.
+   *
+   * @param facilitatorUrl - The facilitator URL that failed
+   * @param errorType - Type of network error (ECONNREFUSED, ETIMEDOUT, etc.)
+   * @param retryAfterSeconds - Suggested retry delay in seconds (default: 30)
+   * @returns X402Error with NETWORK_ERROR code and 503 status
+   *
+   * @example
+   * ```typescript
+   * throw X402Error.networkConnectivityError(
+   *   'https://facilitator.example.com/settle',
+   *   'ECONNREFUSED',
+   *   30
+   * );
+   * // Response:
+   * // Status: 503 Service Unavailable
+   * // Retry-After: 30
+   * // Body: { error: { code: 'NETWORK_ERROR', message: '...' } }
+   * ```
+   */
+  static networkConnectivityError(
+    facilitatorUrl: string,
+    errorType: string,
+    retryAfterSeconds: number = 30,
+  ): X402Error {
+    const error = new X402Error(
+      `Failed to connect to payment facilitator: ${errorType}`,
+      'NETWORK_ERROR',
+      503, // Service Unavailable
+      {
+        facilitatorUrl,
+        errorType,
+        retryAfterSeconds,
+        suggestion: 'Please retry after the specified delay',
+      },
+    );
+
+    // Add retryAfterSeconds to the error for response handling
+    (error as X402Error & { retryAfterSeconds: number }).retryAfterSeconds = retryAfterSeconds;
+
+    return error;
+  }
+
+  /**
    * Create a Timeout Error
    *
    * Used when the settlement request times out.
@@ -1120,6 +1168,9 @@ export class X402ValidationError extends X402Error {
     currentTime?: number,
   ): X402ValidationError {
     const now = currentTime ?? Math.floor(Date.now() / 1000);
+    const validAfterNum = Number(validAfter);
+    const secondsUntilValid = validAfterNum - now;
+
     return new X402ValidationError(
       'Payment authorization is not yet valid',
       'AUTHORIZATION_NOT_YET_VALID',
@@ -1130,7 +1181,11 @@ export class X402ValidationError extends X402Error {
         context: {
           currentTime: now,
           validFrom: String(validAfter),
-          validIn: `${Number(validAfter) - now} seconds`,
+          validFromISO: new Date(validAfterNum * 1000).toISOString(),
+          validIn: `${secondsUntilValid} seconds`,
+          // Suggest retry delay: exact time until valid + 1 second buffer
+          retryAfterSeconds: Math.max(1, secondsUntilValid + 1),
+          hint: `Retry request after ${Math.ceil(secondsUntilValid / 60)} minute(s) or use Retry-After: ${Math.max(1, secondsUntilValid + 1)} in your retry logic`,
         },
       },
     );
