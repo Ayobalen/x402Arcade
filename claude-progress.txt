@@ -73,3 +73,19 @@
 **Progress:** 7/1215 features passing (0.6%)
 
 **Next:** Continue with remaining TDD infrastructure features
+
+- Feature #348: Set up CI test scripts ✅
+  - Added test:ci scripts for frontend (with --bail=1) and backend (with --bail --ci)
+  - Added --maxWorkers=2 for CI parallelization
+  - Created root-level test:ci:all script
+  - Created .github/workflows/test.yml for GitHub Actions
+  - Verified CI scripts run correctly
+- Feature #349: Create test utility helpers ✅
+  - Created frontend test helpers: waitForElement, mockFetch, createTestStore, userEvents
+  - Created backend test helpers: createMockRequest, createMockResponse, createExpressContext
+  - Added test data factories: gameSessionFactory, leaderboardEntryFactory, paymentFactory
+  - Exported all helpers from central index files
+
+**Progress:** 9/1215 features passing (0.7%)
+
+**Next:** Continue with remaining TDD infrastructure or start Phase 1 setup
