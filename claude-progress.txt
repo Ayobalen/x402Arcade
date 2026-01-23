@@ -1,0 +1,26 @@
+## Operational Notes
+- Project: x402Arcade - Gasless arcade gaming on Cronos blockchain
+- Frontend: packages/frontend - Vite + React + TypeScript
+- Backend: packages/backend (to be created)
+- Start frontend: pnpm --dir packages/frontend dev (port 5173)
+- Run frontend tests: pnpm --dir packages/frontend test
+- Design system: Retro arcade theme with cyan (#00ffff) and magenta (#ff00ff) accents
+- Database: SQLite with better-sqlite3
+
+## Session Log - January 23, 2026
+
+### Session 1 (New Project Setup)
+**Completed:**
+- Initialized Git repository
+- Created frontend package with Vite + React + TypeScript
+- Feature #341: Install and configure Vitest for frontend ✅
+  - Installed vitest, @vitest/ui, @vitest/coverage-v8
+  - Created vitest.config.ts with jsdom environment
+  - Configured globals: true for describe/it/expect
+  - Set up 80% coverage thresholds
+  - Added test scripts to package.json
+  - Verified with 5 passing placeholder tests
+
+**Progress:** 1/1215 features passing (0.08%)
+
+**Next:** Continue with TDD infrastructure setup
