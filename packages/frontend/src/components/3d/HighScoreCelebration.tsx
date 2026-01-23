@@ -655,7 +655,7 @@ function HighScoreText({ score, opacity, scale }: HighScoreTextProps) {
         shape.lineTo(w, h - t)
         shape.closePath()
         break
-      case 'O':
+      case 'O': {
         shape.moveTo(-w, -h)
         shape.lineTo(-w, h)
         shape.lineTo(w, h)
@@ -669,6 +669,7 @@ function HighScoreText({ score, opacity, scale }: HighScoreTextProps) {
         hole.closePath()
         shape.holes.push(hole)
         break
+      }
       case 'R':
         shape.moveTo(-w, -h)
         shape.lineTo(-w, h)

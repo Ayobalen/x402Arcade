@@ -94,3 +94,10 @@ export {
   type HighScoreCelebration3DProps,
   type UseHighScoreCelebrationResult,
 } from './HighScoreCelebration'
+
+export {
+  Scene,
+  SceneWithQuality,
+  type SceneProps,
+  type SceneWithQualityProps,
+} from './Scene'
