@@ -97,7 +97,7 @@ export const DEFAULT_PAYMENT_REQUIREMENTS: PaymentRequirements = {
   network: 'cronos-testnet',
   token: '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0', // devUSDC.e
   amount: '10000', // 0.01 USDC
-  recipient: '0xARCADE0000000000000000000000000000000001',
+  recipient: '0xA0CADE0000000000000000000000000000000001',
   maxChainId: 338,
   facilitatorUrl: 'https://facilitator.cronoslabs.org',
   resource: 'game-session',

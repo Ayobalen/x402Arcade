@@ -49,7 +49,7 @@ export const TEST_WALLETS = {
   },
   /** Arcade platform wallet (receives payments) */
   arcade: {
-    address: '0xARCADE0000000000000000000000000000000001',
+    address: '0xA0CADE0000000000000000000000000000000001',
     privateKey: '0x' + 'd'.repeat(64),
     role: 'admin' as const,
   },

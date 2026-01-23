@@ -385,7 +385,7 @@ export function createMockPaymentHeaderV2(options: {
     version: '2',
     authorization: {
       from: options.from,
-      to: options.to || '0xARCADE0000000000000000000000000000000001' as `0x${string}`,
+      to: options.to || '0xA0CADE0000000000000000000000000000000001' as `0x${string}`,
       value: options.value || '10000', // 0.01 USDC
       validAfter: '0',
       validBefore: (options.validUntil || Math.floor(Date.now() / 1000) + 3600).toString(),
