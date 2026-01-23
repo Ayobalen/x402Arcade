@@ -126,6 +126,67 @@ export const NATIVE_CURRENCY: NativeCurrencyConfig = {
   decimals: 18,
 } as const;
 
+/**
+ * Default USDC Contract Address (devUSDC.e) on Cronos Testnet
+ *
+ * The bridged USDC (Stargate) contract address for payment processing.
+ * This is the token used for x402 micropayments in the arcade.
+ *
+ * @see https://explorer.cronos.org/testnet/address/0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
+ */
+export const DEFAULT_USDC_CONTRACT_ADDRESS =
+  '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0';
+
+/**
+ * Validate an Ethereum address format
+ *
+ * Checks that the address is a valid format:
+ * - 42 characters total (0x prefix + 40 hex characters)
+ * - Starts with 0x prefix
+ * - Contains only valid hexadecimal characters
+ *
+ * @param address - The address to validate
+ * @returns true if valid format, false otherwise
+ */
+export function isValidAddress(address: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+/**
+ * Get the USDC contract address
+ *
+ * Returns the USDC_CONTRACT_ADDRESS environment variable if set and valid,
+ * otherwise falls back to the default devUSDC.e contract address.
+ *
+ * @returns The USDC contract address to use for payments
+ * @throws Error if environment variable is set but has invalid format
+ */
+export function getUsdcContractAddress(): string {
+  const envAddress = process.env.USDC_CONTRACT_ADDRESS;
+
+  if (envAddress) {
+    if (!isValidAddress(envAddress)) {
+      throw new Error(
+        `Invalid USDC_CONTRACT_ADDRESS format: ${envAddress}. ` +
+          'Expected 0x prefix followed by 40 hex characters.',
+      );
+    }
+    return envAddress;
+  }
+
+  return DEFAULT_USDC_CONTRACT_ADDRESS;
+}
+
+/**
+ * USDC Contract Address
+ *
+ * The devUSDC.e contract address on Cronos Testnet.
+ * Supports environment variable override via USDC_CONTRACT_ADDRESS.
+ *
+ * @deprecated Use getUsdcContractAddress() for runtime configuration with validation
+ */
+export const USDC_CONTRACT_ADDRESS: string = getUsdcContractAddress();
+
 // Chain constants object containing all defined constants
 export const chainConstants = {
   CRONOS_TESTNET_CHAIN_ID,
@@ -133,9 +194,13 @@ export const chainConstants = {
   CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_EXPLORER_URL,
   NATIVE_CURRENCY,
+  DEFAULT_USDC_CONTRACT_ADDRESS,
+  USDC_CONTRACT_ADDRESS,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
+  isValidAddress,
+  getUsdcContractAddress,
 } as const;
 
 export default chainConstants;

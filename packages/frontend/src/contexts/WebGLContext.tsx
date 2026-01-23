@@ -13,7 +13,7 @@ import {
   useEffect,
   type ReactNode,
 } from 'react';
-import * as THREE from 'three';
+// Note: THREE import removed - using native WebGL API for capability detection
 
 // ============================================================================
 // Types
@@ -186,14 +186,14 @@ function detectCapabilities(): WebGLCapabilities {
   const canvas = document.createElement('canvas');
 
   // Try WebGL 2 first
-  let gl = canvas.getContext('webgl2') as WebGL2RenderingContext | null;
+  let gl: WebGLRenderingContext | WebGL2RenderingContext | null = canvas.getContext('webgl2');
   if (gl) {
     capabilities.webgl2Available = true;
     capabilities.webglAvailable = true;
     capabilities.instancingAvailable = true;
   } else {
     // Fall back to WebGL 1
-    gl = canvas.getContext('webgl') as WebGLRenderingContext | null;
+    gl = canvas.getContext('webgl');
     if (gl) {
       capabilities.webglAvailable = true;
       // Check for instancing extension in WebGL 1
