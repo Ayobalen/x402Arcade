@@ -503,6 +503,67 @@ function isTransientSettlementError(error: Error): boolean {
 }
 
 /**
+ * Detect the type of network error from an Error object
+ *
+ * Categorizes network errors into specific types for better error reporting.
+ *
+ * @param error - The error to analyze
+ * @returns Error type string or null if not a network error
+ */
+function detectNetworkErrorType(error: Error): string | null {
+  const message = error.message.toLowerCase();
+  const name = error.name.toLowerCase();
+
+  // Connection refused
+  if (message.includes('econnrefused')) {
+    return 'ECONNREFUSED';
+  }
+
+  // Connection reset
+  if (message.includes('econnreset')) {
+    return 'ECONNRESET';
+  }
+
+  // Connection timeout
+  if (message.includes('etimedout') || message.includes('timed out')) {
+    return 'ETIMEDOUT';
+  }
+
+  // DNS resolution failed
+  if (message.includes('enotfound') || message.includes('getaddrinfo')) {
+    return 'ENOTFOUND';
+  }
+
+  // Socket hang up
+  if (message.includes('socket hang up')) {
+    return 'SOCKET_HANG_UP';
+  }
+
+  // Generic network error
+  if (
+    message.includes('network error') ||
+    message.includes('network request failed')
+  ) {
+    return 'NETWORK_ERROR';
+  }
+
+  // Fetch failed (TypeError in some environments)
+  if (
+    message.includes('fetch failed') ||
+    (name.includes('typeerror') && message.includes('fetch'))
+  ) {
+    return 'FETCH_FAILED';
+  }
+
+  // Abort error (request aborted due to timeout)
+  if (message.includes('aborted') || name.includes('aborterror')) {
+    return 'REQUEST_ABORTED';
+  }
+
+  return null;
+}
+
+/**
  * Calculate exponential backoff delay with jitter
  *
  * @param attempt - Current attempt number (1-indexed)
