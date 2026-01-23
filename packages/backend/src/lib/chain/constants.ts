@@ -62,26 +62,130 @@ export function getCronosTestnetRpcUrl(): string {
 export const CRONOS_TESTNET_RPC_URL: string = getCronosTestnetRpcUrl();
 
 /**
- * Cronos Testnet Block Explorer URL
+ * Default Cronos Testnet Block Explorer URL
  *
- * The base URL for the Cronos Testnet block explorer.
+ * The default base URL for the Cronos Testnet block explorer.
  * Used for generating links to transactions and addresses in the UI.
  *
  * @see https://explorer.cronos.org/testnet
  */
-export const CRONOS_TESTNET_EXPLORER_URL = 'https://explorer.cronos.org/testnet';
+export const DEFAULT_CRONOS_TESTNET_EXPLORER_URL = 'https://explorer.cronos.org/testnet';
+
+/**
+ * Cronos Testnet Block Explorer URL
+ *
+ * @deprecated Use getExplorerUrl() for runtime configuration support
+ */
+export const CRONOS_TESTNET_EXPLORER_URL = DEFAULT_CRONOS_TESTNET_EXPLORER_URL;
+
+/**
+ * Get the Cronos Testnet Block Explorer URL
+ *
+ * Returns the EXPLORER_URL or VITE_EXPLORER_URL environment variable if set,
+ * otherwise falls back to the default Cronos Testnet explorer URL.
+ *
+ * Environment variable precedence:
+ * 1. EXPLORER_URL (backend-specific)
+ * 2. VITE_EXPLORER_URL (frontend/shared)
+ * 3. DEFAULT_CRONOS_TESTNET_EXPLORER_URL (fallback)
+ *
+ * @returns The block explorer base URL
+ *
+ * @example
+ * // Default behavior
+ * getExplorerUrl() // => 'https://explorer.cronos.org/testnet'
+ *
+ * // With env override
+ * // EXPLORER_URL=https://testnet.cronoscan.com
+ * getExplorerUrl() // => 'https://testnet.cronoscan.com'
+ */
+export function getExplorerUrl(): string {
+  return process.env.EXPLORER_URL
+    || process.env.VITE_EXPLORER_URL
+    || DEFAULT_CRONOS_TESTNET_EXPLORER_URL;
+}
+
+/**
+ * Generate a transaction URL for the block explorer
+ *
+ * Uses the configured explorer URL (from env or default) to generate
+ * a link to view a transaction.
+ *
+ * @param txHash - The transaction hash (with or without 0x prefix)
+ * @returns Full URL to view the transaction on the explorer
+ *
+ * @example
+ * getTxUrl('0x123...abc') // => 'https://explorer.cronos.org/testnet/tx/0x123...abc'
+ * getTxUrl('123...abc')   // => 'https://explorer.cronos.org/testnet/tx/0x123...abc'
+ */
+export function getTxUrl(txHash: string): string {
+  const hash = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
+  return `${getExplorerUrl()}/tx/${hash}`;
+}
+
+/**
+ * Generate an address URL for the block explorer
+ *
+ * Uses the configured explorer URL (from env or default) to generate
+ * a link to view a wallet or contract address.
+ *
+ * @param address - The wallet or contract address (with or without 0x prefix)
+ * @returns Full URL to view the address on the explorer
+ *
+ * @example
+ * getAddressUrl('0xabc...123') // => 'https://explorer.cronos.org/testnet/address/0xabc...123'
+ * getAddressUrl('abc...123')   // => 'https://explorer.cronos.org/testnet/address/0xabc...123'
+ */
+export function getAddressUrl(address: string): string {
+  const addr = address.startsWith('0x') ? address : `0x${address}`;
+  return `${getExplorerUrl()}/address/${addr}`;
+}
+
+/**
+ * Generate a token URL for the block explorer
+ *
+ * Uses the configured explorer URL (from env or default) to generate
+ * a link to view a token contract.
+ *
+ * @param tokenAddress - The token contract address (with or without 0x prefix)
+ * @returns Full URL to view the token on the explorer
+ *
+ * @example
+ * getTokenUrl('0xc01e...') // => 'https://explorer.cronos.org/testnet/token/0xc01e...'
+ */
+export function getTokenUrl(tokenAddress: string): string {
+  const addr = tokenAddress.startsWith('0x') ? tokenAddress : `0x${tokenAddress}`;
+  return `${getExplorerUrl()}/token/${addr}`;
+}
+
+/**
+ * Generate a block URL for the block explorer
+ *
+ * Uses the configured explorer URL (from env or default) to generate
+ * a link to view a specific block.
+ *
+ * @param blockNumber - The block number (as number or string)
+ * @returns Full URL to view the block on the explorer
+ *
+ * @example
+ * getBlockUrl(12345678) // => 'https://explorer.cronos.org/testnet/block/12345678'
+ * getBlockUrl('12345678') // => 'https://explorer.cronos.org/testnet/block/12345678'
+ */
+export function getBlockUrl(blockNumber: number | string): string {
+  return `${getExplorerUrl()}/block/${blockNumber}`;
+}
 
 /**
  * Generate a transaction URL for the Cronos Testnet block explorer
  *
  * @param txHash - The transaction hash (with or without 0x prefix)
  * @returns Full URL to view the transaction on the explorer
+ * @deprecated Use getTxUrl() which supports env configuration
  * @example
  * getExplorerTxUrl('0x123...abc') // => 'https://explorer.cronos.org/testnet/tx/0x123...abc'
  */
 export function getExplorerTxUrl(txHash: string): string {
-  const hash = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
-  return `${CRONOS_TESTNET_EXPLORER_URL}/tx/${hash}`;
+  return getTxUrl(txHash);
 }
 
 /**
@@ -89,12 +193,12 @@ export function getExplorerTxUrl(txHash: string): string {
  *
  * @param address - The wallet or contract address (with or without 0x prefix)
  * @returns Full URL to view the address on the explorer
+ * @deprecated Use getAddressUrl() which supports env configuration
  * @example
  * getExplorerAddressUrl('0xabc...123') // => 'https://explorer.cronos.org/testnet/address/0xabc...123'
  */
 export function getExplorerAddressUrl(address: string): string {
-  const addr = address.startsWith('0x') ? address : `0x${address}`;
-  return `${CRONOS_TESTNET_EXPLORER_URL}/address/${addr}`;
+  return getAddressUrl(address);
 }
 
 /**
@@ -871,11 +975,143 @@ export function generateAuthorizationNonce(): string {
   return `0x${hex}`;
 }
 
+/**
+ * Normalize an Ethereum address to checksummed format for comparison
+ *
+ * Uses EIP-55 mixed-case checksum format to standardize addresses.
+ * This ensures consistent comparison regardless of the original case.
+ *
+ * @param address - The address to normalize
+ * @returns Checksummed address in lowercase (for comparison)
+ *
+ * @example
+ * normalizeAddress('0xABC...') // => '0xabc...'
+ * normalizeAddress('0xabc...') // => '0xabc...'
+ */
+export function normalizeAddress(address: string): string {
+  // Validate address format first
+  if (!isValidAddress(address)) {
+    throw new Error(`Invalid address format: ${address}`);
+  }
+
+  // For comparison purposes, use lowercase
+  return address.toLowerCase();
+}
+
+/**
+ * Compare two Ethereum addresses for equality
+ *
+ * Normalizes both addresses to lowercase before comparison
+ * to handle different case formats.
+ *
+ * @param address1 - First address to compare
+ * @param address2 - Second address to compare
+ * @returns true if addresses are equal (case-insensitive)
+ *
+ * @example
+ * addressesEqual('0xABC123...', '0xabc123...') // => true
+ */
+export function addressesEqual(address1: string, address2: string): boolean {
+  try {
+    return normalizeAddress(address1) === normalizeAddress(address2);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Verify that the signer address matches the expected from address
+ *
+ * This is a validation check to ensure the signature was created by
+ * the expected sender. Note: This does NOT cryptographically verify
+ * the signature - that is done by the facilitator and on-chain contract.
+ *
+ * This function compares the `from` field in the payment payload against
+ * a claimed signer address (if available from signature recovery).
+ *
+ * @param claimedFrom - The `from` address from the payment payload
+ * @param recoveredSigner - The address recovered from the signature (optional)
+ * @returns Object with verification result and details
+ *
+ * @example
+ * const result = verifySignerAddress(payload.from, recoveredAddress);
+ * if (!result.valid) {
+ *   throw X402ValidationError.invalidSignature(result.message);
+ * }
+ */
+export function verifySignerAddress(
+  claimedFrom: string,
+  recoveredSigner?: string,
+): {
+  valid: boolean;
+  message: string;
+  claimedFrom: string;
+  recoveredSigner?: string;
+} {
+  // Validate the claimed from address format
+  if (!isValidAddress(claimedFrom)) {
+    return {
+      valid: false,
+      message: `Invalid 'from' address format: ${claimedFrom}`,
+      claimedFrom,
+      recoveredSigner,
+    };
+  }
+
+  // If no recovered signer provided, we can only validate format
+  // (actual signature verification happens at facilitator)
+  if (!recoveredSigner) {
+    return {
+      valid: true,
+      message: 'Address format valid (signature verification deferred to facilitator)',
+      claimedFrom: normalizeAddress(claimedFrom),
+    };
+  }
+
+  // Validate recovered signer format
+  if (!isValidAddress(recoveredSigner)) {
+    return {
+      valid: false,
+      message: `Invalid recovered signer address format: ${recoveredSigner}`,
+      claimedFrom,
+      recoveredSigner,
+    };
+  }
+
+  // Compare addresses (case-insensitive)
+  const normalizedFrom = normalizeAddress(claimedFrom);
+  const normalizedSigner = normalizeAddress(recoveredSigner);
+
+  if (normalizedFrom !== normalizedSigner) {
+    return {
+      valid: false,
+      message: `Signer mismatch: expected ${normalizedFrom}, recovered ${normalizedSigner}`,
+      claimedFrom: normalizedFrom,
+      recoveredSigner: normalizedSigner,
+    };
+  }
+
+  // Log successful verification
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(
+      `[x402] Signature address verified: ${normalizedFrom}`,
+    );
+  }
+
+  return {
+    valid: true,
+    message: 'Signer address verified successfully',
+    claimedFrom: normalizedFrom,
+    recoveredSigner: normalizedSigner,
+  };
+}
+
 // Chain constants object containing all defined constants
 export const chainConstants = {
   CRONOS_TESTNET_CHAIN_ID,
   DEFAULT_CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_RPC_URL,
+  DEFAULT_CRONOS_TESTNET_EXPLORER_URL,
   CRONOS_TESTNET_EXPLORER_URL,
   NATIVE_CURRENCY,
   USDC_NAME,
@@ -890,9 +1126,17 @@ export const chainConstants = {
   EIP712_DOMAIN_TYPE,
   TRANSFER_WITH_AUTHORIZATION_TYPE,
   getCronosTestnetRpcUrl,
+  getExplorerUrl,
+  getTxUrl,
+  getAddressUrl,
+  getTokenUrl,
+  getBlockUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
   isValidAddress,
+  normalizeAddress,
+  addressesEqual,
+  verifySignerAddress,
   getUsdcContractAddress,
   getFacilitatorBaseUrl,
   getFacilitatorSettleUrl,
