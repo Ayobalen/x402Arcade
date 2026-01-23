@@ -562,6 +562,73 @@ export function payloadToHeader(payload: PaymentPayload): X402PaymentHeader {
 }
 
 /**
+ * PaymentPayload field schema definition
+ *
+ * Describes all required fields in a PaymentPayload for validation
+ * and error reporting purposes.
+ */
+export const PAYMENT_PAYLOAD_SCHEMA = {
+  requiredFields: [
+    { name: 'version', type: 'string', description: "Protocol version (must be '1')" },
+    { name: 'scheme', type: 'string', description: "Payment scheme (must be 'exact')" },
+    { name: 'network', type: 'string', description: 'Network/chain identifier (e.g., cronos-testnet)' },
+    { name: 'from', type: 'string', description: 'Sender address (0x + 40 hex chars)' },
+    { name: 'to', type: 'string', description: 'Recipient address (0x + 40 hex chars)' },
+    { name: 'value', type: 'string', description: 'Payment amount in smallest units (positive integer string)' },
+    { name: 'validAfter', type: 'string', description: 'Unix timestamp (seconds) after which authorization is valid' },
+    { name: 'validBefore', type: 'string', description: 'Unix timestamp (seconds) before which authorization is valid' },
+    { name: 'nonce', type: 'string', description: 'Unique 32-byte nonce (0x + 64 hex chars)' },
+    { name: 'v', type: 'number', description: 'ECDSA signature recovery id (27 or 28)' },
+    { name: 'r', type: 'string', description: 'ECDSA signature r component (0x + 64 hex chars)' },
+    { name: 's', type: 'string', description: 'ECDSA signature s component (0x + 64 hex chars)' },
+  ] as const,
+} as const;
+
+/**
+ * Check for missing required fields in a PaymentPayload
+ *
+ * Validates that all required fields are present (not undefined/null/empty).
+ * This should be called before validatePaymentPayload() to provide better
+ * error messages for missing vs invalid fields.
+ *
+ * @param obj - The object to check (typically from JSON.parse)
+ * @returns Result with list of missing fields and schema information
+ *
+ * @example
+ * ```typescript
+ * const result = checkMissingPayloadFields({ version: '1' });
+ * if (!result.valid) {
+ *   // result.missingFields = ['scheme', 'network', 'from', ...]
+ *   // result.schema contains field definitions for error response
+ * }
+ * ```
+ */
+export function checkMissingPayloadFields(obj: Record<string, unknown>): {
+  valid: boolean;
+  missingFields: string[];
+  schema: typeof PAYMENT_PAYLOAD_SCHEMA;
+} {
+  const missingFields: string[] = [];
+
+  for (const field of PAYMENT_PAYLOAD_SCHEMA.requiredFields) {
+    const value = obj[field.name];
+
+    // Check for missing (undefined, null) or empty string
+    if (value === undefined || value === null) {
+      missingFields.push(field.name);
+    } else if (field.type === 'string' && value === '') {
+      missingFields.push(field.name);
+    }
+  }
+
+  return {
+    valid: missingFields.length === 0,
+    missingFields,
+    schema: PAYMENT_PAYLOAD_SCHEMA,
+  };
+}
+
+/**
  * Validate a PaymentPayload structure
  *
  * Checks that all required fields are present and have valid formats.
@@ -637,6 +704,200 @@ export function validatePaymentPayload(payload: PaymentPayload): {
     valid: errors.length === 0,
     errors,
   };
+}
+
+/**
+ * Parse payment payload from JSON string
+ *
+ * Parses a JSON string representation of a payment payload and validates
+ * it against the PaymentPayload schema. This is the main entry point for
+ * processing incoming X-Payment headers after base64 decoding.
+ *
+ * @param jsonString - The JSON string to parse
+ * @returns Typed and validated PaymentPayload object
+ * @throws {X402ValidationError} If JSON parsing fails or validation fails
+ *
+ * @example
+ * ```typescript
+ * // Typical usage flow:
+ * const base64Header = req.headers['x-payment'];
+ * const jsonString = Buffer.from(base64Header, 'base64').toString('utf-8');
+ *
+ * try {
+ *   const payload = parsePaymentPayload(jsonString);
+ *   // Payload is typed and validated
+ *   console.log(payload.from, payload.to, payload.value);
+ * } catch (error) {
+ *   if (error instanceof X402ValidationError) {
+ *     console.error('Invalid payment:', error.field, error.expected, error.actual);
+ *   }
+ * }
+ * ```
+ */
+export function parsePaymentPayload(jsonString: string): PaymentPayload {
+  // Import X402ValidationError lazily to avoid circular dependency
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { X402ValidationError } = require('./errors.js') as typeof import('./errors.js');
+
+  // Step 1: Parse JSON string to object
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch (error) {
+    throw X402ValidationError.invalidJson(
+      error instanceof Error ? error.message : 'Invalid JSON format',
+    );
+  }
+
+  // Step 2: Ensure parsed result is an object
+  if (!parsed || typeof parsed !== 'object') {
+    throw X402ValidationError.typeMismatch('payload', 'object', typeof parsed);
+  }
+
+  const obj = parsed as Record<string, unknown>;
+
+  // Step 3: Check for missing required fields FIRST
+  // Handle version field aliasing (x402Version -> version)
+  const objWithVersion = {
+    ...obj,
+    version: obj.version ?? obj.x402Version,
+  };
+  const missingCheck = checkMissingPayloadFields(objWithVersion);
+  if (!missingCheck.valid) {
+    throw X402ValidationError.missingRequiredFields(
+      missingCheck.missingFields,
+      missingCheck.schema,
+    );
+  }
+
+  // Step 4: Extract and type-check required fields
+  const payload: PaymentPayload = {
+    version: String(obj.version ?? obj.x402Version ?? '') as '1',
+    scheme: String(obj.scheme ?? '') as 'exact',
+    network: String(obj.network ?? ''),
+    from: String(obj.from ?? ''),
+    to: String(obj.to ?? ''),
+    value: String(obj.value ?? ''),
+    validAfter: String(obj.validAfter ?? ''),
+    validBefore: String(obj.validBefore ?? ''),
+    nonce: String(obj.nonce ?? ''),
+    v: typeof obj.v === 'number' ? obj.v : parseInt(String(obj.v ?? '0'), 10),
+    r: String(obj.r ?? ''),
+    s: String(obj.s ?? ''),
+  };
+
+  // Step 5: Validate against PaymentPayload schema (for format validation)
+  const validation = validatePaymentPayload(payload);
+  if (!validation.valid) {
+    throw X402ValidationError.fromMultipleErrors(
+      validation.errors,
+      validation.errors.map((err) => {
+        // Extract field name from error message
+        const fieldMatch = err.match(/Invalid '?(\w+)'?/);
+        const field = fieldMatch ? fieldMatch[1] : 'unknown';
+        return { field, expected: 'valid value', actual: 'invalid' };
+      }),
+    );
+  }
+
+  return payload;
+}
+
+/**
+ * Parse X402 payment header from base64-encoded string
+ *
+ * Combines base64 decoding with JSON parsing and validation.
+ * This is the complete pipeline for processing incoming X-Payment headers.
+ *
+ * @param base64Header - The base64-encoded X-Payment header value
+ * @returns Parsed X402PaymentHeader object
+ * @throws {X402ValidationError} If decoding, parsing, or validation fails
+ *
+ * @example
+ * ```typescript
+ * const header = req.headers['x-payment'] as string;
+ * try {
+ *   const payment = parseX402Header(header);
+ *   // payment is fully typed and validated
+ * } catch (error) {
+ *   if (error instanceof X402ValidationError) {
+ *     res.status(400).json(error.toJSON());
+ *   }
+ * }
+ * ```
+ */
+export function parseX402Header(base64Header: string): X402PaymentHeader {
+  // Import X402ValidationError lazily to avoid circular dependency
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { X402ValidationError } = require('./errors.js') as typeof import('./errors.js');
+
+  // Step 1: Base64 decode
+  let jsonString: string;
+  try {
+    jsonString = Buffer.from(base64Header, 'base64').toString('utf-8');
+  } catch (error) {
+    throw X402ValidationError.invalidJson('Invalid base64 encoding');
+  }
+
+  // Step 2: Parse JSON
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch (error) {
+    throw X402ValidationError.invalidJson(
+      error instanceof Error ? error.message : 'Invalid JSON format',
+    );
+  }
+
+  // Step 3: Validate structure
+  if (!parsed || typeof parsed !== 'object') {
+    throw X402ValidationError.typeMismatch('X-Payment', 'object', typeof parsed);
+  }
+
+  const obj = parsed as Record<string, unknown>;
+
+  // Step 4: Validate version
+  if (obj.x402Version !== '1') {
+    throw X402ValidationError.versionMismatch(String(obj.x402Version ?? 'missing'));
+  }
+
+  // Step 5: Validate scheme
+  if (obj.scheme !== 'exact') {
+    throw X402ValidationError.schemeMismatch(String(obj.scheme ?? 'missing'));
+  }
+
+  // Step 6: Validate network
+  if (!obj.network || typeof obj.network !== 'string') {
+    throw X402ValidationError.missingField('network');
+  }
+
+  // Step 7: Validate payload structure
+  if (!obj.payload || typeof obj.payload !== 'object') {
+    throw X402ValidationError.missingField('payload');
+  }
+
+  const payloadObj = obj.payload as Record<string, unknown>;
+
+  // Validate message in payload
+  if (!payloadObj.message || typeof payloadObj.message !== 'object') {
+    throw X402ValidationError.missingField('payload.message');
+  }
+
+  // Validate signature components
+  if (typeof payloadObj.v !== 'number' || (payloadObj.v !== 27 && payloadObj.v !== 28)) {
+    throw X402ValidationError.invalidSignatureComponent('v', payloadObj.v);
+  }
+
+  if (typeof payloadObj.r !== 'string' || !/^0x[a-fA-F0-9]{64}$/.test(payloadObj.r)) {
+    throw X402ValidationError.invalidSignatureComponent('r', payloadObj.r);
+  }
+
+  if (typeof payloadObj.s !== 'string' || !/^0x[a-fA-F0-9]{64}$/.test(payloadObj.s)) {
+    throw X402ValidationError.invalidSignatureComponent('s', payloadObj.s);
+  }
+
+  // Type-cast and return
+  return parsed as X402PaymentHeader;
 }
 
 /**
@@ -1620,6 +1881,209 @@ export function validateX402Config(config: X402Config): boolean {
   }
 
   return true;
+}
+
+/**
+ * X-Payment-Response Payload
+ *
+ * The payload structure for the X-Payment-Response header sent after
+ * successful payment settlement. This header confirms the payment was
+ * processed and provides transaction details to the client.
+ *
+ * **Response Header Format:**
+ * ```
+ * X-Payment-Response: <base64-encoded JSON>
+ * ```
+ *
+ * **Decoded JSON Structure:**
+ * ```json
+ * {
+ *   "success": true,
+ *   "transactionHash": "0x...",
+ *   "blockNumber": 12345678,
+ *   "explorerUrl": "https://explorer.cronos.org/testnet/tx/0x...",
+ *   "settledAt": "2026-01-23T12:00:00.000Z",
+ *   "chainId": 338,
+ *   "network": "cronos-testnet"
+ * }
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // After successful settlement in middleware
+ * const responsePayload = createPaymentResponsePayload(settlement, config);
+ * const header = encodePaymentResponseHeader(responsePayload);
+ * res.setHeader('X-Payment-Response', header);
+ * ```
+ */
+export interface PaymentResponsePayload {
+  /**
+   * Indicates successful payment settlement
+   */
+  success: true;
+
+  /**
+   * The on-chain transaction hash
+   * Hex string with 0x prefix, 66 characters total
+   */
+  transactionHash: string;
+
+  /**
+   * The block number containing the settlement transaction
+   */
+  blockNumber: number;
+
+  /**
+   * Full URL to view the transaction on the block explorer
+   * @example "https://explorer.cronos.org/testnet/tx/0x..."
+   */
+  explorerUrl: string;
+
+  /**
+   * ISO timestamp when the payment was settled
+   */
+  settledAt: string;
+
+  /**
+   * The blockchain chain ID where the payment was settled
+   * @example 338 for Cronos Testnet
+   */
+  chainId: number;
+
+  /**
+   * Human-readable network identifier
+   * @example "cronos-testnet"
+   */
+  network: string;
+}
+
+/**
+ * Create a PaymentResponsePayload from settlement result
+ *
+ * Constructs the payment response payload to be sent in the
+ * X-Payment-Response header after successful settlement.
+ *
+ * @param settlement - The settlement response from the facilitator
+ * @param config - The x402 configuration (for chainId)
+ * @returns PaymentResponsePayload ready for encoding
+ *
+ * @example
+ * ```typescript
+ * const responsePayload = createPaymentResponsePayload(settlement, config);
+ * // => {
+ * //   success: true,
+ * //   transactionHash: "0x...",
+ * //   blockNumber: 12345678,
+ * //   explorerUrl: "https://explorer.cronos.org/testnet/tx/0x...",
+ * //   settledAt: "2026-01-23T12:00:00.000Z",
+ * //   chainId: 338,
+ * //   network: "cronos-testnet"
+ * // }
+ * ```
+ */
+export function createPaymentResponsePayload(
+  settlement: X402SettlementResponse,
+  config: X402Config,
+): PaymentResponsePayload {
+  // Import getTxUrl lazily to avoid circular dependency
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getTxUrl } = require('../../lib/chain/constants.js') as typeof import('../../lib/chain/constants.js');
+
+  const network = `cronos-${config.chainId === 338 ? 'testnet' : 'mainnet'}`;
+
+  return {
+    success: true,
+    transactionHash: settlement.transactionHash || '',
+    blockNumber: settlement.blockNumber || 0,
+    explorerUrl: getTxUrl(settlement.transactionHash || ''),
+    settledAt: settlement.settledAt,
+    chainId: config.chainId,
+    network,
+  };
+}
+
+/**
+ * Encode a PaymentResponsePayload as a base64 string for the X-Payment-Response header
+ *
+ * Converts the payment response payload to JSON and base64-encodes it
+ * for transmission in the HTTP header.
+ *
+ * @param payload - The payment response payload to encode
+ * @returns Base64-encoded JSON string
+ *
+ * @example
+ * ```typescript
+ * const header = encodePaymentResponseHeader(responsePayload);
+ * res.setHeader('X-Payment-Response', header);
+ * ```
+ */
+export function encodePaymentResponseHeader(
+  payload: PaymentResponsePayload,
+): string {
+  const json = JSON.stringify(payload);
+  return Buffer.from(json).toString('base64');
+}
+
+/**
+ * Decode a base64-encoded X-Payment-Response header
+ *
+ * Parses the base64-encoded header value back into a PaymentResponsePayload.
+ * Useful for clients receiving the response header.
+ *
+ * @param base64Header - The base64-encoded header value
+ * @returns Decoded PaymentResponsePayload
+ * @throws Error if decoding or parsing fails
+ *
+ * @example
+ * ```typescript
+ * const header = response.headers.get('X-Payment-Response');
+ * const payload = decodePaymentResponseHeader(header);
+ * console.log(`Transaction: ${payload.transactionHash}`);
+ * console.log(`Explorer: ${payload.explorerUrl}`);
+ * ```
+ */
+export function decodePaymentResponseHeader(
+  base64Header: string,
+): PaymentResponsePayload {
+  try {
+    const json = Buffer.from(base64Header, 'base64').toString('utf-8');
+    return JSON.parse(json) as PaymentResponsePayload;
+  } catch (error) {
+    throw new Error(
+      `Failed to decode X-Payment-Response header: ${
+        error instanceof Error ? error.message : 'Invalid format'
+      }`,
+    );
+  }
+}
+
+/**
+ * Set the X-Payment-Response header on an Express response
+ *
+ * Convenience function to create the payment response payload,
+ * encode it, and set the header in one call.
+ *
+ * @param res - Express Response object
+ * @param settlement - The settlement response from the facilitator
+ * @param config - The x402 configuration
+ * @returns The encoded header value (for logging/debugging)
+ *
+ * @example
+ * ```typescript
+ * // In middleware after successful settlement
+ * const encodedHeader = setPaymentResponseHeader(res, settlement, config);
+ * console.log('[x402] Set X-Payment-Response header:', encodedHeader);
+ * ```
+ */
+export function setPaymentResponseHeader(
+  res: { setHeader: (name: string, value: string) => void },
+  settlement: X402SettlementResponse,
+  config: X402Config,
+): string {
+  const payload = createPaymentResponsePayload(settlement, config);
+  const encodedHeader = encodePaymentResponseHeader(payload);
+  res.setHeader('X-Payment-Response', encodedHeader);
+  return encodedHeader;
 }
 
 // Export all types for external use
