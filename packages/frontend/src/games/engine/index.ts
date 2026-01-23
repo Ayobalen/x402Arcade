@@ -38,5 +38,21 @@ export {
   type GameStateName,
 } from './state-machine'
 
+// Export touch input utilities
+export {
+  createTouchInputHandler,
+  touchPositionToDirection,
+  calculateSwipeMetrics,
+  isTouchInRegion,
+  isTouchSupported,
+  DEFAULT_TOUCH_CONFIG,
+  type TouchInputHandler,
+  type TouchInputConfig,
+  type TouchInputState,
+  type TouchInputCallbacks,
+  type TouchPoint,
+  type SwipeGesture,
+} from './touch-input'
+
 // Default export for convenient importing
 export { default as types } from '../types'
