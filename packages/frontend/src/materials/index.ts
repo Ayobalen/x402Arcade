@@ -49,3 +49,53 @@ export {
   // Default export
   default as cabinetMaterials,
 } from './cabinetMaterials'
+
+// Neon glow materials
+export {
+  // Colors
+  NEON_COLORS,
+  type NeonColor,
+  // Intensity presets
+  NEON_INTENSITY,
+  type NeonIntensityLevel,
+  // Material definitions
+  CYAN_GLOW_MATERIAL,
+  MAGENTA_GLOW_MATERIAL,
+  GREEN_GLOW_MATERIAL,
+  ORANGE_GLOW_MATERIAL,
+  RED_GLOW_MATERIAL,
+  PURPLE_GLOW_MATERIAL,
+  WHITE_GLOW_MATERIAL,
+  // Factory functions
+  createNeonMaterial,
+  createCyanGlowMaterial,
+  createMagentaGlowMaterial,
+  createNeonColorMaterial,
+  createCustomNeonMaterial,
+  // Animated materials
+  createAnimatedGlowMaterial,
+  calculateAnimatedIntensity,
+  GLOW_ANIMATIONS,
+  DEFAULT_GLOW_ANIMATION,
+  type GlowAnimationParams,
+  type GlowAnimationType,
+  // Types
+  type NeonMaterialProps,
+  // Hooks
+  useNeonMaterial,
+  useAnimatedNeonMaterial,
+  useCyanGlowMaterial,
+  useMagentaGlowMaterial,
+  // Utilities
+  setGlowIntensity,
+  setGlowColor,
+  cloneNeonMaterial,
+  createNeonMaterialSet,
+  disposeNeonMaterialSet,
+  // Performance optimization
+  getCachedNeonMaterial,
+  clearNeonMaterialCache,
+  getNeonMaterialCacheSize,
+  // Default export
+  default as neonMaterials,
+} from './neonMaterials'
