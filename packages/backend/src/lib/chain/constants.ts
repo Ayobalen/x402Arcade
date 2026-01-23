@@ -659,6 +659,218 @@ export function createEip712Domain(options: {
   };
 }
 
+/**
+ * EIP-3009 TransferWithAuthorization Type Definition
+ *
+ * The type structure for the TransferWithAuthorization message, which enables
+ * gasless token transfers. The sender signs this typed data structure, and a
+ * third party (facilitator) submits the transaction and pays the gas.
+ *
+ * **Message Fields:**
+ * - `from`: Token sender's address (the signer)
+ * - `to`: Token recipient's address
+ * - `value`: Amount of tokens to transfer (in smallest units)
+ * - `validAfter`: Unix timestamp after which the authorization is valid
+ * - `validBefore`: Unix timestamp before which the authorization is valid
+ * - `nonce`: Unique nonce to prevent replay attacks (32 bytes)
+ *
+ * **Usage in x402 Payment Flow:**
+ * ```typescript
+ * const typedData = {
+ *   types: {
+ *     EIP712Domain: EIP712_DOMAIN_TYPE,
+ *     TransferWithAuthorization: TRANSFER_WITH_AUTHORIZATION_TYPE
+ *   },
+ *   domain: getUsdcEip712Domain(),
+ *   primaryType: 'TransferWithAuthorization',
+ *   message: {
+ *     from: playerAddress,
+ *     to: arcadeWalletAddress,
+ *     value: parseUSDC(0.01).toString(),
+ *     validAfter: '0',
+ *     validBefore: (Math.floor(Date.now() / 1000) + 3600).toString(),
+ *     nonce: randomBytes32Hex()
+ *   }
+ * };
+ * ```
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-3009 - Transfer With Authorization
+ * @see https://eips.ethereum.org/EIPS/eip-712 - EIP-712 Typed Data Standard
+ */
+export const TRANSFER_WITH_AUTHORIZATION_TYPE: readonly TypedDataField[] = [
+  { name: 'from', type: 'address' },
+  { name: 'to', type: 'address' },
+  { name: 'value', type: 'uint256' },
+  { name: 'validAfter', type: 'uint256' },
+  { name: 'validBefore', type: 'uint256' },
+  { name: 'nonce', type: 'bytes32' },
+] as const;
+
+/**
+ * TransferWithAuthorization Message Interface
+ *
+ * The actual message values for a TransferWithAuthorization operation.
+ * This interface represents the data that gets signed by the token sender.
+ */
+export interface TransferWithAuthorizationMessage {
+  /** Token sender's address (must match the signer) */
+  from: string;
+  /** Token recipient's address */
+  to: string;
+  /** Amount to transfer in smallest units (as string for uint256) */
+  value: string | bigint;
+  /** Unix timestamp after which the authorization is valid (as string) */
+  validAfter: string | bigint;
+  /** Unix timestamp before which the authorization is valid (as string) */
+  validBefore: string | bigint;
+  /** Unique 32-byte nonce (as hex string with 0x prefix) */
+  nonce: string;
+}
+
+/**
+ * Signed TransferWithAuthorization Interface
+ *
+ * A complete signed authorization including the message and signature components.
+ * This is what gets submitted to the facilitator for settlement.
+ */
+export interface SignedTransferWithAuthorization {
+  /** The authorization message that was signed */
+  message: TransferWithAuthorizationMessage;
+  /** Signature recovery identifier (27 or 28) */
+  v: number;
+  /** First 32 bytes of the ECDSA signature */
+  r: string;
+  /** Second 32 bytes of the ECDSA signature */
+  s: string;
+}
+
+/**
+ * Create a TransferWithAuthorization message
+ *
+ * Factory function to create properly formatted authorization messages
+ * for gasless USDC transfers.
+ *
+ * @param options - Authorization parameters
+ * @returns Formatted TransferWithAuthorizationMessage
+ * @throws Error if addresses are invalid
+ *
+ * @example
+ * const message = createTransferWithAuthorizationMessage({
+ *   from: '0x1234...5678',
+ *   to: '0xabcd...ef01',
+ *   value: parseUSDC(0.01),
+ *   validitySeconds: 3600, // 1 hour
+ *   nonce: '0x' + crypto.randomBytes(32).toString('hex')
+ * });
+ */
+export function createTransferWithAuthorizationMessage(options: {
+  from: string;
+  to: string;
+  value: bigint | string | number;
+  validAfter?: bigint | string | number;
+  validBefore?: bigint | string | number;
+  validitySeconds?: number;
+  nonce: string;
+}): TransferWithAuthorizationMessage {
+  // Validate addresses
+  if (!isValidAddress(options.from)) {
+    throw new Error(`Invalid 'from' address: ${options.from}`);
+  }
+  if (!isValidAddress(options.to)) {
+    throw new Error(`Invalid 'to' address: ${options.to}`);
+  }
+
+  // Validate nonce format (should be 0x + 64 hex chars = 32 bytes)
+  if (!/^0x[a-fA-F0-9]{64}$/.test(options.nonce)) {
+    throw new Error(
+      `Invalid nonce format: ${options.nonce}. Expected 0x prefix + 64 hex characters.`,
+    );
+  }
+
+  // Calculate validity window
+  const now = Math.floor(Date.now() / 1000);
+  const validAfter =
+    options.validAfter !== undefined ? BigInt(options.validAfter) : BigInt(0);
+  const validBefore =
+    options.validBefore !== undefined
+      ? BigInt(options.validBefore)
+      : BigInt(now + (options.validitySeconds || 3600)); // Default 1 hour
+
+  // Convert value to string (for uint256 compatibility)
+  const value =
+    typeof options.value === 'bigint'
+      ? options.value.toString()
+      : typeof options.value === 'number'
+        ? BigInt(Math.floor(options.value)).toString()
+        : options.value;
+
+  return {
+    from: options.from,
+    to: options.to,
+    value,
+    validAfter: validAfter.toString(),
+    validBefore: validBefore.toString(),
+    nonce: options.nonce,
+  };
+}
+
+/**
+ * Check if a TransferWithAuthorization is currently valid
+ *
+ * Validates that the current time is within the authorization's validity window.
+ *
+ * @param message - The authorization message to check
+ * @returns true if the authorization is currently valid
+ *
+ * @example
+ * if (isAuthorizationValid(message)) {
+ *   // Submit to facilitator
+ * } else {
+ *   // Authorization expired or not yet valid
+ * }
+ */
+export function isAuthorizationValid(
+  message: TransferWithAuthorizationMessage,
+): boolean {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  const validAfter = BigInt(message.validAfter);
+  const validBefore = BigInt(message.validBefore);
+
+  return now > validAfter && now < validBefore;
+}
+
+/**
+ * Generate a random 32-byte nonce for TransferWithAuthorization
+ *
+ * Creates a cryptographically secure random nonce suitable for
+ * EIP-3009 authorization messages.
+ *
+ * @returns A 32-byte hex string with 0x prefix
+ *
+ * @example
+ * const nonce = generateAuthorizationNonce();
+ * // => '0x1a2b3c4d...' (64 hex characters after 0x)
+ */
+export function generateAuthorizationNonce(): string {
+  // Generate 32 random bytes using crypto-secure randomness
+  const bytes = new Uint8Array(32);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes);
+  } else {
+    // Fallback for Node.js environment
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const nodeCrypto = require('crypto');
+    const randomBytes = nodeCrypto.randomBytes(32);
+    bytes.set(randomBytes);
+  }
+
+  // Convert to hex string with 0x prefix
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return `0x${hex}`;
+}
+
 // Chain constants object containing all defined constants
 export const chainConstants = {
   CRONOS_TESTNET_CHAIN_ID,
@@ -676,6 +888,7 @@ export const chainConstants = {
   FACILITATOR_SETTLE_ENDPOINT,
   FACILITATOR_SUPPORTED_ENDPOINT,
   EIP712_DOMAIN_TYPE,
+  TRANSFER_WITH_AUTHORIZATION_TYPE,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
@@ -690,6 +903,9 @@ export const chainConstants = {
   formatUSDCWithSymbol,
   getUsdcEip712Domain,
   createEip712Domain,
+  createTransferWithAuthorizationMessage,
+  isAuthorizationValid,
+  generateAuthorizationNonce,
 } as const;
 
 export default chainConstants;
