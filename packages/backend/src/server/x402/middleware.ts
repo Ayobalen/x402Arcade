@@ -316,7 +316,25 @@ export function createX402Middleware(config: X402Config): X402Middleware {
 
       // Check if authorization is not yet valid (with tolerance)
       if (now + CLOCK_SKEW_TOLERANCE_SECONDS < validAfter) {
-        throw X402Error.authorizationNotYetValid(payload.validAfter);
+        // Calculate how long until authorization becomes valid
+        const secondsUntilValid = validAfter - now;
+
+        // Log for debugging
+        if (config.debug) {
+          console.log('[x402] Authorization not yet valid:', {
+            validAfter: payload.validAfter,
+            validAfterDate: new Date(validAfter * 1000).toISOString(),
+            currentTime: now,
+            secondsUntilValid,
+          });
+        }
+
+        // Use validation error with detailed timing info
+        // Includes: validFrom timestamp, validIn seconds, and context
+        throw X402ValidationError.authorizationNotYetValid(
+          validAfter,
+          now,
+        );
       }
 
       // Check if authorization has expired (with tolerance)
@@ -405,6 +423,11 @@ export function createX402Middleware(config: X402Config): X402Middleware {
     } catch (error) {
       // Handle x402 errors
       if (error instanceof X402Error) {
+        // Add Retry-After header for 503 Service Unavailable (network errors)
+        if (error.httpStatus === 503) {
+          const retryAfterSeconds = (error as X402Error & { retryAfterSeconds?: number }).retryAfterSeconds ?? 30;
+          res.setHeader('Retry-After', retryAfterSeconds.toString());
+        }
         res.status(error.httpStatus).json(error.toJSON());
         return;
       }
@@ -676,18 +699,44 @@ async function settlePayment(
         }
       }
 
-      // Not retryable or no retries left
-      if (error instanceof TypeError && err.message.includes('fetch')) {
-        throw X402Error.networkError(err.message);
+      // Not retryable or no retries left - determine error type
+      const errorType = detectNetworkErrorType(err);
+
+      if (errorType) {
+        // Log network error with facilitator URL for debugging/monitoring
+        console.error('[x402] Network connectivity error with facilitator:', {
+          facilitatorUrl: settleUrl,
+          errorType,
+          errorMessage: err.message,
+          attempt,
+          totalAttempts: MAX_RETRIES + 1,
+          elapsedMs: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Return 503 Service Unavailable with Retry-After header
+        throw X402Error.networkConnectivityError(settleUrl, errorType, 30);
       }
 
+      // Generic facilitator error for other cases
       throw X402Error.facilitatorError(err.message);
     }
   }
 
   // Should not reach here, but handle it gracefully
-  throw X402Error.facilitatorError(
-    lastError?.message || 'Max retries exceeded',
+  // Log max retries exceeded with facilitator URL
+  console.error('[x402] Max retries exceeded for facilitator:', {
+    facilitatorUrl: settleUrl,
+    lastError: lastError?.message,
+    totalAttempts: MAX_RETRIES + 1,
+    elapsedMs: Date.now() - startTime,
+    timestamp: new Date().toISOString(),
+  });
+
+  throw X402Error.networkConnectivityError(
+    settleUrl,
+    'MAX_RETRIES_EXCEEDED',
+    60, // Suggest longer retry delay after max retries
   );
 }
 
