@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:changed": "vitest --changed",
     "test:coverage": "vitest run --coverage",
+    "test:ci": "vitest run --coverage --bail=1 --reporter=default --reporter=json --outputFile=./test-reports/json/results.json",
     "test:ui": "vitest --ui"
   },
   "dependencies": {

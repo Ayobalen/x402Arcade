@@ -11,7 +11,8 @@
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
     "test:changed": "NODE_OPTIONS='--experimental-vm-modules' jest --onlyChanged",
-    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage"
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
+    "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --bail --ci --maxWorkers=2"
   },
   "dependencies": {
     "better-sqlite3": "^9.2.2",
