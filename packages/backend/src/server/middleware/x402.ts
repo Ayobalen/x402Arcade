@@ -93,6 +93,7 @@ import {
   X402SettlementError,
 } from '../x402/errors.js';
 import { getFacilitatorSettleUrl } from '../../lib/chain/constants.js';
+import { getDefaultNonceStore } from '../x402/nonce-store.js';
 
 /**
  * Create an x402 payment middleware instance
@@ -202,6 +203,13 @@ export function createX402Middleware(config: X402Config): X402Middleware {
         throw X402ValidationError.authorizationExpired(payload.validBefore, now);
       }
 
+      // Verify nonce hasn't been used before (replay attack prevention)
+      const nonceStore = getDefaultNonceStore();
+      const nonceUsed = await nonceStore.isUsed(payload.nonce);
+      if (nonceUsed) {
+        throw X402Error.nonceAlreadyUsed(payload.nonce);
+      }
+
       // Create settlement request
       const settlementRequest = createSettlementRequestFromPayload(payload, config);
 
@@ -215,6 +223,12 @@ export function createX402Middleware(config: X402Config): X402Middleware {
           errorMessage: settlementResponse.errorMessage,
         });
       }
+
+      // Mark nonce as used after successful settlement
+      await nonceStore.markUsed(payload.nonce, {
+        from: payload.from,
+        transactionHash: settlementResponse.transactionHash,
+      });
 
       // Create payment info for downstream handlers
       const paymentInfo = createPaymentInfo({

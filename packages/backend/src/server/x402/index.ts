@@ -30,3 +30,29 @@ export {
   extractXPaymentHeaderFromRequest,
   type XPaymentHeaderDetectionResult,
 } from './header-detection.js';
+
+// Export retry utilities
+export {
+  withRetry,
+  retryableFetch,
+  isTransientError,
+  isRetryableHttpStatus,
+  calculateBackoffDelay,
+  logRetryAttempt,
+  DEFAULT_RETRY_CONFIG,
+  type RetryConfig,
+  type RetryResult,
+  type RetryContext,
+  type RetryOptions,
+} from './retry.js';
+
+// Export nonce store for replay protection
+export {
+  getDefaultNonceStore,
+  setDefaultNonceStore,
+  resetDefaultNonceStore,
+  createInMemoryNonceStore,
+  InMemoryNonceStore,
+  type NonceStore,
+  type NonceMetadata,
+} from './nonce-store.js';
