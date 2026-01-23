@@ -101,3 +101,18 @@ export {
   type SceneProps,
   type SceneWithQualityProps,
 } from './Scene'
+
+export {
+  ScreenShake,
+  CameraShake,
+  useScreenShake,
+  useCSSShake,
+  SHAKE_PRESETS,
+  DEFAULT_SHAKE_CONFIG,
+  type ScreenShakeProps,
+  type ScreenShakeConfig,
+  type ShakeIntensity,
+  type UseScreenShakeResult,
+  type CameraShakeProps,
+  type UseCSSShakeResult,
+} from './ScreenShake'

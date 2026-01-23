@@ -580,6 +580,181 @@ export type X402ValidationErrorCode =
   | 'AUTHORIZATION_NOT_YET_VALID';
 
 /**
+ * Payment Information (Verified and Settled)
+ *
+ * Contains the verified payment information attached to requests after
+ * successful validation and settlement. This interface provides a clean,
+ * domain-oriented view of the payment suitable for business logic.
+ *
+ * @example
+ * ```typescript
+ * // Access in route handler after x402 middleware
+ * app.post('/api/play', x402Middleware, (req: X402Request, res) => {
+ *   const { paymentInfo } = req.x402!;
+ *
+ *   console.log(`Player ${paymentInfo.payer} paid ${paymentInfo.amountUsdc}`);
+ *   console.log(`Transaction: ${paymentInfo.transactionHash}`);
+ *
+ *   // Start game session
+ *   const session = createGameSession({
+ *     playerId: paymentInfo.payer,
+ *     paymentTxHash: paymentInfo.transactionHash,
+ *     amountPaid: paymentInfo.amount,
+ *   });
+ * });
+ * ```
+ */
+export interface PaymentInfo {
+  /**
+   * The payer's wallet address (player)
+   * Verified from the signed authorization
+   */
+  payer: string;
+
+  /**
+   * The recipient's wallet address (arcade)
+   * Verified to match the configured payTo address
+   */
+  recipient: string;
+
+  /**
+   * Payment amount in token's smallest units (e.g., 10000 for $0.01 USDC)
+   * Represented as bigint for precise calculations
+   */
+  amount: bigint;
+
+  /**
+   * Payment amount in human-readable USDC format (e.g., "0.01")
+   * Convenience field for logging and display
+   */
+  amountUsdc: string;
+
+  /**
+   * The token contract address used for payment
+   */
+  tokenAddress: string;
+
+  /**
+   * The blockchain chain ID where the payment was settled
+   */
+  chainId: number;
+
+  /**
+   * The on-chain transaction hash after successful settlement
+   * This is the proof of payment
+   */
+  transactionHash: string;
+
+  /**
+   * The block number containing the settlement transaction
+   */
+  blockNumber: number;
+
+  /**
+   * ISO timestamp when the payment was settled
+   */
+  settledAt: string;
+
+  /**
+   * ISO timestamp when the payment was received (pre-settlement)
+   */
+  receivedAt: string;
+
+  /**
+   * The unique nonce used in this authorization
+   * Useful for tracking and preventing replay
+   */
+  nonce: string;
+
+  /**
+   * Authorization validity window start
+   */
+  validAfter: string;
+
+  /**
+   * Authorization validity window end
+   */
+  validBefore: string;
+}
+
+/**
+ * Payment Info Builder Options
+ *
+ * Options for creating a PaymentInfo object from settlement data.
+ */
+export interface PaymentInfoOptions {
+  payload: PaymentPayload;
+  settlement: X402SettlementResponse;
+  config: X402Config;
+  receivedAt?: Date;
+}
+
+/**
+ * Create PaymentInfo from settlement result
+ *
+ * Constructs a clean PaymentInfo object from the raw settlement data.
+ *
+ * @param options - Payment info construction options
+ * @returns PaymentInfo object ready for use in business logic
+ */
+export function createPaymentInfo(options: PaymentInfoOptions): PaymentInfo {
+  const { payload, settlement, config, receivedAt = new Date() } = options;
+
+  // Import formatUSDC at runtime
+  const { formatUSDC } = require('../../lib/chain/constants.js');
+
+  const amount = BigInt(payload.value);
+
+  return {
+    payer: payload.from,
+    recipient: payload.to,
+    amount,
+    amountUsdc: formatUSDC(amount),
+    tokenAddress: config.tokenAddress,
+    chainId: config.chainId,
+    transactionHash: settlement.transactionHash || '',
+    blockNumber: settlement.blockNumber || 0,
+    settledAt: new Date().toISOString(),
+    receivedAt: receivedAt.toISOString(),
+    nonce: payload.nonce,
+    validAfter: payload.validAfter,
+    validBefore: payload.validBefore,
+  };
+}
+
+/**
+ * Create pending PaymentInfo (pre-settlement)
+ *
+ * Creates a PaymentInfo object for a payment that's been validated
+ * but not yet settled. Useful for tracking pending payments.
+ *
+ * @param payload - The validated payment payload
+ * @param config - The x402 configuration
+ * @returns Partial PaymentInfo without settlement data
+ */
+export function createPendingPaymentInfo(
+  payload: PaymentPayload,
+  config: X402Config,
+): Omit<PaymentInfo, 'transactionHash' | 'blockNumber' | 'settledAt'> {
+  const { formatUSDC } = require('../../lib/chain/constants.js');
+
+  const amount = BigInt(payload.value);
+
+  return {
+    payer: payload.from,
+    recipient: payload.to,
+    amount,
+    amountUsdc: formatUSDC(amount),
+    tokenAddress: config.tokenAddress,
+    chainId: config.chainId,
+    receivedAt: new Date().toISOString(),
+    nonce: payload.nonce,
+    validAfter: payload.validAfter,
+    validBefore: payload.validBefore,
+  };
+}
+
+/**
  * x402 Middleware Context
  *
  * Extended Express request with x402 payment information.
@@ -589,9 +764,23 @@ export interface X402Request extends Request {
    * The verified payment information (set after successful verification)
    */
   x402?: {
+    /** The raw payment header from the request */
     payment: X402PaymentHeader;
+
+    /** The flattened payment payload */
+    payload: PaymentPayload;
+
+    /** Settlement response from facilitator (if settled) */
     settlement?: X402SettlementResponse;
+
+    /** Verified and processed payment info (after settlement) */
+    paymentInfo?: PaymentInfo;
+
+    /** The x402 configuration used */
     config: X402Config;
+
+    /** ISO timestamp when payment was received */
+    receivedAt: string;
   };
 }
 
