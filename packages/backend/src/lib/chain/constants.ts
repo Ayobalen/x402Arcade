@@ -207,6 +207,52 @@ export const USDC_DECIMALS: 6 = 6;
 export const USDC_VERSION = '1';
 
 /**
+ * Default x402 Facilitator Base URL
+ *
+ * The default URL for the Cronos Labs x402 facilitator service.
+ * The facilitator is responsible for:
+ * - Receiving EIP-3009 signed authorizations from players
+ * - Executing transferWithAuthorization on the USDC contract
+ * - Paying gas fees on behalf of players (gasless transactions)
+ * - Returning transaction receipts to the backend
+ *
+ * Can be overridden via FACILITATOR_URL environment variable for:
+ * - Local development (e.g., mock facilitator)
+ * - Testing against staging environments
+ * - Using alternative facilitator services
+ *
+ * @see https://facilitator.cronoslabs.org - Cronos Labs Facilitator
+ */
+export const DEFAULT_FACILITATOR_BASE_URL = 'https://facilitator.cronoslabs.org';
+
+/**
+ * Get the x402 Facilitator Base URL
+ *
+ * Returns the FACILITATOR_URL environment variable if set,
+ * otherwise falls back to the Cronos Labs facilitator URL.
+ *
+ * In development, you may want to use a mock facilitator:
+ * ```bash
+ * FACILITATOR_URL=http://localhost:4000 npm run dev
+ * ```
+ *
+ * @returns The facilitator base URL to use for payment settlement
+ */
+export function getFacilitatorBaseUrl(): string {
+  return process.env.FACILITATOR_URL || DEFAULT_FACILITATOR_BASE_URL;
+}
+
+/**
+ * x402 Facilitator Base URL
+ *
+ * The base URL for the x402 facilitator service.
+ * Supports environment variable override via FACILITATOR_URL.
+ *
+ * @deprecated Use getFacilitatorBaseUrl() for runtime configuration support
+ */
+export const FACILITATOR_BASE_URL: string = getFacilitatorBaseUrl();
+
+/**
  * Parse a human-readable USDC amount into the smallest unit representation
  *
  * Converts a decimal USDC value (e.g., "1.50" or 1.5) into the integer
@@ -369,11 +415,14 @@ export const chainConstants = {
   USDC_VERSION,
   DEFAULT_USDC_CONTRACT_ADDRESS,
   USDC_CONTRACT_ADDRESS,
+  DEFAULT_FACILITATOR_BASE_URL,
+  FACILITATOR_BASE_URL,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
   isValidAddress,
   getUsdcContractAddress,
+  getFacilitatorBaseUrl,
   parseUSDC,
   formatUSDC,
   formatUSDCWithSymbol,
