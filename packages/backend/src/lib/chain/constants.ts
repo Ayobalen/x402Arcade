@@ -302,6 +302,65 @@ export function getFacilitatorSettleUrl(): string {
 }
 
 /**
+ * x402 Facilitator Supported Endpoint Path
+ *
+ * The API endpoint path to check if the facilitator supports a specific
+ * token/chain combination. Call this endpoint before attempting settlement
+ * to verify compatibility.
+ *
+ * **Request Format (GET):**
+ * ```
+ * GET /v2/x402/supported?chainId=338&token=0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
+ * ```
+ *
+ * **Response Format:**
+ * ```json
+ * {
+ *   "supported": true,
+ *   "chainId": 338,
+ *   "token": "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0",
+ *   "tokenName": "devUSDC.e",
+ *   "minAmount": "1000",
+ *   "maxAmount": "100000000"
+ * }
+ * ```
+ *
+ * @see https://facilitator.cronoslabs.org/docs - Facilitator API Documentation
+ */
+export const FACILITATOR_SUPPORTED_ENDPOINT = '/v2/x402/supported';
+
+/**
+ * Get the full URL for the facilitator supported endpoint
+ *
+ * Combines the facilitator base URL with the supported endpoint path.
+ *
+ * @returns Full URL for the supported endpoint
+ * @example
+ * getFacilitatorSupportedUrl() // => 'https://facilitator.cronoslabs.org/v2/x402/supported'
+ */
+export function getFacilitatorSupportedUrl(): string {
+  return `${getFacilitatorBaseUrl()}${FACILITATOR_SUPPORTED_ENDPOINT}`;
+}
+
+/**
+ * Check if a token/chain combination is supported by the facilitator
+ *
+ * @param chainId - The chain ID to check (default: Cronos Testnet)
+ * @param tokenAddress - The token contract address (default: devUSDC.e)
+ * @returns Full URL with query parameters for the support check
+ * @example
+ * getFacilitatorSupportCheckUrl() // => 'https://facilitator.cronoslabs.org/v2/x402/supported?chainId=338&token=0x...'
+ * getFacilitatorSupportCheckUrl(1, '0x...') // Custom chain and token
+ */
+export function getFacilitatorSupportCheckUrl(
+  chainId: number = CRONOS_TESTNET_CHAIN_ID,
+  tokenAddress: string = getUsdcContractAddress(),
+): string {
+  const baseUrl = getFacilitatorSupportedUrl();
+  return `${baseUrl}?chainId=${chainId}&token=${tokenAddress}`;
+}
+
+/**
  * Parse a human-readable USDC amount into the smallest unit representation
  *
  * Converts a decimal USDC value (e.g., "1.50" or 1.5) into the integer
@@ -467,6 +526,7 @@ export const chainConstants = {
   DEFAULT_FACILITATOR_BASE_URL,
   FACILITATOR_BASE_URL,
   FACILITATOR_SETTLE_ENDPOINT,
+  FACILITATOR_SUPPORTED_ENDPOINT,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
@@ -474,6 +534,8 @@ export const chainConstants = {
   getUsdcContractAddress,
   getFacilitatorBaseUrl,
   getFacilitatorSettleUrl,
+  getFacilitatorSupportedUrl,
+  getFacilitatorSupportCheckUrl,
   parseUSDC,
   formatUSDC,
   formatUSDCWithSymbol,
