@@ -9,3 +9,6 @@
 
 // Export all types
 export * from './types.js';
+
+// Export error classes
+export * from './errors.js';
