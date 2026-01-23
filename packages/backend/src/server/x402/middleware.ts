@@ -29,6 +29,7 @@ import {
   parseSettlementResponse,
   createPaymentInfo,
   validateX402Config,
+  setPaymentResponseHeader,
 } from './types.js';
 import { X402Error, X402ValidationError } from './errors.js';
 import { getDefaultNonceStore } from './nonce-store.js';
@@ -262,6 +263,18 @@ export function createX402Middleware(config: X402Config): X402Middleware {
         receivedAt: receivedAt.toISOString(),
       };
 
+      // Set X-Payment-Response header with settlement confirmation
+      // This allows clients to access transaction details from the response headers
+      const responseHeader = setPaymentResponseHeader(res, settlement, config);
+
+      if (config.debug) {
+        console.log('[x402] Set X-Payment-Response header:', {
+          transactionHash: settlement.transactionHash,
+          blockNumber: settlement.blockNumber,
+          encodedLength: responseHeader.length,
+        });
+      }
+
       // Continue to next handler
       next();
     } catch (error) {
@@ -397,7 +410,8 @@ async function settlePayment(
 
   // Retry configuration
   const MAX_RETRIES = 3;
-  const TOTAL_TIMEOUT_MS = 60000; // 60 seconds
+  const TOTAL_TIMEOUT_MS = 60000; // 60 seconds total budget
+  const REQUEST_TIMEOUT_MS = 30000; // 30 seconds per request
   const BASE_DELAY_MS = 500;
   const MAX_DELAY_MS = 10000;
 
@@ -436,13 +450,24 @@ async function settlePayment(
         );
       }
 
-      const response = await fetch(settleUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+      // Create abort controller for request timeout (30 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      let response: Response;
+      try {
+        response = await fetch(settleUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(request),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       // Check if this is a retryable 5xx error
       if (isRetryableStatusCode(response.status)) {
@@ -717,6 +742,9 @@ export function createX402MockMiddleware(config: X402Config): X402Middleware {
         config,
         receivedAt: new Date().toISOString(),
       };
+
+      // Set X-Payment-Response header for mock settlement too
+      setPaymentResponseHeader(res, mockSettlement, config);
 
       next();
     } catch (error) {
