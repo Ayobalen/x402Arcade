@@ -179,6 +179,183 @@ export interface X402PaymentRequirement {
 }
 
 /**
+ * HTTP 402 Payment Required Response Body
+ *
+ * The complete response body returned when a protected endpoint is accessed
+ * without valid payment. This interface provides a cleaner, domain-specific
+ * view of the 402 response that includes chainId and tokenAddress explicitly.
+ *
+ * **HTTP Response:**
+ * ```
+ * HTTP/1.1 402 Payment Required
+ * Content-Type: application/json
+ *
+ * {
+ *   "x402Version": "1",
+ *   "accepts": [...],
+ *   "amount": "10000",
+ *   "currency": "USDC",
+ *   "payTo": "0x...",
+ *   "chainId": 338,
+ *   "tokenAddress": "0x...",
+ *   "description": "Pay to play Snake game",
+ *   "resource": "/api/play/snake"
+ * }
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Creating a 402 response
+ * const response: PaymentRequiredResponse = {
+ *   x402Version: '1',
+ *   accepts: [{
+ *     scheme: 'exact',
+ *     network: 'cronos-testnet',
+ *     maxAmountRequired: '10000',
+ *     resource: '/api/play/snake',
+ *     payTo: arcadeWallet,
+ *     asset: { address: USDC_ADDRESS, name: 'USDC', decimals: 6, symbol: 'USDC' },
+ *     eip712Domain: { ... }
+ *   }],
+ *   amount: '10000',
+ *   currency: 'USDC',
+ *   payTo: arcadeWallet,
+ *   chainId: 338,
+ *   tokenAddress: USDC_ADDRESS,
+ *   description: 'Pay to play Snake game',
+ *   resource: '/api/play/snake'
+ * };
+ * ```
+ */
+export interface PaymentRequiredResponse {
+  /**
+   * Protocol version identifier
+   */
+  x402Version: '1';
+
+  /**
+   * Array of accepted payment methods (from X402PaymentRequirement)
+   * Contains detailed payment scheme information
+   */
+  accepts: X402PaymentRequirement['accepts'];
+
+  /**
+   * Payment amount in token's smallest units (e.g., "10000" for $0.01 USDC)
+   * String representation for uint256 compatibility
+   */
+  amount: string;
+
+  /**
+   * Token symbol (e.g., "USDC")
+   * Human-readable currency identifier
+   */
+  currency: string;
+
+  /**
+   * The recipient address for payments (arcade wallet)
+   * Must be a valid Ethereum address format (0x + 40 hex chars)
+   */
+  payTo: string;
+
+  /**
+   * The blockchain chain ID for the payment
+   * Used to ensure payment is made on the correct network
+   * @example 338 for Cronos Testnet
+   */
+  chainId: number;
+
+  /**
+   * The ERC-20 token contract address supporting EIP-3009
+   * @example '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0' for devUSDC.e
+   */
+  tokenAddress: string;
+
+  /**
+   * Human-readable description of the payment
+   * @example "Pay $0.01 to play Snake"
+   */
+  description?: string;
+
+  /**
+   * The resource being purchased (typically the route path)
+   * @example "/api/play/snake"
+   */
+  resource?: string;
+
+  /**
+   * Maximum time in seconds the payment offer is valid
+   * @default 3600 (1 hour)
+   */
+  maxTimeoutSeconds?: number;
+}
+
+/**
+ * Create a PaymentRequiredResponse from X402 configuration
+ *
+ * Factory function to construct the 402 response body from the
+ * middleware configuration. Used by the x402 middleware when
+ * returning a 402 Payment Required response.
+ *
+ * @param config - The X402 middleware configuration
+ * @param resource - The resource path being accessed
+ * @param description - Optional description of the payment
+ * @returns PaymentRequiredResponse ready to send as JSON
+ *
+ * @example
+ * ```typescript
+ * const response = createPaymentRequiredResponse(
+ *   x402Config,
+ *   '/api/play/snake',
+ *   'Pay $0.01 to play Snake game'
+ * );
+ * res.status(402).json(response);
+ * ```
+ */
+export function createPaymentRequiredResponse(
+  config: X402Config,
+  resource: string,
+  description?: string,
+): PaymentRequiredResponse {
+  const { getUsdcEip712Domain } = require('../../lib/chain/constants.js');
+
+  const amount =
+    typeof config.paymentAmount === 'bigint'
+      ? config.paymentAmount.toString()
+      : String(config.paymentAmount);
+
+  const eip712Domain = getUsdcEip712Domain(config.chainId);
+
+  return {
+    x402Version: '1',
+    accepts: [
+      {
+        scheme: 'exact',
+        network: `cronos-${config.chainId === 338 ? 'testnet' : 'mainnet'}`,
+        maxAmountRequired: amount,
+        resource,
+        description,
+        payTo: config.payTo,
+        asset: {
+          address: config.tokenAddress,
+          name: config.tokenName,
+          decimals: config.tokenDecimals,
+          symbol: 'USDC',
+        },
+        eip712Domain,
+      },
+    ],
+    amount,
+    currency: 'USDC',
+    payTo: config.payTo,
+    chainId: config.chainId,
+    tokenAddress: config.tokenAddress,
+    description,
+    resource,
+    maxTimeoutSeconds: config.maxAuthorizationAge || 3600,
+  };
+}
+
+/**
  * x402 Payment Header (X-Payment)
  *
  * The payment header sent by the client to fulfill a 402 requirement.
