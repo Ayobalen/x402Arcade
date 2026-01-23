@@ -336,6 +336,36 @@ export function spawnFood(
 }
 
 /**
+ * Generate food at a random valid position.
+ *
+ * This is a simplified version of spawnFood that returns only a Position.
+ * Food must not appear on the snake body.
+ *
+ * @param snake - Array of snake body positions to avoid
+ * @param gridSize - Grid size (cells per side)
+ * @returns Position object at a valid location
+ */
+export function generateFood(
+  snake: Position[],
+  gridSize: number = GRID_SIZE
+): Position {
+  let position: Position
+  let attempts = 0
+  const maxAttempts = gridSize * gridSize
+
+  // Find a position that doesn't collide with the snake
+  do {
+    position = getRandomPosition(gridSize)
+    attempts++
+  } while (
+    snake.some((segment) => positionsEqual(position, segment)) &&
+    attempts < maxAttempts
+  )
+
+  return position
+}
+
+/**
  * Check if the snake head is eating food.
  *
  * @param segments - Snake body segments
@@ -446,6 +476,7 @@ export default {
   moveSnake,
   // Food utilities
   getRandomPosition,
+  generateFood,
   spawnFood,
   isEatingFood,
   // Score utilities

@@ -24,6 +24,7 @@ import {
   collidesWithSnake,
   checkSelfCollision,
   moveSnake,
+  generateFood,
   spawnFood,
   isEatingFood,
   calculateScore,
@@ -368,6 +369,62 @@ describe('Snake Utilities', () => {
 // ============================================================================
 
 describe('Food Utilities', () => {
+  describe('generateFood', () => {
+    it('should generate food at random position not on snake', () => {
+      const snake = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 },
+      ]
+      const food = generateFood(snake)
+
+      // Food should not be on any snake segment
+      const collidesWithSnake = snake.some(
+        (segment) => segment.x === food.x && segment.y === food.y
+      )
+
+      expect(collidesWithSnake).toBe(false)
+    })
+
+    it('should generate food within grid bounds', () => {
+      const snake = [{ x: 5, y: 5 }]
+      const food = generateFood(snake)
+
+      expect(food.x).toBeGreaterThanOrEqual(0)
+      expect(food.x).toBeLessThan(GRID_SIZE)
+      expect(food.y).toBeGreaterThanOrEqual(0)
+      expect(food.y).toBeLessThan(GRID_SIZE)
+    })
+
+    it('should return a Position object with x and y', () => {
+      const snake = [{ x: 5, y: 5 }]
+      const food = generateFood(snake)
+
+      expect(typeof food.x).toBe('number')
+      expect(typeof food.y).toBe('number')
+    })
+
+    it('should work with empty snake array', () => {
+      const food = generateFood([])
+
+      expect(food.x).toBeGreaterThanOrEqual(0)
+      expect(food.x).toBeLessThan(GRID_SIZE)
+      expect(food.y).toBeGreaterThanOrEqual(0)
+      expect(food.y).toBeLessThan(GRID_SIZE)
+    })
+
+    it('should respect custom grid size', () => {
+      const snake = [{ x: 2, y: 2 }]
+      const customGridSize = 5
+      const food = generateFood(snake, customGridSize)
+
+      expect(food.x).toBeGreaterThanOrEqual(0)
+      expect(food.x).toBeLessThan(customGridSize)
+      expect(food.y).toBeGreaterThanOrEqual(0)
+      expect(food.y).toBeLessThan(customGridSize)
+    })
+  })
+
   describe('spawnFood', () => {
     it('should spawn food outside snake', () => {
       const snake = createInitialSnake()
