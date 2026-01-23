@@ -99,3 +99,53 @@
 **Progress:** 10/1215 features passing (0.8%)
 
 **Next:** Continue with remaining TDD infrastructure or start Phase 1 setup
+
+### Session 3 (TDD Infrastructure - Auth and Mock Utilities)
+**Completed:**
+- Feature #353: Create authentication test helpers ✅
+  - Created packages/backend/__tests__/utils/auth-helpers.ts
+  - Implemented createAuthenticatedRequest() with mock wallet signature
+  - Added generateTestWalletAddress() and generateTestWallet() for unique wallets
+  - Created createMockPaymentHeader() for x402 payment token simulation
+  - Implemented asAdmin(), asUser(), asGuest(), asNewUser() context helpers
+  - Added verifyAuthRequired(), verifyPaymentRequired(), verifyAccessDenied() assertions
+  - Implemented testAuthStates() for testing endpoints with multiple auth levels
+  - Fixed testAuthStates to properly handle GET/DELETE vs POST/PUT method signatures
+  - Written 53 comprehensive tests demonstrating auth helper usage
+
+- Feature #354: Create x402 payment mock utilities ✅
+  - Created packages/backend/__tests__/mocks/x402-mock.ts
+  - Implemented MockX402Server class with full payment flow simulation
+  - Added mockPaymentRequired() for 402 responses with requirements
+  - Created mockPaymentVerified() for successful payment scenarios
+  - Implemented mockPaymentFailed() with various error codes (INSUFFICIENT_FUNDS, etc.)
+  - Added validatePaymentHeader() for comprehensive header validation
+  - Created createX402Middleware() Express middleware for testing
+  - Added helper functions: createExpiredPaymentHeader, createWrongAmountPaymentHeader, etc.
+  - Implemented assertion helpers: assertPaymentRequired, assertPaymentSuccess, assertPaymentFailed
+  - Created factory functions: createMockFacilitatorClient, createTestX402Server
+  - Written 58 comprehensive tests verifying x402 mock behavior
+
+- Feature #355: Create blockchain mock utilities ✅
+  - Created packages/backend/__tests__/mocks/blockchain-mock.ts
+  - Implemented MockWeb3Provider with controlled responses and full configuration
+  - Added mockTransactionReceipt() and mockFailedTransactionReceipt() for tx simulation
+  - Created mockContractCall() for smart contract testing
+  - Implemented mockBlockNumber(), mockGasPrice(), mockBlock() factory functions
+  - Added transaction failure simulation (setNextCallFailure, failRate, latency)
+  - Included CRONOS_TESTNET and CRONOS_MAINNET chain configurations
+  - Added DEV_USDC_CONFIG for devUSDC.e contract testing
+  - Created viem-compatible mock clients (createMockPublicClient, createMockWalletClient)
+  - Implemented createMockUSDCContract for USDC testing
+  - Written 68 comprehensive tests verifying blockchain mock behavior
+
+**Test Summary:**
+- auth-helpers.test.ts: 53 tests passing
+- x402-mock.test.ts: 58 tests passing
+- blockchain-mock.test.ts: 68 tests passing
+
+**GOTCHA FIXED:** testAuthStates() function was using 3 arguments for GET/DELETE methods which only accept 2. Fixed by creating a makeRequest helper that handles method signatures correctly.
+
+**Progress:** 14/1215 features passing (1.2%)
+
+**Next:** Continue with remaining TDD infrastructure features or start Phase 1 setup
