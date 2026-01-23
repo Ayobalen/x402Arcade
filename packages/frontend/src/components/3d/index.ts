@@ -11,3 +11,13 @@ export {
   type GameFrameProps,
   type StandaloneFrameSceneProps,
 } from './GameFrame'
+
+export {
+  GameScreen3D,
+  useCanvasTexture,
+  useGameCanvas,
+  type GameScreen3DProps,
+  type UseCanvasTextureOptions,
+  type UseCanvasTextureResult,
+  type UseGameScreenOptions,
+} from './GameScreen3D'

@@ -11,16 +11,43 @@
 /**
  * Background Colors
  *
- * Used for page backgrounds, cards, and surface elements.
- * Progresses from darkest (main) to lighter (surface) for layering.
+ * Dark purple backgrounds that create the deep space/arcade atmosphere.
+ * These provide the canvas for neon elements to pop against.
+ * Progresses from darkest (primary) to lighter (tertiary) for layering.
  */
 export const backgrounds = {
-  /** Near black - main page background (#0a0a0a) */
-  main: '#0a0a0a',
-  /** Dark purple - secondary areas, sidebars (#1a1a2e) */
-  secondary: '#1a1a2e',
-  /** Slightly lighter - cards, modals, elevated surfaces (#16162a) */
+  /** Darkest background - deepest layer (#0a0a0f) */
+  primary: '#0a0a0f',
+  /** Secondary background - page sections (#12121a) */
+  secondary: '#12121a',
+  /** Tertiary background - cards, elevated areas (#1a1a2e) */
+  tertiary: '#1a1a2e',
+  /** Surface background - modals, dropdowns (#16162a) */
   surface: '#16162a',
+  /** Near black - legacy compatibility (#0a0a0a) */
+  main: '#0a0a0a',
+  /** Overlay with transparency - for modals, dialogs */
+  overlay: 'rgba(10, 10, 15, 0.85)',
+  /** Lighter overlay - for subtle backdrops */
+  overlayLight: 'rgba(10, 10, 15, 0.6)',
+} as const;
+
+/**
+ * Background Gradients
+ *
+ * Pre-defined gradients for depth effects and visual interest.
+ */
+export const backgroundGradients = {
+  /** Page background gradient - darkest to slightly lighter */
+  page: 'linear-gradient(180deg, #0a0a0f 0%, #12121a 100%)',
+  /** Card surface gradient - adds depth */
+  card: 'linear-gradient(180deg, #1a1a2e 0%, #16162a 100%)',
+  /** Radial glow for hero sections */
+  radialGlow: 'radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0f 70%)',
+  /** Subtle purple tint gradient */
+  purpleTint: 'linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(10, 10, 15, 0) 50%)',
+  /** Mesh gradient for decorative backgrounds */
+  mesh: 'radial-gradient(at 40% 20%, rgba(0, 255, 255, 0.08) 0, transparent 50%), radial-gradient(at 80% 0%, rgba(255, 0, 255, 0.08) 0, transparent 50%), radial-gradient(at 0% 50%, rgba(0, 255, 255, 0.05) 0, transparent 50%)',
 } as const;
 
 /**
@@ -62,6 +89,47 @@ export const primary = {
   glow: 'rgba(0, 255, 255, 0.4)',
   /** Strong glow - for hover/focus states */
   glowStrong: 'rgba(0, 255, 255, 0.6)',
+} as const;
+
+/**
+ * Secondary Color Palette (Neon Magenta)
+ *
+ * Complementary magenta color with full shade scale.
+ * Creates the classic arcade neon contrast with cyan primary.
+ */
+export const secondary = {
+  /** Base secondary color - neon magenta (#ff00ff) */
+  DEFAULT: '#ff00ff',
+  /** Lightest shade - almost white with magenta tint */
+  50: '#ffe6ff',
+  /** Very light magenta */
+  100: '#ffccff',
+  /** Light magenta */
+  200: '#ff99ff',
+  /** Medium-light magenta */
+  300: '#ff66ff',
+  /** Lighter magenta */
+  400: '#ff33ff',
+  /** Base secondary - neon magenta */
+  500: '#ff00ff',
+  /** Slightly darker magenta */
+  600: '#cc00cc',
+  /** Medium magenta */
+  700: '#990099',
+  /** Dark magenta */
+  800: '#660066',
+  /** Darkest magenta */
+  900: '#330033',
+  /** Hover state - brighter magenta with white tint */
+  hover: '#ff33ff',
+  /** Active/pressed state - slightly darker */
+  active: '#cc00cc',
+  /** Disabled state - desaturated */
+  disabled: '#994d99',
+  /** Glow effect - semi-transparent for shadows */
+  glow: 'rgba(255, 0, 255, 0.4)',
+  /** Strong glow - for hover/focus states */
+  glowStrong: 'rgba(255, 0, 255, 0.6)',
 } as const;
 
 /**
@@ -161,7 +229,9 @@ export const gradients = {
  */
 export const colors = {
   backgrounds,
+  backgroundGradients,
   primary,
+  secondary,
   accents,
   semantic,
   text,
@@ -174,7 +244,9 @@ export const colors = {
  * Type definitions for color tokens
  */
 export type BackgroundColors = typeof backgrounds;
+export type BackgroundGradients = typeof backgroundGradients;
 export type PrimaryColors = typeof primary;
+export type SecondaryColors = typeof secondary;
 export type AccentColors = typeof accents;
 export type SemanticColors = typeof semantic;
 export type TextColors = typeof text;
