@@ -1,18 +1,21 @@
 {
+  /*
+   * Shared Package TypeScript Configuration
+   * Extends shared base config for consistent settings across the monorepo.
+   * Uses bundler mode for compatibility with both frontend and backend consumers.
+   */
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022"],
+    /* Override for bundler compatibility */
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
-    "composite": true,
+
+    /* Output configuration */
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": ".",
+
+    /* Composite for project references */
+    "composite": true
   },
   "include": ["src/**/*", "test-utils/**/*"],
   "exclude": ["node_modules", "dist"]
