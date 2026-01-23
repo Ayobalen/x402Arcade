@@ -116,3 +116,14 @@ export {
   type CameraShakeProps,
   type UseCSSShakeResult,
 } from './ScreenShake'
+
+export {
+  ExplosionParticles,
+  useExplosion,
+  EXPLOSION_PRESETS,
+  getExplosionPreset,
+  type ExplosionParticlesProps,
+  type ExplosionConfig,
+  type ExplosionPreset,
+  type UseExplosionResult,
+} from './ExplosionParticles'
