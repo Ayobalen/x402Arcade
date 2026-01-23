@@ -176,7 +176,7 @@ function useGlowState(
   baseIntensity: number,
   maxIntensity: number,
   customColor?: string
-): GlowState {
+): React.MutableRefObject<GlowState> {
   const stateRef = useRef<GlowState>({
     intensity: baseIntensity,
     color: new THREE.Color(customColor || GLOW_COLOR_PRESETS.idle.primary),
@@ -248,7 +248,8 @@ function useGlowState(
     }
   }, [comboMultiplier])
 
-  return stateRef.current
+  // Return the ref so consumers can mutate .current in useFrame
+  return stateRef
 }
 
 // ============================================================================
@@ -450,7 +451,8 @@ export function ScreenGlow({
   const currentIntensity = useRef(baseIntensity)
 
   useFrame((state, delta) => {
-    const gs = glowState
+    // glowState is a mutable ref - access .current for frame-by-frame updates
+    const gs = glowState.current
 
     // Update flash timer
     if (gs.flashTimer > 0) {
@@ -512,8 +514,8 @@ export function ScreenGlow({
         width={width}
         height={height}
         zOffset={zOffset}
-        color={glowState.color}
-        intensity={glowState.intensity}
+        color={glowState.current.color}
+        intensity={glowState.current.intensity}
         expansionFactor={expansionFactor}
       />
 
@@ -522,8 +524,8 @@ export function ScreenGlow({
         width={width}
         height={height}
         zOffset={zOffset}
-        color={glowState.color}
-        intensity={glowState.intensity * 0.7}
+        color={glowState.current.color}
+        intensity={glowState.current.intensity * 0.7}
       />
     </group>
   )

@@ -48,3 +48,25 @@ export {
   type CRTEffectHandle,
   type CRTPreset,
 } from './CRTEffect'
+
+export {
+  ScoreDisplay3D,
+  useScoreDisplay,
+  type ScoreDisplay3DProps,
+  type UseScoreDisplayResult,
+} from './ScoreDisplay3D'
+
+export {
+  ComboCounter3D,
+  useComboCounter,
+  COMBO_COLOR_LEVELS,
+  type ComboCounter3DProps,
+  type ComboColorLevel,
+  type UseComboCounterResult,
+} from './ComboCounter3D'
+
+export {
+  CanvasFallback,
+  detectWebGLSupport,
+  type CanvasFallbackProps,
+} from './CanvasFallback'

@@ -299,33 +299,31 @@ export function WebGLProvider({
   onContextLost,
   onContextRestored,
 }: WebGLProviderProps) {
-  // Detect capabilities on mount
-  const [capabilities, setCapabilities] = useState<WebGLCapabilities>(DEFAULT_CAPABILITIES);
-  const [isReady, setIsReady] = useState(false);
+  // Use lazy initialization for capabilities to avoid effect-based setState
+  const [capabilities] = useState<WebGLCapabilities>(() => {
+    // Detect on initial render (SSR-safe - returns defaults if window not available)
+    return detectCapabilities();
+  });
+  const [isReady] = useState(() => {
+    // Ready immediately if we can detect capabilities
+    return typeof window !== 'undefined';
+  });
   const [contextLost, setContextLost] = useState(false);
 
-  // Determine initial quality
-  const [qualityPreset, setQualityPresetState] = useState<QualityPreset>(
-    initialQuality || 'medium'
-  );
-  const [qualitySettings, setQualitySettingsState] = useState<WebGLQualitySettings>(
-    QUALITY_PRESETS[initialQuality || 'medium']
-  );
-
-  // Detect capabilities on mount
-  useEffect(() => {
+  // Determine initial quality using lazy initialization
+  const [qualityPreset, setQualityPresetState] = useState<QualityPreset>(() => {
+    if (initialQuality) return initialQuality;
+    // Auto-detect quality based on capabilities
     const detected = detectCapabilities();
-    setCapabilities(detected);
-
-    // Auto-detect quality if not specified
-    if (!initialQuality) {
-      const bestQuality = determineBestQuality(detected);
-      setQualityPresetState(bestQuality);
-      setQualitySettingsState(QUALITY_PRESETS[bestQuality]);
-    }
-
-    setIsReady(true);
-  }, [initialQuality]);
+    return determineBestQuality(detected);
+  });
+  const [qualitySettings, setQualitySettingsState] = useState<WebGLQualitySettings>(() => {
+    if (initialQuality) return QUALITY_PRESETS[initialQuality];
+    // Auto-detect quality based on capabilities
+    const detected = detectCapabilities();
+    const bestQuality = determineBestQuality(detected);
+    return QUALITY_PRESETS[bestQuality];
+  });
 
   // Listen for context lost/restored events
   useEffect(() => {
