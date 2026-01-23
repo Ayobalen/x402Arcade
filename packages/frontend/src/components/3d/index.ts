@@ -39,3 +39,12 @@ export {
   type ScreenReflectionProps,
   type SimpleReflectionProps,
 } from './ScreenReflection'
+
+export {
+  CRTEffect,
+  CRT_PRESETS,
+  getCRTPreset,
+  type CRTEffectProps,
+  type CRTEffectHandle,
+  type CRTPreset,
+} from './CRTEffect'
