@@ -56,3 +56,24 @@ export {
   type NonceStore,
   type NonceMetadata,
 } from './nonce-store.js';
+
+// Export nonce generation utilities
+export {
+  generateNonce,
+  isValidNonce,
+  assertValidNonce,
+  generateUniqueNonce,
+} from './nonce-store.js';
+
+// Export settlement request utilities
+export {
+  sendSettlementRequest,
+  settlePaymentRequest,
+  constructSettlementRequest,
+  buildSettleUrl,
+  isSettlementSuccess,
+  extractSettlementError,
+  SETTLEMENT_REQUEST_TIMEOUT_MS,
+  type SettlementRequestOptions,
+  type SettlementRawResponse,
+} from './settlement.js';
