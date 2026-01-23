@@ -39,7 +39,7 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-global.ResizeObserver = MockResizeObserver;
+window.ResizeObserver = MockResizeObserver;
 
 // Mock IntersectionObserver
 class MockIntersectionObserver {
@@ -72,4 +72,4 @@ class MockIntersectionObserver {
   }
 }
 
-global.IntersectionObserver = MockIntersectionObserver;
+window.IntersectionObserver = MockIntersectionObserver;
