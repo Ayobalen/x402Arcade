@@ -46,7 +46,15 @@ export default tseslint.config(
     rules: {
       'react-hooks/refs': 'off',
       'react-hooks/immutability': 'off', // Allow mutable refs for frame-by-frame animation
+      'react-hooks/set-state-in-effect': 'off', // Animation effects often need this pattern
       'react-refresh/only-export-components': 'off',
+    },
+  },
+  // Relaxed rules for hooks (performance monitoring, timers, etc.)
+  {
+    files: ['**/hooks/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/purity': 'off', // Performance monitoring hooks need impure functions
     },
   },
   // Relaxed rules for context providers (they often export hooks alongside providers)
