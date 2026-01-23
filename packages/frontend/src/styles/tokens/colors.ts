@@ -225,14 +225,21 @@ export const semantic = {
  * Text Colors
  *
  * Typography colors for headings, body text, and muted elements.
+ * Designed for proper contrast ratios against dark backgrounds.
  */
 export const text = {
-  /** White - primary text, headings, important content (#ffffff) */
+  /** Pure white - primary text, headings, important content (#ffffff) */
   primary: '#ffffff',
-  /** Muted gray - secondary text, descriptions, labels (#94a3b8) */
-  secondary: '#94a3b8',
-  /** Dimmed - placeholder text, disabled states (#64748b) */
-  muted: '#64748b',
+  /** Light gray - body text, descriptions, readable content (#e0e0e0) */
+  secondary: '#e0e0e0',
+  /** Medium gray - captions, labels, less prominent text (#a0a0a0) */
+  tertiary: '#a0a0a0',
+  /** Muted gray - hints, placeholder text, subtle content (#606060) */
+  muted: '#606060',
+  /** Disabled text - inactive states, unavailable options (#404040) */
+  disabled: '#404040',
+  /** Inverse text - for use on light/accent backgrounds (#0a0a0f) */
+  inverse: '#0a0a0f',
 } as const;
 
 /**
