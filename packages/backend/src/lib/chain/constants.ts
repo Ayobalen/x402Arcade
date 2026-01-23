@@ -511,6 +511,154 @@ export function getUsdcContractAddress(): string {
  */
 export const USDC_CONTRACT_ADDRESS: string = getUsdcContractAddress();
 
+/**
+ * EIP-712 TypedDataField Interface
+ *
+ * Represents a single field in an EIP-712 typed data structure.
+ * Each field has a name and a corresponding Solidity type.
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-712 - EIP-712 Typed Data Standard
+ */
+export interface TypedDataField {
+  /** The name of the field (e.g., "name", "version", "chainId") */
+  name: string;
+  /** The Solidity type of the field (e.g., "string", "uint256", "address") */
+  type: string;
+}
+
+/**
+ * EIP-712 Domain Type Definition
+ *
+ * The type structure for the EIP712Domain, which is used as the domain separator
+ * in typed data signing. This array defines the fields that make up the domain.
+ *
+ * The domain separator ensures that signatures are unique to:
+ * - A specific contract (name + verifyingContract)
+ * - A specific version of the contract
+ * - A specific blockchain network (chainId)
+ *
+ * **Standard Fields:**
+ * - `name`: Human-readable name of the signing domain (e.g., contract name)
+ * - `version`: Current version of the signing domain
+ * - `chainId`: EIP-155 chain ID to prevent replay attacks across chains
+ * - `verifyingContract`: Address of the contract that will verify the signature
+ *
+ * **Usage in EIP-3009 TransferWithAuthorization:**
+ * ```typescript
+ * const domain = {
+ *   name: USDC_NAME,
+ *   version: USDC_VERSION,
+ *   chainId: CRONOS_TESTNET_CHAIN_ID,
+ *   verifyingContract: USDC_CONTRACT_ADDRESS
+ * };
+ *
+ * const typedData = {
+ *   types: {
+ *     EIP712Domain: EIP712_DOMAIN_TYPE,
+ *     TransferWithAuthorization: TRANSFER_WITH_AUTHORIZATION_TYPE
+ *   },
+ *   domain,
+ *   primaryType: 'TransferWithAuthorization',
+ *   message: { ... }
+ * };
+ * ```
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-712 - EIP-712 Typed Data Standard
+ * @see https://eips.ethereum.org/EIPS/eip-3009 - Transfer With Authorization
+ */
+export const EIP712_DOMAIN_TYPE: readonly TypedDataField[] = [
+  { name: 'name', type: 'string' },
+  { name: 'version', type: 'string' },
+  { name: 'chainId', type: 'uint256' },
+  { name: 'verifyingContract', type: 'address' },
+] as const;
+
+/**
+ * EIP-712 Domain Configuration Interface
+ *
+ * The actual domain values used when signing typed data.
+ * These values are hashed together to create the domain separator.
+ */
+export interface EIP712Domain {
+  /** Human-readable name of the signing domain (contract name) */
+  name: string;
+  /** Current version of the signing domain */
+  version: string;
+  /** EIP-155 chain ID (as number or bigint) */
+  chainId: number | bigint;
+  /** Address of the contract that will verify the signature */
+  verifyingContract: string;
+}
+
+/**
+ * Get the USDC EIP-712 Domain for Cronos Testnet
+ *
+ * Returns the domain configuration for signing EIP-3009 authorization
+ * messages for the devUSDC.e contract on Cronos Testnet.
+ *
+ * This domain is used to:
+ * - Construct typed data for wallet signature requests
+ * - Verify signatures on the backend
+ * - Ensure signatures can't be replayed on other chains/contracts
+ *
+ * @returns EIP-712 domain configuration for USDC on Cronos Testnet
+ *
+ * @example
+ * const domain = getUsdcEip712Domain();
+ * // => {
+ * //   name: 'Bridged USDC (Stargate)',
+ * //   version: '1',
+ * //   chainId: 338,
+ * //   verifyingContract: '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0'
+ * // }
+ */
+export function getUsdcEip712Domain(): EIP712Domain {
+  return {
+    name: USDC_NAME,
+    version: USDC_VERSION,
+    chainId: CRONOS_TESTNET_CHAIN_ID,
+    verifyingContract: getUsdcContractAddress(),
+  };
+}
+
+/**
+ * Create an EIP-712 Domain for a custom configuration
+ *
+ * Factory function to create domain configurations for different
+ * contracts or networks. Useful for testing or mainnet deployment.
+ *
+ * @param options - Domain configuration options
+ * @returns EIP-712 domain configuration
+ *
+ * @example
+ * // For mainnet USDC
+ * const mainnetDomain = createEip712Domain({
+ *   name: 'USDC',
+ *   version: '2',
+ *   chainId: 25, // Cronos Mainnet
+ *   verifyingContract: '0x...'
+ * });
+ */
+export function createEip712Domain(options: {
+  name: string;
+  version: string;
+  chainId: number | bigint;
+  verifyingContract: string;
+}): EIP712Domain {
+  if (!isValidAddress(options.verifyingContract)) {
+    throw new Error(
+      `Invalid verifyingContract address: ${options.verifyingContract}`,
+    );
+  }
+
+  return {
+    name: options.name,
+    version: options.version,
+    chainId: options.chainId,
+    verifyingContract: options.verifyingContract,
+  };
+}
+
 // Chain constants object containing all defined constants
 export const chainConstants = {
   CRONOS_TESTNET_CHAIN_ID,

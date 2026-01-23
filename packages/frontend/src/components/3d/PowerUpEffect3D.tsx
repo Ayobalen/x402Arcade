@@ -476,7 +476,7 @@ function CenterFlash({ active, color, scale }: CenterFlashProps) {
 // Mystery Rainbow Effect
 // ============================================================================
 
-function useMysteryColor(active: boolean, _duration?: number): THREE.Color {
+function useMysteryColor(active: boolean): THREE.Color {
   const colorRef = useRef(new THREE.Color('#ff0000'))
 
   useFrame((state) => {
@@ -536,7 +536,7 @@ export function PowerUpEffect3D({
   const secondaryColor = useMemo(() => new THREE.Color(colorConfig.secondary), [colorConfig])
 
   // For mystery type, use cycling color
-  const mysteryColor = useMysteryColor(type === 'mystery' && active, duration)
+  const mysteryColor = useMysteryColor(type === 'mystery' && active)
   const effectColor = type === 'mystery' ? mysteryColor : primaryColor
 
   // Clamp particle count
