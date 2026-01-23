@@ -7,3 +7,4 @@
  */
 
 export * from './chain'
+export * from './eip3009'
