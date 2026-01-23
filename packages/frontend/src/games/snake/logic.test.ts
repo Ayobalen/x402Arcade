@@ -30,6 +30,7 @@ import {
   calculateScore,
   calculateSpeed,
   processSnakeMove,
+  changeDirection,
 } from './logic'
 import type { SnakeState } from './types'
 import { GRID_SIZE, INITIAL_SNAKE_LENGTH, INITIAL_DIRECTION } from './constants'
@@ -737,6 +738,105 @@ describe('State-Level Game Functions', () => {
       const result = processSnakeMove(state)
 
       expect(result.gameSpecific!.currentCombo).toBe(0)
+    })
+  })
+
+  describe('changeDirection', () => {
+    it('should return unchanged state if paused', () => {
+      const state = createTestState({ isPaused: true })
+      const result = changeDirection(state, 'up')
+
+      expect(result).toBe(state)
+    })
+
+    it('should return unchanged state if game over', () => {
+      const state = createTestState({ isGameOver: true, isPlaying: false })
+      const result = changeDirection(state, 'up')
+
+      expect(result).toBe(state)
+    })
+
+    it('should return unchanged state if not playing', () => {
+      const state = createTestState({ isPlaying: false })
+      const result = changeDirection(state, 'up')
+
+      expect(result).toBe(state)
+    })
+
+    it('should change direction to a valid perpendicular direction', () => {
+      const state = createTestState()
+      state.gameSpecific!.direction = 'right'
+
+      const result = changeDirection(state, 'up')
+
+      expect(result.gameSpecific!.nextDirection).toBe('up')
+    })
+
+    it('should not change to opposite direction', () => {
+      const state = createTestState()
+      state.gameSpecific!.direction = 'right'
+      state.gameSpecific!.nextDirection = 'right'
+
+      const result = changeDirection(state, 'left')
+
+      // nextDirection should remain unchanged
+      expect(result.gameSpecific!.nextDirection).toBe('right')
+    })
+
+    it('should allow same direction', () => {
+      const state = createTestState()
+      state.gameSpecific!.direction = 'right'
+      state.gameSpecific!.nextDirection = 'right'
+
+      const result = changeDirection(state, 'right')
+
+      expect(result.gameSpecific!.nextDirection).toBe('right')
+    })
+
+    it('should return new state object (immutable)', () => {
+      const state = createTestState()
+      state.gameSpecific!.direction = 'right'
+
+      const result = changeDirection(state, 'up')
+
+      expect(result).not.toBe(state)
+      expect(result.gameSpecific).not.toBe(state.gameSpecific)
+    })
+
+    it('should return unchanged state for invalid direction', () => {
+      const state = createTestState()
+      // @ts-expect-error Testing invalid direction
+      const result = changeDirection(state, 'invalid')
+
+      expect(result).toBe(state)
+    })
+
+    it('should allow changing from up to left', () => {
+      const state = createTestState()
+      state.gameSpecific!.direction = 'up'
+
+      const result = changeDirection(state, 'left')
+
+      expect(result.gameSpecific!.nextDirection).toBe('left')
+    })
+
+    it('should allow changing from up to right', () => {
+      const state = createTestState()
+      state.gameSpecific!.direction = 'up'
+
+      const result = changeDirection(state, 'right')
+
+      expect(result.gameSpecific!.nextDirection).toBe('right')
+    })
+
+    it('should not allow changing from up to down', () => {
+      const state = createTestState()
+      state.gameSpecific!.direction = 'up'
+      state.gameSpecific!.nextDirection = 'up'
+
+      const result = changeDirection(state, 'down')
+
+      expect(result.gameSpecific!.nextDirection).toBe('up')
     })
   })
 })

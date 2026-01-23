@@ -537,6 +537,52 @@ export function processSnakeMove(state: SnakeState): SnakeState {
   }
 }
 
+/**
+ * Change the snake's direction.
+ *
+ * Validates that the new direction is allowed (not reversing into self)
+ * and queues the direction change for the next move.
+ *
+ * @param state - Current full snake game state
+ * @param newDirection - The new direction to change to
+ * @returns New game state with updated nextDirection, or unchanged if invalid
+ */
+export function changeDirection(
+  state: SnakeState,
+  newDirection: SnakeDirection
+): SnakeState {
+  // Return unchanged state if game is paused or over
+  if (state.isPaused || state.isGameOver || !state.isPlaying) {
+    return state
+  }
+
+  const gameSpecific = state.gameSpecific
+  if (!gameSpecific) {
+    return state
+  }
+
+  // Validate the direction is a valid SnakeDirection
+  const validDirections: SnakeDirection[] = ['up', 'down', 'left', 'right']
+  if (!validDirections.includes(newDirection)) {
+    return state
+  }
+
+  // Check if direction change is allowed (can't reverse into self)
+  const currentDirection = gameSpecific.direction
+  if (!isValidDirectionChange(currentDirection, newDirection)) {
+    return state
+  }
+
+  // Return new state with updated nextDirection
+  return {
+    ...state,
+    gameSpecific: {
+      ...gameSpecific,
+      nextDirection: newDirection,
+    },
+  }
+}
+
 // ============================================================================
 // State Creation
 // ============================================================================
@@ -606,6 +652,7 @@ export default {
   calculateSpeed,
   // State-level functions
   processSnakeMove,
+  changeDirection,
   // State creation
   createInitialSnakeState,
 }
