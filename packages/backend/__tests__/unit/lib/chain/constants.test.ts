@@ -9,9 +9,13 @@ import {
   CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_EXPLORER_URL,
   NATIVE_CURRENCY,
+  DEFAULT_USDC_CONTRACT_ADDRESS,
+  USDC_CONTRACT_ADDRESS,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
+  isValidAddress,
+  getUsdcContractAddress,
   type NativeCurrencyConfig,
 } from '../../../../src/lib/chain/constants.js';
 
@@ -39,6 +43,7 @@ describe('Chain Constants', () => {
       expect(chainConstants.DEFAULT_CRONOS_TESTNET_RPC_URL).toBe('https://evm-t3.cronos.org/');
       expect(chainConstants.CRONOS_TESTNET_EXPLORER_URL).toBe('https://explorer.cronos.org/testnet');
       expect(chainConstants.NATIVE_CURRENCY).toBe(NATIVE_CURRENCY);
+      expect(chainConstants.DEFAULT_USDC_CONTRACT_ADDRESS).toBe(DEFAULT_USDC_CONTRACT_ADDRESS);
     });
   });
 
@@ -225,6 +230,117 @@ describe('Chain Constants', () => {
 
       it('should be included in chainConstants object', () => {
         expect(chainConstants.NATIVE_CURRENCY).toBe(NATIVE_CURRENCY);
+      });
+    });
+  });
+
+  describe('USDC Contract Address Constants', () => {
+    const originalEnv = process.env.USDC_CONTRACT_ADDRESS;
+
+    afterEach(() => {
+      // Restore original environment
+      if (originalEnv !== undefined) {
+        process.env.USDC_CONTRACT_ADDRESS = originalEnv;
+      } else {
+        delete process.env.USDC_CONTRACT_ADDRESS;
+      }
+    });
+
+    describe('DEFAULT_USDC_CONTRACT_ADDRESS', () => {
+      it('should be exported directly', () => {
+        expect(DEFAULT_USDC_CONTRACT_ADDRESS).toBeDefined();
+      });
+
+      it('should equal the devUSDC.e contract address', () => {
+        expect(DEFAULT_USDC_CONTRACT_ADDRESS).toBe('0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0');
+      });
+
+      it('should be a string type', () => {
+        expect(typeof DEFAULT_USDC_CONTRACT_ADDRESS).toBe('string');
+      });
+
+      it('should have valid address format (0x + 40 hex chars)', () => {
+        expect(DEFAULT_USDC_CONTRACT_ADDRESS).toMatch(/^0x[a-fA-F0-9]{40}$/);
+      });
+
+      it('should be included in chainConstants object', () => {
+        expect(chainConstants.DEFAULT_USDC_CONTRACT_ADDRESS).toBe(DEFAULT_USDC_CONTRACT_ADDRESS);
+      });
+    });
+
+    describe('USDC_CONTRACT_ADDRESS', () => {
+      it('should be exported directly', () => {
+        expect(USDC_CONTRACT_ADDRESS).toBeDefined();
+      });
+
+      it('should be a string type', () => {
+        expect(typeof USDC_CONTRACT_ADDRESS).toBe('string');
+      });
+
+      it('should be included in chainConstants object', () => {
+        expect(chainConstants.USDC_CONTRACT_ADDRESS).toBe(USDC_CONTRACT_ADDRESS);
+      });
+    });
+
+    describe('isValidAddress()', () => {
+      it('should be a function', () => {
+        expect(typeof isValidAddress).toBe('function');
+      });
+
+      it('should return true for valid address with 0x prefix', () => {
+        expect(isValidAddress('0x1234567890123456789012345678901234567890')).toBe(true);
+      });
+
+      it('should return true for valid address with mixed case hex', () => {
+        expect(isValidAddress('0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0')).toBe(true);
+      });
+
+      it('should return false for address without 0x prefix', () => {
+        expect(isValidAddress('1234567890123456789012345678901234567890')).toBe(false);
+      });
+
+      it('should return false for address with wrong length', () => {
+        expect(isValidAddress('0x12345678901234567890123456789012345678')).toBe(false);
+        expect(isValidAddress('0x123456789012345678901234567890123456789012')).toBe(false);
+      });
+
+      it('should return false for address with non-hex characters', () => {
+        expect(isValidAddress('0xGGGG567890123456789012345678901234567890')).toBe(false);
+      });
+
+      it('should be included in chainConstants object', () => {
+        expect(chainConstants.isValidAddress).toBe(isValidAddress);
+      });
+    });
+
+    describe('getUsdcContractAddress()', () => {
+      it('should be a function', () => {
+        expect(typeof getUsdcContractAddress).toBe('function');
+      });
+
+      it('should return default address when env is not set', () => {
+        delete process.env.USDC_CONTRACT_ADDRESS;
+        expect(getUsdcContractAddress()).toBe(DEFAULT_USDC_CONTRACT_ADDRESS);
+      });
+
+      it('should return environment variable when set with valid address', () => {
+        const customAddress = '0xABCDEF1234567890ABCDEF1234567890ABCDEF12';
+        process.env.USDC_CONTRACT_ADDRESS = customAddress;
+        expect(getUsdcContractAddress()).toBe(customAddress);
+      });
+
+      it('should throw error when env is set with invalid address', () => {
+        process.env.USDC_CONTRACT_ADDRESS = 'invalid-address';
+        expect(() => getUsdcContractAddress()).toThrow('Invalid USDC_CONTRACT_ADDRESS format');
+      });
+
+      it('should throw error when env is set with wrong length', () => {
+        process.env.USDC_CONTRACT_ADDRESS = '0x123';
+        expect(() => getUsdcContractAddress()).toThrow('Invalid USDC_CONTRACT_ADDRESS format');
+      });
+
+      it('should be included in chainConstants object', () => {
+        expect(chainConstants.getUsdcContractAddress).toBe(getUsdcContractAddress);
       });
     });
   });
