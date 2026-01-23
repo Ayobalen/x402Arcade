@@ -23,7 +23,7 @@
  */
 
 import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { devtools } from 'zustand/middleware'
 
 // ============================================================================
 // Types
@@ -64,6 +64,26 @@ export interface WalletError {
 }
 
 /**
+ * Ethereum provider type (window.ethereum)
+ */
+export interface EthereumProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+  on: (event: string, callback: (...args: unknown[]) => void) => void
+  removeListener: (event: string, callback: (...args: unknown[]) => void) => void
+  isMetaMask?: boolean
+  isCoinbaseWallet?: boolean
+}
+
+/**
+ * Window with Ethereum provider
+ */
+declare global {
+  interface Window {
+    ethereum?: EthereumProvider
+  }
+}
+
+/**
  * Wallet state interface
  *
  * Contains all wallet-related state and actions.
@@ -88,9 +108,9 @@ export interface WalletState {
   /** Last error that occurred */
   error: WalletError | null
 
-  // ---- Actions ----
+  // ---- Sync Actions ----
   /**
-   * Connect wallet with the given details
+   * Connect wallet with the given details (synchronous)
    * @param connection - Wallet connection details
    */
   connect: (connection: WalletConnection) => void
@@ -126,6 +146,14 @@ export interface WalletState {
    * Reset store to initial state
    */
   reset: () => void
+
+  // ---- Async Actions ----
+  /**
+   * Initiate wallet connection via MetaMask/injected provider
+   * Uses eth_requestAccounts to prompt user for connection
+   * @returns Promise resolving to connection result
+   */
+  connectWallet: () => Promise<WalletConnection | null>
 }
 
 // ============================================================================
@@ -156,6 +184,7 @@ type WalletActions = Pick<
   | 'clearError'
   | 'setChainId'
   | 'reset'
+  | 'connectWallet'
 >
 
 // ============================================================================
@@ -258,6 +287,121 @@ export const useWalletStore = create<WalletState>()(
           false,
           'wallet/reset'
         ),
+
+      connectWallet: async (): Promise<WalletConnection | null> => {
+        // Check for ethereum provider
+        if (typeof window === 'undefined' || !window.ethereum) {
+          set(
+            {
+              status: 'error',
+              isConnecting: false,
+              error: {
+                code: 'NO_PROVIDER',
+                message: 'No Ethereum provider found. Please install MetaMask.',
+              },
+            },
+            false,
+            'wallet/connectWallet/noProvider'
+          )
+          return null
+        }
+
+        // Start connecting
+        set(
+          {
+            status: 'connecting',
+            isConnecting: true,
+            error: null,
+          },
+          false,
+          'wallet/connectWallet/start'
+        )
+
+        try {
+          // Request accounts via eth_requestAccounts
+          const accounts = (await window.ethereum.request({
+            method: 'eth_requestAccounts',
+          })) as string[]
+
+          if (!accounts || accounts.length === 0) {
+            set(
+              {
+                status: 'error',
+                isConnecting: false,
+                error: {
+                  code: 'NO_ACCOUNTS',
+                  message: 'No accounts returned from wallet.',
+                },
+              },
+              false,
+              'wallet/connectWallet/noAccounts'
+            )
+            return null
+          }
+
+          // Get the address (first account)
+          const address = accounts[0]
+
+          // Get the chain ID
+          const chainIdHex = (await window.ethereum.request({
+            method: 'eth_chainId',
+          })) as string
+          const chainId = parseInt(chainIdHex, 16) as ChainId
+
+          // Update state with successful connection
+          const connection: WalletConnection = { address, chainId }
+
+          set(
+            {
+              address,
+              chainId,
+              status: 'connected',
+              isConnected: true,
+              isConnecting: false,
+              error: null,
+            },
+            false,
+            'wallet/connectWallet/success'
+          )
+
+          return connection
+        } catch (error: unknown) {
+          // Handle user rejection
+          const err = error as { code?: number; message?: string }
+
+          // User rejected the request (MetaMask error code 4001)
+          if (err.code === 4001) {
+            set(
+              {
+                status: 'error',
+                isConnecting: false,
+                error: {
+                  code: 'USER_REJECTED',
+                  message: 'User rejected the connection request.',
+                },
+              },
+              false,
+              'wallet/connectWallet/rejected'
+            )
+            return null
+          }
+
+          // Generic error
+          set(
+            {
+              status: 'error',
+              isConnecting: false,
+              error: {
+                code: 'CONNECTION_ERROR',
+                message: err.message || 'Failed to connect wallet.',
+              },
+            },
+            false,
+            'wallet/connectWallet/error'
+          )
+          return null
+        }
+      },
     }),
     {
       name: 'wallet-store',
@@ -309,6 +453,30 @@ export const selectFormattedAddress = (state: WalletState): string | null => {
   return `${state.address.slice(0, 6)}...${state.address.slice(-4)}`
 }
 
+/**
+ * Default required chain ID for the application
+ * Base Sepolia testnet for development
+ */
+export const REQUIRED_CHAIN_ID: ChainId = 84532
+
+/**
+ * Selector for checking if wallet is on the correct chain
+ * Compares current chainId against REQUIRED_CHAIN_ID
+ *
+ * @param state - Wallet state
+ * @param requiredChainId - Optional override for required chain ID
+ * @returns true if connected and on correct chain, false otherwise
+ */
+export const selectIsCorrectChain = (
+  state: WalletState,
+  requiredChainId: ChainId = REQUIRED_CHAIN_ID
+): boolean => {
+  if (!state.isConnected || state.chainId === null) {
+    return false
+  }
+  return state.chainId === requiredChainId
+}
+
 // ============================================================================
 // Utility Functions
 // ============================================================================
@@ -323,8 +491,3 @@ export const getWalletState = () => useWalletStore.getState()
  */
 export const subscribeToWallet = useWalletStore.subscribe
 
-// ============================================================================
-// Type Exports
-// ============================================================================
-
-export type { WalletConnection, WalletError }
