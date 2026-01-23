@@ -152,3 +152,20 @@ export {
   type UseJoystickResult,
   default as JoystickDefault,
 } from './Joystick';
+
+// Cabinet Idle Sway Animation Component
+export {
+  CabinetIdleSway,
+  useIdleSway,
+  SWAY_PRESETS,
+  mixSwayConfigs,
+  scaleSwayConfig,
+  type CabinetIdleSwayProps,
+  type CabinetIdleSwayHandle,
+  type IdleSwayConfig,
+  type IdleSwayState,
+  type SwayPreset,
+  type UseIdleSwayOptions,
+  type UseIdleSwayResult,
+  default as CabinetIdleSwayDefault,
+} from './CabinetIdleSway';
