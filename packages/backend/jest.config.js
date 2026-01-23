@@ -32,6 +32,9 @@ export default {
   // Files to ignore
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 
+  // Setup files to run before tests
+  setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
+
   // Coverage configuration
   collectCoverageFrom: [
     'src/**/*.ts',

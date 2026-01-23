@@ -12,10 +12,13 @@ export default defineConfig({
     environment: 'jsdom',
 
     // Setup files for test utilities
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test/setup.ts', './__tests__/setup.ts'],
 
     // Include test files patterns
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: [
+      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      '__tests__/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+    ],
 
     // Exclude patterns
     exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
