@@ -87,3 +87,10 @@ export {
   type GameOver3DProps,
   type UseGameOver3DResult,
 } from './GameOver3D'
+
+export {
+  HighScoreCelebration3D,
+  useHighScoreCelebration,
+  type HighScoreCelebration3DProps,
+  type UseHighScoreCelebrationResult,
+} from './HighScoreCelebration'
