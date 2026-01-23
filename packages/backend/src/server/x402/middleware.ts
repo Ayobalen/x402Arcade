@@ -250,9 +250,35 @@ export function createX402Middleware(config: X402Config): X402Middleware {
       const payloadAmount = BigInt(payload.value);
 
       if (payloadAmount < requiredAmount) {
-        throw X402Error.amountMismatch(
-          requiredAmount.toString(),
-          payload.value,
+        // Import formatUSDCWithSymbol for human-readable amounts
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { formatUSDCWithSymbol } = require('../../lib/chain/constants.js') as typeof import('../../lib/chain/constants.js');
+
+        const formattedRequired = formatUSDCWithSymbol(requiredAmount);
+        const formattedProvided = formatUSDCWithSymbol(payloadAmount);
+        const shortfall = requiredAmount - payloadAmount;
+        const formattedShortfall = formatUSDCWithSymbol(shortfall);
+
+        // Log the insufficient payment attempt
+        if (config.debug) {
+          console.log('[x402] Insufficient payment:', {
+            required: requiredAmount.toString(),
+            provided: payloadAmount.toString(),
+            shortfall: shortfall.toString(),
+            formattedRequired,
+            formattedProvided,
+            formattedShortfall,
+            from: payload.from,
+          });
+        }
+
+        // Return 402 Payment Required with formatted amounts
+        throw X402Error.insufficientPayment(
+          requiredAmount,
+          payloadAmount,
+          formattedRequired,
+          formattedProvided,
+          formattedShortfall,
         );
       }
 

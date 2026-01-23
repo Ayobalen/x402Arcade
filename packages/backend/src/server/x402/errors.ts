@@ -252,6 +252,75 @@ export class X402Error extends Error {
   }
 
   /**
+   * Create an Insufficient Payment error
+   *
+   * Used when the payment amount is less than the required amount.
+   * Returns HTTP 402 (Payment Required) since the client needs to pay more.
+   *
+   * This error includes both raw amounts (in smallest units) and
+   * human-readable formatted amounts for better UX.
+   *
+   * @param required - Required amount in smallest units
+   * @param provided - Provided amount in smallest units
+   * @param formattedRequired - Human-readable required amount (e.g., "$0.01")
+   * @param formattedProvided - Human-readable provided amount (e.g., "$0.005")
+   * @returns X402Error with AMOUNT_MISMATCH code and 402 status
+   *
+   * @example
+   * ```typescript
+   * throw X402Error.insufficientPayment(
+   *   '10000',
+   *   '5000',
+   *   '$0.01',
+   *   '$0.005'
+   * );
+   * // => {
+   * //   error: {
+   * //     code: 'AMOUNT_MISMATCH',
+   * //     message: 'Insufficient payment: required $0.01, received $0.005',
+   * //     details: {
+   * //       requiredAmount: '10000',
+   * //       providedAmount: '5000',
+   * //       requiredFormatted: '$0.01',
+   * //       providedFormatted: '$0.005',
+   * //       shortfall: '5000',
+   * //       shortfallFormatted: '$0.005'
+   * //     }
+   * //   }
+   * // }
+   * ```
+   */
+  static insufficientPayment(
+    required: string | bigint,
+    provided: string | bigint,
+    formattedRequired?: string,
+    formattedProvided?: string,
+    formattedShortfall?: string,
+  ): X402Error {
+    const requiredBigInt = typeof required === 'bigint' ? required : BigInt(required);
+    const providedBigInt = typeof provided === 'bigint' ? provided : BigInt(provided);
+    const shortfall = requiredBigInt - providedBigInt;
+
+    const message = formattedRequired && formattedProvided
+      ? `Insufficient payment: required ${formattedRequired}, received ${formattedProvided}`
+      : `Insufficient payment: required ${required}, received ${provided}`;
+
+    return new X402Error(
+      message,
+      'AMOUNT_MISMATCH',
+      402, // Payment Required - client needs to pay more
+      {
+        requiredAmount: requiredBigInt.toString(),
+        providedAmount: providedBigInt.toString(),
+        ...(formattedRequired && { requiredFormatted: formattedRequired }),
+        ...(formattedProvided && { providedFormatted: formattedProvided }),
+        shortfall: shortfall.toString(),
+        ...(formattedShortfall && { shortfallFormatted: formattedShortfall }),
+      },
+    );
+  }
+
+  /**
    * Create a Recipient Mismatch error
    *
    * Used when the payment recipient doesn't match the configured address.
