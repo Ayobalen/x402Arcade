@@ -115,6 +115,26 @@ export interface StarfieldProps {
    * Seed for random generation (for reproducible results).
    */
   seed?: number
+  /**
+   * Enable parallax effect (different layers move at different speeds).
+   * @default false
+   */
+  enableParallax?: boolean
+  /**
+   * Number of parallax layers.
+   * @default 3
+   */
+  parallaxLayers?: number
+  /**
+   * Speed multiplier for nearest parallax layer.
+   * @default 2.0
+   */
+  parallaxNearSpeed?: number
+  /**
+   * Speed multiplier for farthest parallax layer.
+   * @default 0.3
+   */
+  parallaxFarSpeed?: number
 }
 
 export interface StarfieldHandle {
@@ -128,6 +148,8 @@ export interface StarfieldHandle {
   setTwinkle: (enabled: boolean) => void
   /** Set rotation enabled state */
   setRotation: (enabled: boolean) => void
+  /** Set parallax enabled state */
+  setParallax: (enabled: boolean) => void
 }
 
 // ============================================================================
@@ -141,6 +163,9 @@ const DEFAULT_MAX_SIZE = 0.5
 const DEFAULT_TWINKLE_SPEED = 0.5
 const DEFAULT_TWINKLE_AMOUNT = 0.3
 const DEFAULT_ROTATION_SPEED = 0.01
+const DEFAULT_PARALLAX_LAYERS = 3
+const DEFAULT_PARALLAX_NEAR_SPEED = 2.0
+const DEFAULT_PARALLAX_FAR_SPEED = 0.3
 
 // Star color variations for realism
 const STAR_COLOR_VARIATIONS = [
@@ -185,13 +210,14 @@ function generateStarPositions(
     let x: number, y: number, z: number
 
     switch (distribution) {
-      case 'cube':
+      case 'cube': {
         x = (random() - 0.5) * 2 * radius
         y = (random() - 0.5) * 2 * radius
         z = (random() - 0.5) * 2 * radius
         break
+      }
 
-      case 'disk':
+      case 'disk': {
         // Flat disk distribution
         const angle = random() * Math.PI * 2
         const r = Math.sqrt(random()) * radius // sqrt for uniform density
@@ -199,8 +225,9 @@ function generateStarPositions(
         y = (random() - 0.5) * radius * 0.1 // Thin disk
         z = Math.sin(angle) * r
         break
+      }
 
-      case 'hemisphere':
+      case 'hemisphere': {
         // Upper hemisphere only
         const theta1 = random() * Math.PI * 2
         const phi1 = random() * Math.PI * 0.5
@@ -209,9 +236,10 @@ function generateStarPositions(
         y = rad1 * Math.cos(phi1)
         z = rad1 * Math.sin(phi1) * Math.sin(theta1)
         break
+      }
 
       case 'sphere':
-      default:
+      default: {
         // Full sphere with uniform density
         const theta = random() * Math.PI * 2
         const phi = Math.acos(2 * random() - 1)
@@ -220,6 +248,7 @@ function generateStarPositions(
         y = rad * Math.sin(phi) * Math.sin(theta)
         z = rad * Math.cos(phi)
         break
+      }
     }
 
     positions[i3] = x
@@ -362,23 +391,42 @@ export const Starfield = forwardRef<StarfieldHandle, StarfieldProps>(
       additiveBlending = true,
       texture,
       seed,
+      enableParallax = false,
+      parallaxLayers = DEFAULT_PARALLAX_LAYERS,
+      parallaxNearSpeed = DEFAULT_PARALLAX_NEAR_SPEED,
+      parallaxFarSpeed = DEFAULT_PARALLAX_FAR_SPEED,
     },
     ref
   ) {
     const pointsRef = useRef<THREE.Points>(null)
     const materialRef = useRef<THREE.PointsMaterial>(null)
-    const seedRef = useRef(seed ?? Math.random() * 10000)
+    // Use provided seed or a stable default (0 is fine for visual effect)
+    const seedRef = useRef(seed ?? 12345)
     const twinkleEnabledRef = useRef(enableTwinkle)
     const rotationEnabledRef = useRef(enableRotation)
+    const parallaxEnabledRef = useRef(enableParallax)
 
-    // Generate star data
-    const { geometry, twinklePhases, originalSizes } = useMemo(() => {
+    // Generate star data with parallax layer assignments
+    const { geometry, twinklePhases, originalSizes, layerIndices, originalPositions } = useMemo(() => {
       const random = seededRandom(seedRef.current)
 
       const positions = generateStarPositions(count, radius, distribution, random)
       const sizes = generateStarSizes(count, minSize, maxSize, random)
       const colors = generateStarColors(count, color, colorVariation, random)
       const phases = generateTwinklePhases(count, random)
+
+      // Assign each star to a parallax layer based on distance from center
+      // Stars further from center = further layer = slower movement
+      const layers = new Float32Array(count)
+      for (let i = 0; i < count; i++) {
+        const i3 = i * 3
+        const dist = Math.sqrt(
+          positions[i3] ** 2 + positions[i3 + 1] ** 2 + positions[i3 + 2] ** 2
+        )
+        // Normalize distance to 0-1 range and map to layer index
+        const normalizedDist = dist / radius
+        layers[i] = Math.min(parallaxLayers - 1, Math.floor(normalizedDist * parallaxLayers))
+      }
 
       const geom = new THREE.BufferGeometry()
       geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
@@ -389,8 +437,10 @@ export const Starfield = forwardRef<StarfieldHandle, StarfieldProps>(
         geometry: geom,
         twinklePhases: phases,
         originalSizes: sizes.slice(), // Clone for twinkle reset
+        layerIndices: layers,
+        originalPositions: positions.slice(), // Clone for parallax calculations
       }
-    }, [count, radius, distribution, minSize, maxSize, color, colorVariation])
+    }, [count, radius, distribution, minSize, maxSize, color, colorVariation, parallaxLayers])
 
     // Normalized rotation axis
     const normalizedAxis = useMemo(() => {
@@ -398,26 +448,63 @@ export const Starfield = forwardRef<StarfieldHandle, StarfieldProps>(
       return vec
     }, [rotationAxis])
 
+    // Calculate parallax speed for each layer (0 = nearest, parallaxLayers-1 = farthest)
+    const layerSpeeds = useMemo(() => {
+      const speeds = new Float32Array(parallaxLayers)
+      for (let i = 0; i < parallaxLayers; i++) {
+        // Linear interpolation from near speed (for layer 0) to far speed (for last layer)
+        const t = i / Math.max(1, parallaxLayers - 1)
+        speeds[i] = parallaxNearSpeed * (1 - t) + parallaxFarSpeed * t
+      }
+      return speeds
+    }, [parallaxLayers, parallaxNearSpeed, parallaxFarSpeed])
+
     // Animation loop
     useFrame((state) => {
       const points = pointsRef.current
       if (!points) return
 
+      const time = state.clock.getElapsedTime()
+
       // Twinkle animation
       if (twinkleEnabledRef.current) {
         const sizeAttr = points.geometry.getAttribute('size')
-        const time = state.clock.getElapsedTime() * twinkleSpeed * Math.PI * 2
+        const twinkleTime = time * twinkleSpeed * Math.PI * 2
 
         for (let i = 0; i < count; i++) {
           const phase = twinklePhases[i]
-          const twinkle = 1 - twinkleAmount * 0.5 * (1 + Math.sin(time + phase))
+          const twinkle = 1 - twinkleAmount * 0.5 * (1 + Math.sin(twinkleTime + phase))
           sizeAttr.setX(i, originalSizes[i] * twinkle)
         }
         sizeAttr.needsUpdate = true
       }
 
-      // Rotation animation
-      if (rotationEnabledRef.current) {
+      // Parallax animation - different layers move at different speeds
+      if (parallaxEnabledRef.current) {
+        const posAttr = points.geometry.getAttribute('position')
+
+        for (let i = 0; i < count; i++) {
+          const i3 = i * 3
+          const layerIndex = layerIndices[i]
+          const speed = layerSpeeds[layerIndex]
+
+          // Apply circular motion based on layer speed
+          // Near stars (layer 0) move faster, far stars move slower
+          const angle = time * rotationSpeed * speed
+          const cosA = Math.cos(angle)
+          const sinA = Math.sin(angle)
+
+          // Rotate original position around Y axis
+          const ox = originalPositions[i3]
+          const oz = originalPositions[i3 + 2]
+          posAttr.setX(i, ox * cosA - oz * sinA)
+          posAttr.setZ(i, ox * sinA + oz * cosA)
+        }
+        posAttr.needsUpdate = true
+      }
+
+      // Simple rotation animation (uniform speed for all stars)
+      if (rotationEnabledRef.current && !parallaxEnabledRef.current) {
         points.rotateOnAxis(normalizedAxis, rotationSpeed * state.clock.getDelta() * 60)
       }
     })
@@ -439,6 +526,9 @@ export const Starfield = forwardRef<StarfieldHandle, StarfieldProps>(
       },
       setRotation: (enabled: boolean) => {
         rotationEnabledRef.current = enabled
+      },
+      setParallax: (enabled: boolean) => {
+        parallaxEnabledRef.current = enabled
       },
     }))
 
@@ -546,6 +636,41 @@ export const STARFIELD_PRESETS = {
     twinkleAmount: 0.2,
     opacity: 0.6,
   },
+  /** Parallax depth effect - near stars move faster than far stars */
+  parallax: {
+    count: 4000,
+    radius: 100,
+    distribution: 'sphere' as const,
+    minSize: 0.05,
+    maxSize: 0.4,
+    colorVariation: true,
+    enableTwinkle: true,
+    twinkleSpeed: 0.3,
+    twinkleAmount: 0.3,
+    enableParallax: true,
+    parallaxLayers: 4,
+    parallaxNearSpeed: 2.5,
+    parallaxFarSpeed: 0.2,
+    rotationSpeed: 0.01,
+  },
+  /** Immersive parallax with rotation - for cinematic backgrounds */
+  cinematic: {
+    count: 6000,
+    radius: 120,
+    distribution: 'sphere' as const,
+    minSize: 0.03,
+    maxSize: 0.35,
+    colorVariation: true,
+    enableTwinkle: true,
+    twinkleSpeed: 0.4,
+    twinkleAmount: 0.35,
+    enableParallax: true,
+    parallaxLayers: 5,
+    parallaxNearSpeed: 3.0,
+    parallaxFarSpeed: 0.15,
+    rotationSpeed: 0.008,
+    additiveBlending: true,
+  },
 } as const
 
 export type StarfieldPreset = keyof typeof STARFIELD_PRESETS
@@ -577,6 +702,8 @@ export interface UseStarfieldResult {
   setTwinkle: (enabled: boolean) => void
   /** Set rotation state */
   setRotation: (enabled: boolean) => void
+  /** Set parallax state */
+  setParallax: (enabled: boolean) => void
   /** Set opacity */
   setOpacity: (opacity: number) => void
   /** Regenerate stars */
@@ -590,6 +717,13 @@ export interface UseStarfieldResult {
  * ```tsx
  * function SpaceScene() {
  *   const starfield = useStarfield({ preset: 'deepSpace' })
+ *
+ *   return <Starfield ref={starfield.ref} {...starfield.props} />
+ * }
+ *
+ * // With parallax effect
+ * function ParallaxScene() {
+ *   const starfield = useStarfield({ preset: 'parallax' })
  *
  *   return <Starfield ref={starfield.ref} {...starfield.props} />
  * }
@@ -615,6 +749,10 @@ export function useStarfield(
     ref.current?.setRotation(enabled)
   }
 
+  const setParallax = (enabled: boolean) => {
+    ref.current?.setParallax(enabled)
+  }
+
   const setOpacity = (opacity: number) => {
     ref.current?.setOpacity(opacity)
   }
@@ -628,6 +766,7 @@ export function useStarfield(
     props,
     setTwinkle,
     setRotation,
+    setParallax,
     setOpacity,
     regenerate,
   }
