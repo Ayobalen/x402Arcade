@@ -997,8 +997,20 @@ All x402 payment constants now defined in packages/backend/src/lib/chain/constan
    - toneMapped: false for proper bloom post-processing compatibility
    - Git commit: 0560f4ab
 
+2. **Feature #568: Implement cabinet reflection mapping** - PASSING (already implemented)
+   - File: `/packages/frontend/src/components/3d/cabinet/CabinetReflection.tsx`
+   - Implements procedural dark arcade environment map (static)
+   - Supports CubeCamera for dynamic reflections
+   - Configurable intensity (0-1), resolution, update frequency
+   - Creates purple/cyan accent lights matching design system
+   - Factory functions: createReflectiveCabinetMaterial, createChromeMaterial, createGlossyMaterial
+   - React hooks: useReflectiveMaterial, useCabinetReflection, useCabinetReflectionContext
+   - Context provider for sharing envMap with nested components
+   - Fixed unused 'state' parameter lint error
+   - Git commit: c3112097
+
 ### Current Status:
-- 183/1215 features passing (15.1%)
+- 184/1215 features passing (15.1%)
 - Working on 3d workstream (agent 1)
 
 4. **Feature #52: Handle wrong payment recipient** - PASSING (already implemented)

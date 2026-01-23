@@ -423,9 +423,12 @@ export function createX402Middleware(config: X402Config): X402Middleware {
     } catch (error) {
       // Handle x402 errors
       if (error instanceof X402Error) {
-        // Add Retry-After header for 503 Service Unavailable (network errors)
-        if (error.httpStatus === 503) {
-          const retryAfterSeconds = (error as X402Error & { retryAfterSeconds?: number }).retryAfterSeconds ?? 30;
+        // Add Retry-After header for 502 Bad Gateway and 503 Service Unavailable
+        // These are retryable server-side errors
+        if (error.httpStatus === 502 || error.httpStatus === 503) {
+          // Check if error details include retryAfterSeconds
+          const details = error.details as { retryAfterSeconds?: number } | undefined;
+          const retryAfterSeconds = details?.retryAfterSeconds ?? 30;
           res.setHeader('Retry-After', retryAfterSeconds.toString());
         }
         res.status(error.httpStatus).json(error.toJSON());
@@ -701,9 +704,27 @@ async function settlePayment(
           }
         }
 
-        // No more retries or no time left
+        // No more retries or no time left - log the 5xx error
+        console.error('[x402] Facilitator 5xx server error:', {
+          statusCode: response.status,
+          statusText: response.statusText,
+          facilitatorUrl: settleUrl,
+          attempts: attempt,
+          maxRetries: MAX_RETRIES,
+          elapsedMs: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Create error with retry suggestion in details
         throw X402Error.facilitatorError(
           `HTTP ${response.status}: ${response.statusText}`,
+          {
+            statusCode: response.status,
+            retryAfterSeconds: 30, // Suggest 30 second retry for 5xx errors
+            isRetryable: true,
+            attemptsExhausted: true,
+            totalAttempts: attempt,
+          },
         );
       }
 
