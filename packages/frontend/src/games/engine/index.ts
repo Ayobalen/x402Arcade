@@ -15,6 +15,7 @@ export {
   createGameLoop,
   createDeltaTimeCalculator,
   createFpsCounter,
+  createVisibilityHandler,
   deltaToSeconds,
   deltaToMs,
   calculateInterpolationAlpha,
@@ -53,6 +54,65 @@ export {
   type TouchPoint,
   type SwipeGesture,
 } from './touch-input'
+
+// Export collision detection utilities
+export {
+  // AABB collision
+  aabbIntersects,
+  aabbOverlap,
+  aabbMTV,
+  aabbCollisionNormal,
+  aabbContactPoint,
+  pointInAABB,
+  expandAABB,
+  aabbContains,
+  mergeAABB,
+  aabbArea,
+  aabbPerimeter,
+  // Circle collision
+  circleIntersects,
+  circlePenetrationDepth,
+  circleCollisionNormal,
+  circleMTV,
+  circleAABBIntersects,
+  pointInCircle,
+  // Line collision
+  lineIntersects,
+  lineIntersectionPoint,
+  lineAABBIntersects,
+  // Collision response
+  calculateCollisionResponse,
+  reflectVelocity,
+  // Utility functions
+  boundsToAABB,
+  createAABBFromCenter,
+  getAABBCenter,
+  buildAABBCollisionResult,
+  // Types
+  type AABB,
+  type LineSegment,
+  type CollisionResponseOptions,
+} from './collision'
+
+// Export input manager utilities
+export {
+  createInputManager,
+  isDirectionPressed,
+  getPrimaryDirection,
+  getDirectionsArray,
+  hasAnyInput,
+  mergeInputs,
+  DEFAULT_KEY_MAPPING,
+  DEFAULT_INPUT_CONFIG,
+  type InputManager,
+  type InputManagerConfig,
+  type InputSource,
+  type InputAction,
+  type InputHandler,
+  type RegisteredHandler,
+  type KeyMapping,
+  type InputState,
+} from './input-manager'
 
 // Default export for convenient importing
 export { default as types } from '../types'
