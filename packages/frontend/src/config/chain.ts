@@ -50,6 +50,48 @@ export function getExplorerUrl(): string {
   return import.meta.env.VITE_EXPLORER_URL || 'https://explorer.cronos.org/testnet'
 }
 
+/**
+ * Default USDC Contract Address for Cronos Testnet
+ *
+ * devUSDC.e token with EIP-3009 support for gasless payments.
+ * @see https://explorer.cronos.org/testnet/token/0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
+ */
+export const DEFAULT_USDC_ADDRESS =
+  '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0' as `0x${string}`
+
+/**
+ * Validate Ethereum address format
+ *
+ * @param address - Address string to validate
+ * @returns true if address matches 0x + 40 hex chars format
+ */
+function isValidAddress(address: string): address is `0x${string}` {
+  return /^0x[a-fA-F0-9]{40}$/.test(address)
+}
+
+/**
+ * Get USDC contract address from environment or use default
+ *
+ * Environment variable: VITE_USDC_ADDRESS
+ * Default: 0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0 (devUSDC.e on Cronos Testnet)
+ *
+ * @returns Typed USDC contract address
+ * @throws Error if VITE_USDC_ADDRESS is set but invalid
+ */
+export function getUsdcContractAddress(): `0x${string}` {
+  const envAddress = import.meta.env.VITE_USDC_ADDRESS
+  if (envAddress) {
+    if (!isValidAddress(envAddress)) {
+      throw new Error(
+        `Invalid VITE_USDC_ADDRESS format: ${envAddress}. ` +
+          'Expected format: 0x + 40 hex characters (e.g., 0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0)'
+      )
+    }
+    return envAddress
+  }
+  return DEFAULT_USDC_ADDRESS
+}
+
 // ============================================================================
 // Chain Constants
 // ============================================================================
@@ -138,14 +180,17 @@ export const supportedChains: readonly [Chain, ...Chain[]] = [defaultChain]
 // ============================================================================
 
 /**
- * devUSDC.e Token Contract Address on Cronos Testnet
+ * USDC Contract Address
  *
  * ERC-20 USDC token with EIP-3009 (transferWithAuthorization) support
  * for gasless payments via the x402 protocol.
  *
+ * Supports environment variable override via VITE_USDC_ADDRESS.
+ * Default: devUSDC.e on Cronos Testnet
+ *
  * @see https://explorer.cronos.org/testnet/token/0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
  */
-export const USDC_CONTRACT_ADDRESS = '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0' as const
+export const USDC_CONTRACT_ADDRESS: `0x${string}` = getUsdcContractAddress()
 
 /**
  * USDC Token Configuration
