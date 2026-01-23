@@ -120,3 +120,27 @@ export {
   type TimerTracking,
   type CleanupStats,
 } from './cleanup-helpers';
+
+// Environment helpers
+export {
+  TEST_ENV,
+  parseEnvFile,
+  findEnvTestPath,
+  loadTestEnv,
+  resetTestEnv,
+  isTestEnvironmentLoaded,
+  withTestEnv,
+  getRequiredEnv,
+  getOptionalEnv,
+  getEnvNumber,
+  getEnvBoolean,
+  REQUIRED_TEST_ENV_VARS,
+  validateTestEnv,
+  assertTestEnvConfigured,
+  getMockFacilitatorUrl,
+  getMockRpcUrl,
+  createTestEnvSetup,
+  createIsolatedTestEnvSetup,
+  type TestEnvironment,
+  type PartialTestEnvironment,
+} from './env-helpers';
