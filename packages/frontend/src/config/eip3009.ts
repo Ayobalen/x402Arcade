@@ -458,3 +458,121 @@ export function formatUSDCWithSymbol(
 ): string {
   return `$${formatUSDC(amount, decimalPlaces)}`
 }
+
+// ============================================================================
+// Signature Utilities
+// ============================================================================
+
+/**
+ * Parse signature from compact hex format into r, s, v components
+ *
+ * Converts a 65-byte compact signature (0x + 130 hex chars) into r, s, v components.
+ * Handles both legacy (v=27/28) and EIP-155 (v=0/1) signature formats.
+ *
+ * @param signature - Compact signature hex string (65 bytes = 0x + 130 hex chars)
+ * @returns Object with r, s, v components
+ * @throws Error if signature format is invalid
+ *
+ * @example
+ * ```typescript
+ * // Parse a signature from signTypedData
+ * const sig = parseSignature('0x1234...abcd'); // 65 bytes
+ * console.log(sig.r); // '0x...' (32 bytes)
+ * console.log(sig.s); // '0x...' (32 bytes)
+ * console.log(sig.v); // 27 or 28
+ * ```
+ */
+export function parseSignature(signature: string): SignatureComponents {
+  // Validate signature format: 0x + 130 hex chars = 65 bytes
+  if (!/^0x[a-fA-F0-9]{130}$/.test(signature)) {
+    throw new Error(
+      `Invalid signature format: expected 0x + 130 hex characters (65 bytes), got ${signature.length - 2} hex characters`
+    )
+  }
+
+  // Extract r (bytes 0-32): chars 2-66 (first 64 hex chars after 0x)
+  const r = `0x${signature.slice(2, 66)}` as `0x${string}`
+
+  // Extract s (bytes 32-64): chars 66-130 (next 64 hex chars)
+  const s = `0x${signature.slice(66, 130)}` as `0x${string}`
+
+  // Extract v (byte 64): chars 130-132 (last 2 hex chars)
+  const v = parseInt(signature.slice(130, 132), 16)
+
+  // Normalize v to 27/28 if it's 0/1 (EIP-155 to legacy format)
+  const normalizedV = v < 27 ? v + 27 : v
+
+  return { r, s, v: normalizedV }
+}
+
+/**
+ * Combine signature components into compact hex format
+ *
+ * Creates a 65-byte compact signature from r, s, v components.
+ * The v value is normalized to 0/1 format in the output.
+ *
+ * @param r - First 32 bytes of the signature (hex string)
+ * @param s - Second 32 bytes of the signature (hex string)
+ * @param v - Recovery identifier (27, 28, 0, or 1)
+ * @returns Compact signature hex string (65 bytes)
+ *
+ * @example
+ * ```typescript
+ * const compact = combineSignature(
+ *   '0x1234...', // r (32 bytes)
+ *   '0xabcd...', // s (32 bytes)
+ *   27
+ * );
+ * // compact = '0x1234...abcd...00' (65 bytes)
+ * ```
+ */
+export function combineSignature(
+  r: string,
+  s: string,
+  v: number
+): `0x${string}` {
+  // Strip 0x prefix if present
+  const normalizedR = r.startsWith('0x') ? r.slice(2) : r
+  const normalizedS = s.startsWith('0x') ? s.slice(2) : s
+
+  // Normalize v to 0/1 format for compact signature
+  const vByte = v >= 27 ? v - 27 : v
+  const vHex = vByte.toString(16).padStart(2, '0')
+
+  return `0x${normalizedR}${normalizedS}${vHex}`
+}
+
+/**
+ * Validate signature components format
+ *
+ * Checks that r, s, and v values have the correct format.
+ *
+ * @param signature - The signature components to validate
+ * @throws Error if any component is invalid
+ */
+export function validateSignatureComponents(signature: {
+  r: string
+  s: string
+  v: number
+}): void {
+  // Validate r (32 bytes = 64 hex chars + 0x prefix)
+  if (!/^0x[a-fA-F0-9]{64}$/.test(signature.r)) {
+    throw new Error(
+      `Invalid signature component 'r': expected 0x-prefixed hex string with 64 characters (32 bytes), got '${signature.r}'`
+    )
+  }
+
+  // Validate s (32 bytes = 64 hex chars + 0x prefix)
+  if (!/^0x[a-fA-F0-9]{64}$/.test(signature.s)) {
+    throw new Error(
+      `Invalid signature component 's': expected 0x-prefixed hex string with 64 characters (32 bytes), got '${signature.s}'`
+    )
+  }
+
+  // Validate v (should be 27 or 28 for legacy, or 0/1 for EIP-155)
+  if (signature.v !== 27 && signature.v !== 28 && signature.v !== 0 && signature.v !== 1) {
+    throw new Error(
+      `Invalid signature component 'v': expected 27, 28, 0, or 1, got ${signature.v}`
+    )
+  }
+}
