@@ -114,5 +114,19 @@ export {
   type InputState,
 } from './input-manager'
 
+// Export audio manager utilities
+export {
+  createAudioManager,
+  getGlobalAudioManager,
+  disposeGlobalAudioManager,
+  DEFAULT_AUDIO_CONFIG,
+  type AudioManager,
+  type AudioManagerConfig,
+  type SoundConfig,
+  type SoundCategory,
+  type LoadedSound,
+  type PlayingSound,
+} from './audio-manager'
+
 // Default export for convenient importing
 export { default as types } from '../types'
