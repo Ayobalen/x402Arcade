@@ -70,3 +70,13 @@ export {
   detectWebGLSupport,
   type CanvasFallbackProps,
 } from './CanvasFallback'
+
+export {
+  PowerUpEffect3D,
+  usePowerUpEffect,
+  POWER_UP_COLORS,
+  type PowerUpEffect3DProps,
+  type PowerUpType,
+  type PowerUpColorConfig,
+  type UsePowerUpEffectResult,
+} from './PowerUpEffect3D'
