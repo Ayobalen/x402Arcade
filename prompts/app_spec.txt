@@ -1,0 +1,504 @@
+<project_specification>
+<project_name>x402Arcade</project_name>
+
+<overview>
+A gasless arcade gaming platform on Cronos blockchain using x402 protocol for micropayments. Players pay $0.01-$0.02 USDC per game with zero gas fees, competing for daily prize pools on leaderboards. Built for the Cronos x402 Hackathon.
+</overview>
+
+# MASTER SPECIFICATION: x402Arcade
+## Complete Implementation-Ready Build Document
+
+**Project Name:** x402Arcade
+**Tagline:** "Insert a Penny, Play for Glory"
+**Version:** 2.0.0 (Final Reviewed & Corrected)
+**Target:** Cronos x402 Hackathon – Main Track + Ecosystem Integration
+**Last Updated:** January 23, 2026
+
+---
+
+# CRITICAL IMPLEMENTATION NOTES
+
+Before starting, understand these corrections from review:
+
+1. **DO NOT USE `@x402/*` packages** - They don't exist on npm. Use custom middleware provided in Section 7.
+2. **USDC Domain Version** - Use `"1"` for testnet, `"2"` for mainnet
+3. **Test x402 payment flow FIRST** - Before building games, verify payments work end-to-end
+4. **Get test tokens early** - Faucet has 24hr limits. Get TCRO + devUSDC.e immediately.
+
+---
+
+# 1. EXECUTIVE SUMMARY
+
+## 1.1 Problem Statement
+
+Web3 gaming suffers from excessive friction:
+- Complex wallet setups and token approvals
+- High gas fees that make micropayments impractical
+- Slow transaction confirmations
+- Confusing multi-step payment flows
+
+**Result:** 95% of potential users never touch crypto gaming.
+
+## 1.2 Solution
+
+CronosArcade brings back the simplicity of 1980s arcades with 2026 technology:
+- **Pay a penny** ($0.01-$0.02 USDC per game)
+- **Play instantly** (game starts in <1 second after payment)
+- **Compete for glory** (daily prize pools, leaderboards)
+- **Zero gas** (x402 facilitator covers all gas costs)
+
+## 1.3 Key Innovation
+
+- **x402 Protocol**: HTTP-native micropayments via EIP-3009 authorization
+- **Gasless for Players**: Facilitator covers all gas costs
+- **Instant Settlement**: Sub-second payment confirmation
+- **Prize Pool Economics**: 70% of all payments fund daily jackpots
+
+## 1.4 Revenue Model
+
+| Source | Percentage | Description |
+|--------|------------|-------------|
+| Prize Pool | 70% | Goes to daily winner |
+| Platform | 30% | Operational costs |
+
+---
+
+# 2. TECHNICAL ARCHITECTURE
+
+## 2.1 System Overview
+
+```
+CLIENT LAYER: REACT SPA (Vite + TypeScript)
+- Wallet Connect
+- Game Lobby
+- Leaderboard
+- Prize Pool
+- Zustand Store
+- Viem (EIP-3009), REST Client, Blockchain Client
+
+SERVER LAYER: EXPRESS.JS + TypeScript
+- Helmet → CORS → JSON → x402 Middleware → Route Handlers
+- GameService | LeaderboardService | PrizePoolService
+- SQLite + better-sqlite3
+
+BLOCKCHAIN LAYER:
+- CRONOS TESTNET (Chain 338)
+- devUSDC.e (ERC-20+EIP-3009)
+- x402 FACILITATOR (Cronos Labs Hosted)
+```
+
+## 2.2 Payment Flow (x402)
+
+1. Player clicks "Play"
+2. Frontend sends POST /api/play
+3. Backend returns 402 + Payment Requirements
+4. Player signs EIP-3009 authorization
+5. Frontend sends POST /api/play + X-Payment header
+6. Backend settles via Facilitator
+7. Facilitator transfers USDC on-chain
+8. Backend returns 200 OK with sessionId
+9. Game Starts!
+
+---
+
+# 3. TECHNOLOGY STACK
+
+## 3.1 Backend Dependencies
+
+```json
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.1",
+    "better-sqlite3": "^9.2.2",
+    "viem": "^2.7.1",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "express-rate-limit": "^7.1.5",
+    "zod": "^3.22.4",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/uuid": "^9.0.7",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/morgan": "^1.9.9",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.7.0"
+  }
+}
+```
+
+## 3.2 Frontend Dependencies
+
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.1",
+    "viem": "^2.7.1",
+    "zustand": "^4.4.7",
+    "framer-motion": "^10.17.4",
+    "@tanstack/react-query": "^5.17.0",
+    "lucide-react": "^0.303.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/react": "^18.2.46",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.10",
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.32",
+    "autoprefixer": "^10.4.16"
+  }
+}
+```
+
+## 3.3 Blockchain Configuration (VERIFIED CORRECT)
+
+```typescript
+// Cronos Testnet Configuration
+export const CHAIN_CONFIG = {
+  id: 338,
+  name: 'Cronos Testnet',
+  rpcUrl: 'https://evm-t3.cronos.org/',
+  explorerUrl: 'https://explorer.cronos.org/testnet',
+  nativeCurrency: {
+    name: 'Test CRO',
+    symbol: 'TCRO',
+    decimals: 18
+  }
+};
+
+// devUSDC.e Contract (VERIFIED)
+export const USDC_CONFIG = {
+  address: '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0',
+  name: 'Bridged USDC (Stargate)',
+  symbol: 'devUSDC.e',
+  decimals: 6,
+  domainVersion: '1'  // Use "1" for testnet, "2" for mainnet
+};
+
+// x402 Facilitator (VERIFIED)
+export const FACILITATOR_CONFIG = {
+  baseUrl: 'https://facilitator.cronoslabs.org',
+  settleEndpoint: '/v2/x402/settle',
+  supportedEndpoint: '/v2/x402/supported'
+};
+```
+
+---
+
+# 4. PROJECT STRUCTURE
+
+```
+cronos-arcade/
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── env.ts
+│   │   │   └── chain.ts
+│   │   ├── db/
+│   │   │   └── index.ts
+│   │   ├── middleware/
+│   │   │   ├── errorHandler.ts
+│   │   │   └── x402.ts          ⚠️ CRITICAL FILE
+│   │   ├── routes/
+│   │   │   ├── index.ts
+│   │   │   ├── play.routes.ts
+│   │   │   ├── score.routes.ts
+│   │   │   ├── leaderboard.routes.ts
+│   │   │   └── prize.routes.ts
+│   │   ├── services/
+│   │   │   ├── game.service.ts
+│   │   │   ├── leaderboard.service.ts
+│   │   │   ├── prizePool.service.ts
+│   │   │   └── payment.service.ts
+│   │   ├── types/
+│   │   │   └── index.ts
+│   │   ├── utils/
+│   │   │   └── logger.ts
+│   │   ├── app.ts
+│   │   └── index.ts
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── .env
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── layout/
+│   │   │   │   ├── Header.tsx
+│   │   │   │   └── Layout.tsx
+│   │   │   ├── wallet/
+│   │   │   │   ├── ConnectButton.tsx
+│   │   │   │   └── Balance.tsx
+│   │   │   ├── game/
+│   │   │   │   ├── GameLobby.tsx
+│   │   │   │   ├── PayToPlay.tsx
+│   │   │   │   ├── GameCanvas.tsx
+│   │   │   │   └── GameOver.tsx
+│   │   │   └── ui/
+│   │   │       └── Button.tsx
+│   │   ├── games/
+│   │   │   ├── snake/
+│   │   │   │   ├── constants.ts
+│   │   │   │   ├── types.ts
+│   │   │   │   ├── logic.ts
+│   │   │   │   ├── renderer.ts
+│   │   │   │   ├── useSnakeGame.ts
+│   │   │   │   └── SnakeGame.tsx
+│   │   │   └── tetris/
+│   │   │       └── ... (same structure)
+│   │   ├── hooks/
+│   │   │   └── useX402.ts       ⚠️ CRITICAL FILE
+│   │   ├── services/
+│   │   │   └── blockchain.ts
+│   │   ├── store/
+│   │   │   └── walletStore.ts
+│   │   ├── pages/
+│   │   │   ├── Home.tsx
+│   │   │   ├── Play.tsx
+│   │   │   └── Leaderboard.tsx
+│   │   ├── config/
+│   │   │   └── chain.ts
+│   │   ├── styles/
+│   │   │   └── globals.css
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── .env
+├── README.md
+└── .gitignore
+```
+
+---
+
+# 5. DATABASE SCHEMA
+
+```sql
+-- Game sessions table
+CREATE TABLE IF NOT EXISTS game_sessions (
+    id TEXT PRIMARY KEY,
+    game_type TEXT NOT NULL CHECK (game_type IN ('snake', 'tetris')),
+    player_address TEXT NOT NULL,
+    payment_tx_hash TEXT NOT NULL UNIQUE,
+    amount_paid_usdc REAL NOT NULL,
+    score INTEGER,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    completed_at TEXT,
+    game_duration_ms INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_player ON game_sessions(player_address);
+CREATE INDEX IF NOT EXISTS idx_sessions_status ON game_sessions(status);
+
+-- Leaderboard entries table
+CREATE TABLE IF NOT EXISTS leaderboard_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL REFERENCES game_sessions(id),
+    game_type TEXT NOT NULL,
+    player_address TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    period_type TEXT NOT NULL CHECK (period_type IN ('daily', 'weekly', 'alltime')),
+    period_date TEXT NOT NULL,
+    rank INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(session_id, period_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_leaderboard_game_period ON leaderboard_entries(game_type, period_type, period_date);
+CREATE INDEX IF NOT EXISTS idx_leaderboard_score ON leaderboard_entries(score DESC);
+
+-- Prize pools table
+CREATE TABLE IF NOT EXISTS prize_pools (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_type TEXT NOT NULL,
+    period_type TEXT NOT NULL CHECK (period_type IN ('daily', 'weekly')),
+    period_date TEXT NOT NULL,
+    total_amount_usdc REAL NOT NULL DEFAULT 0,
+    total_games INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'finalized', 'paid')),
+    winner_address TEXT,
+    payout_tx_hash TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    finalized_at TEXT,
+    UNIQUE(game_type, period_type, period_date)
+);
+
+-- Payments audit table
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tx_hash TEXT NOT NULL UNIQUE,
+    from_address TEXT NOT NULL,
+    to_address TEXT NOT NULL,
+    amount_usdc REAL NOT NULL,
+    purpose TEXT NOT NULL CHECK (purpose IN ('game_payment', 'prize_payout')),
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    confirmed_at TEXT
+);
+```
+
+---
+
+# 6. ENVIRONMENT CONFIGURATION
+
+## 6.1 Backend .env
+
+```bash
+# Server
+NODE_ENV=development
+PORT=3001
+HOST=localhost
+CORS_ORIGIN=http://localhost:5173
+
+# Database
+DATABASE_PATH=./data/arcade.db
+
+# Blockchain (Cronos Testnet)
+CHAIN_ID=338
+RPC_URL=https://evm-t3.cronos.org/
+EXPLORER_URL=https://explorer.cronos.org/testnet
+
+# Contracts (VERIFIED)
+USDC_CONTRACT_ADDRESS=0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
+USDC_DECIMALS=6
+USDC_DOMAIN_VERSION=1
+
+# Arcade Wallet (receives payments, sends prizes)
+ARCADE_WALLET_ADDRESS=0xYOUR_WALLET_ADDRESS
+ARCADE_PRIVATE_KEY=0xYOUR_PRIVATE_KEY
+
+# x402 Facilitator
+FACILITATOR_URL=https://facilitator.cronoslabs.org
+
+# Game Config
+SNAKE_PRICE_USDC=0.01
+TETRIS_PRICE_USDC=0.02
+PRIZE_POOL_PERCENTAGE=70
+SESSION_EXPIRY_MINUTES=30
+```
+
+## 6.2 Frontend .env
+
+```bash
+VITE_API_URL=http://localhost:3001
+VITE_CHAIN_ID=338
+VITE_USDC_ADDRESS=0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
+VITE_EXPLORER_URL=https://explorer.cronos.org/testnet
+```
+
+## 6.3 Getting Test Tokens
+
+```
+1. TCRO (gas for arcade wallet): https://cronos.org/faucet
+2. devUSDC.e (for players): https://faucet.cronos.org/
+
+⚠️ 24hr limit. If stuck, ask in Telegram: https://t.me/+a4jj5hyJl0NmMDll
+```
+
+---
+
+# DESIGN SYSTEM
+
+## Color Palette (Retro Arcade / Neon)
+- Primary Background: #0a0a0a (near black)
+- Secondary Background: #1a1a2e (dark purple)
+- Card/Surface: #16162a
+- Primary Accent: #00ffff (cyan)
+- Secondary Accent: #ff00ff (magenta/pink)
+- Success/Green: #00ff00 (neon green)
+- Warning: #ffff00 (yellow)
+- Error: #ff4444 (red)
+- Text Primary: #ffffff
+- Text Secondary: #94a3b8 (muted gray)
+- Border: #2d2d4a
+
+## Typography
+- Display: Orbitron or Press Start 2P (retro gaming)
+- Body: Inter (clean, readable)
+- Code/Addresses: JetBrains Mono
+
+## UI Components
+- Buttons: Gradient backgrounds (cyan to pink), glow effects on hover
+- Cards: Dark surfaces with subtle borders, rounded-xl
+- Inputs: Dark backgrounds, glowing focus rings
+- Animations: Smooth 200-300ms transitions, subtle glow pulses
+
+---
+
+# IMPLEMENTATION PHASES
+
+## Phase 1: Setup
+- Create project structure (backend/, frontend/)
+- Initialize backend with Express + TypeScript
+- Initialize frontend with Vite + React + TypeScript
+- Configure environment variables
+- Get TCRO + devUSDC.e from faucets
+
+## Phase 2: x402 Payment (BUILD FIRST)
+- Implement backend x402 middleware
+- Implement frontend useX402 hook
+- Implement chain configuration
+- Test payment flow end-to-end
+- Verify tx on Cronos Explorer
+
+## Phase 3: Backend
+- Database initialization with better-sqlite3
+- Environment config with Zod validation
+- Express app setup with middleware
+- Game service implementation
+- Leaderboard service implementation
+- Prize pool service implementation
+- Play routes with x402 middleware
+- Score submission routes
+- Leaderboard routes
+- Prize pool routes
+
+## Phase 4: Frontend
+- Wallet connection component
+- Wallet store with Zustand
+- PayToPlay component
+- Game routing with React Router
+- Home page with game lobby
+- Leaderboard page
+- Layout and Header components
+
+## Phase 5: Games
+- Snake game constants and types
+- Snake game logic (movement, collision, scoring)
+- Snake game renderer (canvas)
+- Snake game hook (game loop, controls)
+- Snake game component integration
+- Score submission flow
+
+## Phase 6: Deploy & Submit
+- Deploy backend to Railway
+- Deploy frontend to Vercel
+- Configure production environment variables
+- Record demo video
+- Submit to DoraHacks
+
+---
+
+# SUCCESS CRITERIA
+
+1. Wallet connects to Cronos Testnet
+2. x402 payment flow works end-to-end (402 → sign → settle → verify)
+3. Game starts immediately after payment
+4. Score is recorded and appears on leaderboard
+5. Prize pool accumulates correctly (70% of payments)
+6. Transaction is verifiable on Cronos Explorer
+7. No console errors, smooth user experience
+
+</project_specification>
