@@ -22,7 +22,7 @@
  * </Modal>
  */
 
-import { forwardRef, useEffect, useCallback, useRef, type RefObject } from 'react'
+import React, { forwardRef, useEffect, useCallback, useRef, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -458,6 +458,7 @@ ModalFooter.displayName = 'ModalFooter'
  * Modal Component
  *
  * Animated modal with Framer Motion for smooth entrance and exit animations.
+ * Includes focus trap for accessibility compliance.
  * Respects prefers-reduced-motion accessibility preference.
  */
 export const Modal = forwardRef<HTMLDivElement, ModalProps & { 'data-testid'?: string }>(
@@ -475,17 +476,32 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps & { 'data-testid'?: s
       backdropClassName,
       centered = true,
       preventScroll = true,
+      trapFocus = true,
+      autoFocus = true,
+      returnFocus = true,
+      initialFocus,
       'data-testid': testId,
       ...props
     },
     ref
   ) => {
+    // Internal ref for focus trap (merged with forwarded ref)
+    // Using mutable ref to allow assignment from callback
+    const internalRef = useRef<HTMLDivElement | null>(null)
+
     // Check for reduced motion preference
     const prefersReducedMotion = usePrefersReducedMotion()
 
     // Select appropriate animation variants
     const currentBackdropVariants = prefersReducedMotion ? reducedMotionVariants : backdropVariants
     const currentModalVariants = prefersReducedMotion ? reducedMotionVariants : modalVariants
+
+    // Apply focus trap
+    useFocusTrap(internalRef, isOpen && trapFocus, {
+      autoFocus,
+      returnFocus,
+      initialFocus,
+    })
 
     // Handle backdrop click
     const handleBackdropClick = useCallback(() => {
@@ -547,7 +563,16 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps & { 'data-testid'?: s
             >
               {/* Animated Modal Content */}
               <motion.div
-                ref={ref}
+                ref={(node) => {
+                  // Merge internal ref and forwarded ref
+                  internalRef.current = node
+                  if (typeof ref === 'function') {
+                    ref(node)
+                  } else if (ref) {
+                    // Cast to mutable ref
+                    (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+                  }
+                }}
                 className={cn(
                   modalContentStyles,
                   sizeStyles[size],
