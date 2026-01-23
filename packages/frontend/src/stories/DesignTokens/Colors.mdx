@@ -1,0 +1,217 @@
+{/* Colors Documentation */}
+
+import { Meta, ColorPalette, ColorItem } from '@storybook/blocks';
+
+<Meta title="Design Tokens/Colors/Documentation" />
+
+# Color Tokens
+
+The x402Arcade color system is built on a **Retro Arcade / Neon** theme, featuring vibrant neon accents against deep, dark backgrounds.
+
+## Philosophy
+
+- **Dark canvas**: Deep purple-tinted blacks create the arcade atmosphere
+- **Neon highlights**: Cyan and magenta bring the classic arcade glow
+- **High contrast**: Light text on dark backgrounds for readability
+- **Semantic clarity**: Consistent colors for success, warning, and error states
+
+---
+
+## Background Colors
+
+These dark purple backgrounds create the deep space/arcade atmosphere.
+
+| Token | Hex | Purpose |
+|-------|-----|---------|
+| `backgrounds.primary` | `#0a0a0f` | Darkest layer, page background |
+| `backgrounds.secondary` | `#12121a` | Section backgrounds |
+| `backgrounds.tertiary` | `#1a1a2e` | Cards, elevated areas |
+| `backgrounds.surface` | `#16162a` | Modals, dropdowns |
+
+### Usage
+
+```tsx
+import { backgrounds } from '@/styles/tokens/colors';
+
+<div style={{ backgroundColor: backgrounds.primary }}>
+  Darkest background
+</div>
+
+// With Tailwind
+<div className="bg-bg-primary">
+  Using Tailwind class
+</div>
+```
+
+---
+
+## Primary Colors (Cyan)
+
+The signature neon cyan creates the distinctive arcade aesthetic.
+
+| Token | Hex | Purpose |
+|-------|-----|---------|
+| `primary.DEFAULT` | `#00ffff` | Primary actions, links |
+| `primary.hover` | `#33ffff` | Hover state |
+| `primary.active` | `#00cccc` | Active/pressed state |
+| `primary.disabled` | `#4d9999` | Disabled state |
+| `primary.glow` | `rgba(0,255,255,0.4)` | Shadow glow |
+
+### Shade Scale
+
+| Token | Hex | Intensity |
+|-------|-----|-----------|
+| `primary.50` | `#e6ffff` | Lightest |
+| `primary.100` | `#ccffff` | Very light |
+| `primary.300` | `#66ffff` | Light |
+| `primary.500` | `#00ffff` | Base (same as DEFAULT) |
+| `primary.700` | `#009999` | Dark |
+| `primary.900` | `#003333` | Darkest |
+
+---
+
+## Secondary Colors (Magenta)
+
+Complementary magenta creates classic arcade neon contrast.
+
+| Token | Hex | Purpose |
+|-------|-----|---------|
+| `secondary.DEFAULT` | `#ff00ff` | Secondary actions |
+| `secondary.hover` | `#ff33ff` | Hover state |
+| `secondary.active` | `#cc00cc` | Active state |
+| `secondary.glow` | `rgba(255,0,255,0.4)` | Shadow glow |
+
+---
+
+## Semantic Colors
+
+Colors that convey meaning for feedback, alerts, and status.
+
+### Success
+
+| Token | Hex | Purpose |
+|-------|-----|---------|
+| `semantic.success` | `#00ff88` | Success messages, positive states |
+| `semantic.successLight` | `#66ffbb` | Success backgrounds |
+| `semantic.successDark` | `#00cc6a` | Success text on light |
+| `semantic.successGlow` | `rgba(0,255,136,0.4)` | Success glow effect |
+
+### Warning
+
+| Token | Hex | Purpose |
+|-------|-----|---------|
+| `semantic.warning` | `#ffaa00` | Warning messages, cautions |
+| `semantic.warningLight` | `#ffcc66` | Warning backgrounds |
+| `semantic.warningDark` | `#cc8800` | Warning text on light |
+
+### Error
+
+| Token | Hex | Purpose |
+|-------|-----|---------|
+| `semantic.error` | `#ff3366` | Error messages, destructive |
+| `semantic.errorLight` | `#ff7799` | Error backgrounds |
+| `semantic.errorDark` | `#cc2952` | Error text on light |
+
+### Info
+
+| Token | Hex | Purpose |
+|-------|-----|---------|
+| `semantic.info` | `#3388ff` | Informational states |
+| `semantic.infoLight` | `#77aaff` | Info backgrounds |
+| `semantic.infoDark` | `#2266cc` | Info text on light |
+
+---
+
+## Text Colors
+
+Typography colors designed for proper contrast against dark backgrounds.
+
+| Token | Hex | Contrast | Purpose |
+|-------|-----|----------|---------|
+| `text.primary` | `#ffffff` | Maximum | Headings, important content |
+| `text.secondary` | `#e0e0e0` | High | Body text, descriptions |
+| `text.tertiary` | `#a0a0a0` | Medium | Captions, labels |
+| `text.muted` | `#606060` | Low | Hints, placeholder |
+| `text.disabled` | `#404040` | Minimal | Disabled content |
+| `text.inverse` | `#0a0a0f` | Inverse | Text on light backgrounds |
+
+---
+
+## Glow Colors
+
+Semi-transparent colors for authentic neon glow effects.
+
+| Token | Value | Use Case |
+|-------|-------|----------|
+| `glows.cyan` | `rgba(0,255,255,0.3)` | Subtle cyan glow |
+| `glows.cyanStrong` | `rgba(0,255,255,0.5)` | Intense cyan glow |
+| `glows.magenta` | `rgba(255,0,255,0.3)` | Subtle magenta glow |
+| `glows.success` | `rgba(0,255,136,0.3)` | Success glow |
+| `glows.warning` | `rgba(255,170,0,0.3)` | Warning glow |
+| `glows.error` | `rgba(255,51,102,0.3)` | Error glow |
+
+### Usage
+
+```tsx
+import { glows } from '@/styles/tokens/colors';
+
+<button style={{
+  boxShadow: `0 0 20px ${glows.cyanStrong}`
+}}>
+  Glowing Button
+</button>
+```
+
+---
+
+## Gradients
+
+Pre-defined gradients for buttons and decorative elements.
+
+| Token | Value | Use Case |
+|-------|-------|----------|
+| `gradients.primary` | `linear-gradient(135deg, #00ffff 0%, #ff00ff 100%)` | Primary buttons |
+| `gradients.surface` | `linear-gradient(180deg, #1a1a2e 0%, #16162a 100%)` | Card backgrounds |
+| `gradients.overlay` | `linear-gradient(...)` | Modal overlays |
+
+---
+
+## Best Practices
+
+### Do's
+
+- Use `backgrounds.primary` for the main page background
+- Use `primary.DEFAULT` for primary actions and links
+- Use `semantic.*` colors for feedback states
+- Apply `glows.*` for hover and focus effects
+
+### Don'ts
+
+- Don't use raw hex values; always use tokens
+- Don't use colors outside the design system
+- Don't combine multiple glow colors (can be overwhelming)
+- Don't use light backgrounds (breaks the arcade theme)
+
+---
+
+## Import Reference
+
+```tsx
+import {
+  // Individual exports
+  backgrounds,
+  backgroundGradients,
+  primary,
+  secondary,
+  surfaces,
+  accents,
+  semantic,
+  text,
+  borders,
+  glows,
+  gradients,
+
+  // Combined object
+  colors,
+} from '@/styles/tokens/colors';
+```

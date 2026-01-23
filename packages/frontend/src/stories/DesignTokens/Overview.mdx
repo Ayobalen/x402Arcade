@@ -1,0 +1,177 @@
+{/* Design Tokens Overview */}
+
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Design Tokens/Overview" />
+
+# x402Arcade Design System
+
+Welcome to the x402Arcade Design System documentation. This living style guide showcases all design tokens used throughout the application.
+
+## Theme: Retro Arcade / Neon
+
+The x402Arcade design system is inspired by **1980s arcade cabinets** with a modern **Web3 aesthetic**. Key characteristics:
+
+- **Dark, immersive backgrounds** - Deep purple-tinted blacks create the arcade atmosphere
+- **Neon accent colors** - Cyan and magenta bring the classic arcade glow
+- **Pixel-perfect typography** - Orbitron for display, Inter for readability
+- **Glowing effects** - Box shadows and text shadows create authentic neon effects
+- **Responsive animations** - Snappy interactions with satisfying feedback
+
+---
+
+## Token Categories
+
+### [Colors](/docs/design-tokens-colors--docs)
+The color palette includes backgrounds, primary (cyan), secondary (magenta), semantic colors, and glow effects.
+
+| Category | Purpose |
+|----------|---------|
+| Backgrounds | Dark surfaces for the arcade atmosphere |
+| Primary (Cyan) | Main accent color for actions and highlights |
+| Secondary (Magenta) | Complementary color for variety |
+| Semantic | Success, warning, error, and info states |
+| Glows | Semi-transparent colors for neon effects |
+
+### [Typography](/docs/design-tokens-typography--docs)
+Three distinct font families for different use cases.
+
+| Font | Use Case |
+|------|----------|
+| Orbitron | Display text, headings, scores |
+| Inter | Body text, UI elements |
+| JetBrains Mono | Wallet addresses, code |
+
+### [Spacing](/docs/design-tokens-spacing--docs)
+A consistent 4px base unit system for visual rhythm.
+
+| Size | Value | Use Case |
+|------|-------|----------|
+| xs | 4px | Inline spacing |
+| sm | 8px | Small gaps |
+| md | 16px | Standard spacing |
+| lg | 24px | Section gaps |
+| xl | 32px | Large separations |
+
+### [Shadows](/docs/design-tokens-shadows--docs)
+Elevation shadows for depth and neon glows for the arcade aesthetic.
+
+| Type | Purpose |
+|------|---------|
+| Elevation | Cards, modals, dropdowns |
+| Glow | Buttons, focus states, highlights |
+| Text | Headings, neon text effects |
+| Combined | Pre-composed UI patterns |
+
+### [Animations](/docs/design-tokens-animations--docs)
+Snappy, responsive animations with arcade flair.
+
+| Duration | Value | Use Case |
+|----------|-------|----------|
+| Quick | 150ms | Micro-interactions |
+| Default | 200ms | Standard transitions |
+| Moderate | 300ms | Complex animations |
+| Slow | 400ms | Larger movements |
+
+---
+
+## Quick Start
+
+### Installation
+
+Design tokens are available as TypeScript modules:
+
+```tsx
+// Import specific token categories
+import { backgrounds, primary, semantic } from '@/styles/tokens/colors';
+import { fontFamilies, textStyles } from '@/styles/tokens/typography';
+import { spacing, semanticSpacing } from '@/styles/tokens/spacing';
+import { glowShadows, combinedShadows } from '@/styles/tokens/shadows';
+import { durations, easings, transitions } from '@/styles/tokens/animations';
+```
+
+### CSS Variables
+
+All tokens are also available as CSS custom properties:
+
+```css
+/* Colors */
+var(--color-bg-primary)
+var(--color-primary-DEFAULT)
+var(--color-semantic-success)
+
+/* Typography */
+var(--font-display)
+var(--font-size-lg)
+
+/* Spacing */
+var(--spacing-4)
+var(--spacing-semantic-md)
+
+/* Shadows */
+var(--shadow-glow-cyan)
+
+/* Animations */
+var(--duration-default)
+var(--easing-easeOut)
+```
+
+### Tailwind Classes
+
+Tokens are integrated into Tailwind for utility-first styling:
+
+```tsx
+<div className="bg-bg-primary text-text-primary">
+  <h1 className="font-display text-4xl text-primary-DEFAULT">
+    x402Arcade
+  </h1>
+  <p className="font-body text-text-secondary">
+    Pay a penny, play for glory.
+  </p>
+</div>
+```
+
+---
+
+## Design Principles
+
+### 1. Privacy-First Visual Language
+The dark theme reinforces the "encrypted/private" nature of the blockchain app.
+
+### 2. Crypto-Native Feel
+Purple accents and subtle glow effects feel native to the Web3 ecosystem.
+
+### 3. Demo-Ready Polish
+Smooth animations and clean typography photograph well for hackathon judging.
+
+### 4. Accessibility
+- Sufficient color contrast for readability
+- Clear focus indicators
+- Consistent spacing for scanability
+
+---
+
+## Contributing
+
+When adding new components:
+
+1. **Use existing tokens** - Don't introduce new colors or spacing values
+2. **Follow naming conventions** - PascalCase for components, camelCase for props
+3. **Document with Storybook** - Create stories for all component states
+4. **Test across backgrounds** - Verify visibility on all surface colors
+
+---
+
+<div style={{
+  padding: '24px',
+  background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 0, 255, 0.1) 100%)',
+  borderRadius: '12px',
+  border: '1px solid rgba(0, 255, 255, 0.2)',
+  marginTop: '32px'
+}}>
+  <h3 style={{ color: '#00ffff', marginTop: 0 }}>Built for Cronos x402 Hackathon</h3>
+  <p style={{ color: '#e0e0e0', marginBottom: 0 }}>
+    x402Arcade brings back the simplicity of 1980s arcades with 2026 technology.
+    Pay a penny, play for glory.
+  </p>
+</div>
