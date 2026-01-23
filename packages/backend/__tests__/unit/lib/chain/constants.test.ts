@@ -16,7 +16,23 @@ import {
   getExplorerAddressUrl,
   isValidAddress,
   getUsdcContractAddress,
+  USDC_NAME,
+  USDC_DECIMALS,
+  USDC_VERSION,
+  parseUSDC,
+  formatUSDC,
+  formatUSDCWithSymbol,
+  EIP712_DOMAIN_TYPE,
+  getUsdcEip712Domain,
+  createEip712Domain,
+  TRANSFER_WITH_AUTHORIZATION_TYPE,
+  createTransferWithAuthorizationMessage,
+  isAuthorizationValid,
+  generateAuthorizationNonce,
   type NativeCurrencyConfig,
+  type TypedDataField,
+  type EIP712Domain,
+  type TransferWithAuthorizationMessage,
 } from '../../../../src/lib/chain/constants.js';
 
 describe('Chain Constants', () => {
