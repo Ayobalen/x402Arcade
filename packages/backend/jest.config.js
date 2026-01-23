@@ -55,14 +55,44 @@ export default {
   },
 
   // Coverage reporters
-  coverageReporters: ['text', 'json', 'html'],
+  coverageReporters: ['text', 'json', 'html', 'lcov'],
 
   // Coverage directory
   coverageDirectory: 'coverage',
+
+  // Test reporters (default + json + junit for CI)
+  reporters: [
+    'default',
+    [
+      'jest-junit',
+      {
+        outputDirectory: './test-reports',
+        outputName: 'junit.xml',
+        classNameTemplate: '{classname}',
+        titleTemplate: '{title}',
+        ancestorSeparator: ' > ',
+        usePathForSuiteName: true,
+      },
+    ],
+  ],
 
   // Clear mocks between tests
   clearMocks: true,
 
   // Verbose output
   verbose: true,
+
+  // Watch mode plugins for interactive filtering
+  watchPlugins: [
+    'jest-watch-typeahead/filename',
+    'jest-watch-typeahead/testname',
+  ],
+
+  // Watch mode ignore patterns
+  watchPathIgnorePatterns: [
+    'node_modules',
+    'dist',
+    'coverage',
+    'test-reports',
+  ],
 };

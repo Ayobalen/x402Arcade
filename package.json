@@ -1,0 +1,36 @@
+{
+  "name": "x402arcade",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Gasless arcade gaming on Cronos blockchain using x402 protocol",
+  "type": "module",
+  "scripts": {
+    "dev:frontend": "pnpm --dir packages/frontend dev",
+    "dev:backend": "pnpm --dir packages/backend dev",
+    "build:frontend": "pnpm --dir packages/frontend build",
+    "build:backend": "pnpm --dir packages/backend build",
+    "test:frontend": "pnpm --dir packages/frontend test",
+    "test:backend": "pnpm --dir packages/backend test",
+    "test:coverage:frontend": "pnpm --dir packages/frontend test:coverage",
+    "test:coverage:backend": "pnpm --dir packages/backend test:coverage",
+    "test:coverage": "pnpm test:coverage:frontend && pnpm test:coverage:backend",
+    "coverage:badges": "node scripts/generate-coverage-badges.js",
+    "test:all": "pnpm test:frontend && pnpm test:backend",
+    "lint:frontend": "pnpm --dir packages/frontend lint",
+    "lint:backend": "pnpm --dir packages/backend lint"
+  },
+  "keywords": [
+    "cronos",
+    "blockchain",
+    "x402",
+    "arcade",
+    "gaming",
+    "micropayments"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

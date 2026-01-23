@@ -7,8 +7,9 @@ dist/
 build/
 .vite/
 
-# Test coverage
+# Test coverage and reports
 coverage/
+test-reports/
 
 # Environment files
 .env.local

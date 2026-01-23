@@ -49,10 +49,33 @@ export default defineConfig({
     },
 
     // Watch mode configuration
-    watch: true,
+    // Note: watch is disabled for 'vitest run', enabled by default for 'vitest'
+    watchExclude: [
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      'test-reports/**',
+      '**/*.d.ts',
+    ],
+
+    // File watching settings
+    forceRerunTriggers: [
+      '**/vitest.config.ts',
+      '**/vite.config.ts',
+      '**/package.json',
+    ],
+
+    // Pass through watch mode (controlled by CLI)
+    passWithNoTests: true,
 
     // Reporter configuration
-    reporters: ['verbose'],
+    reporters: ['default', 'html', 'json'],
+
+    // HTML reporter output directory
+    outputFile: {
+      html: './test-reports/html/index.html',
+      json: './test-reports/json/results.json',
+    },
   },
   resolve: {
     alias: {
