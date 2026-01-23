@@ -675,6 +675,7 @@ export const chainConstants = {
   FACILITATOR_BASE_URL,
   FACILITATOR_SETTLE_ENDPOINT,
   FACILITATOR_SUPPORTED_ENDPOINT,
+  EIP712_DOMAIN_TYPE,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
@@ -687,6 +688,8 @@ export const chainConstants = {
   parseUSDC,
   formatUSDC,
   formatUSDCWithSymbol,
+  getUsdcEip712Domain,
+  createEip712Domain,
 } as const;
 
 export default chainConstants;
