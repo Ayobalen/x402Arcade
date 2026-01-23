@@ -1,26 +1,20 @@
 {
+  /*
+   * Backend TypeScript Configuration
+   * Extends shared base config for consistent settings across the monorepo.
+   */
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
+    /* Output configuration */
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
+
+    /* Backend-specific paths */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@x402arcade/shared": ["../shared/src"],
+      "@x402arcade/shared/*": ["../shared/src/*"]
     }
   },
   "include": ["src/**/*"],
