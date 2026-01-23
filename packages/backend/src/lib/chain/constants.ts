@@ -26,10 +26,47 @@
  */
 export const CRONOS_TESTNET_CHAIN_ID: 338 = 338;
 
-// Placeholder export - will be populated with additional chain configuration
-// in subsequent features (contract addresses, RPC URLs, etc.)
+/**
+ * Default Cronos Testnet RPC URL
+ *
+ * The public RPC endpoint for the Cronos Testnet blockchain.
+ * Used for reading blockchain state and submitting transactions.
+ *
+ * Can be overridden via the RPC_URL environment variable for custom
+ * RPC endpoints (e.g., private nodes, different providers).
+ *
+ * @see https://docs.cronos.org/cronos-zkevm/for-developers/dev-tools-and-integrations/chain-integration
+ */
+export const DEFAULT_CRONOS_TESTNET_RPC_URL = 'https://evm-t3.cronos.org/';
+
+/**
+ * Get the Cronos Testnet RPC URL
+ *
+ * Returns the RPC_URL environment variable if set, otherwise falls back
+ * to the default Cronos Testnet RPC URL.
+ *
+ * @returns The RPC URL to use for blockchain communication
+ */
+export function getCronosTestnetRpcUrl(): string {
+  return process.env.RPC_URL || DEFAULT_CRONOS_TESTNET_RPC_URL;
+}
+
+/**
+ * Cronos Testnet RPC URL
+ *
+ * The RPC endpoint URL for the Cronos Testnet blockchain.
+ * Supports environment variable override via RPC_URL.
+ *
+ * @deprecated Use getCronosTestnetRpcUrl() for runtime configuration support
+ */
+export const CRONOS_TESTNET_RPC_URL: string = getCronosTestnetRpcUrl();
+
+// Chain constants object containing all defined constants
 export const chainConstants = {
   CRONOS_TESTNET_CHAIN_ID,
+  DEFAULT_CRONOS_TESTNET_RPC_URL,
+  CRONOS_TESTNET_RPC_URL,
+  getCronosTestnetRpcUrl,
 } as const;
 
 export default chainConstants;

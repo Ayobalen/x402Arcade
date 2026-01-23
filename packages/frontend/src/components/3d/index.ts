@@ -32,3 +32,10 @@ export {
   type GlowState,
   type UseScreenGlowControlResult,
 } from './ScreenGlow'
+
+export {
+  ScreenReflection,
+  SimpleReflection,
+  type ScreenReflectionProps,
+  type SimpleReflectionProps,
+} from './ScreenReflection'
