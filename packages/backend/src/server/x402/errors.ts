@@ -927,8 +927,8 @@ export class X402ValidationError extends X402Error {
     const expectedFormat =
       expected ??
       (component === 'v'
-        ? '27 or 28'
-        : '0x-prefixed hex string (64 hex characters)');
+        ? '27, 28, or valid EIP-155 value (chainId * 2 + 35/36)'
+        : '0x-prefixed hex string (64 hex characters / 32 bytes)');
 
     return new X402ValidationError(
       `Invalid signature component '${component}'`,
@@ -938,6 +938,47 @@ export class X402ValidationError extends X402Error {
         expected: expectedFormat,
         actual,
         context: { signatureComponent: component },
+      },
+    );
+  }
+
+  /**
+   * Create an Invalid Signature Format error
+   *
+   * Used when multiple signature components are invalid.
+   * Aggregates all signature-related validation errors.
+   *
+   * @param errors - Array of signature validation error messages
+   * @param components - Object with the invalid signature components
+   * @returns X402ValidationError with INVALID_PAYLOAD code
+   *
+   * @example
+   * ```typescript
+   * throw X402ValidationError.invalidSignatureFormat(
+   *   ['Invalid v value: 0', 'Invalid r value format: 0x123'],
+   *   { v: 0, r: '0x123', s: '0x...' }
+   * );
+   * ```
+   */
+  static invalidSignatureFormat(
+    errors: string[],
+    components?: { v?: unknown; r?: unknown; s?: unknown },
+  ): X402ValidationError {
+    return new X402ValidationError(
+      'Invalid signature format',
+      'INVALID_PAYLOAD',
+      {
+        field: 'signature',
+        expected: {
+          v: '27, 28, or valid EIP-155 value',
+          r: '0x-prefixed 64 hex characters (32 bytes)',
+          s: '0x-prefixed 64 hex characters (32 bytes)',
+        },
+        actual: components,
+        context: {
+          signatureErrors: errors,
+          help: 'The signature v value must be 27, 28, or a valid EIP-155 value (chainId * 2 + 35/36). The r and s values must be 32-byte hex strings with 0x prefix.',
+        },
       },
     );
   }
@@ -1093,6 +1134,73 @@ export class X402ValidationError extends X402Error {
   // ============================================================
   // Static Utility Methods
   // ============================================================
+
+  /**
+   * Create a Missing Required Fields error
+   *
+   * Used when one or more required fields are missing from the payload.
+   * Includes the list of missing fields and the expected schema for reference.
+   *
+   * @param missingFields - Array of missing field names
+   * @param schema - The payload schema definition for reference
+   * @returns X402ValidationError with INVALID_PAYLOAD code and 400 status
+   *
+   * @example
+   * ```typescript
+   * // Error response format:
+   * {
+   *   "error": {
+   *     "code": "INVALID_PAYLOAD",
+   *     "message": "Missing required fields: from, to, value",
+   *     "field": "from, to, value",
+   *     "expected": "all required fields present",
+   *     "actual": "missing: from, to, value",
+   *     "context": {
+   *       "missingFields": ["from", "to", "value"],
+   *       "missingCount": 3,
+   *       "schema": { ... }
+   *     }
+   *   }
+   * }
+   * ```
+   */
+  static missingRequiredFields(
+    missingFields: string[],
+    schema: {
+      requiredFields: readonly {
+        readonly name: string;
+        readonly type: string;
+        readonly description: string;
+      }[];
+    },
+  ): X402ValidationError {
+    const fieldList = missingFields.join(', ');
+    const schemaForMissing = schema.requiredFields
+      .filter((f) => missingFields.includes(f.name))
+      .map((f) => ({
+        field: f.name,
+        type: f.type,
+        description: f.description,
+      }));
+
+    return new X402ValidationError(
+      `Missing required fields: ${fieldList}`,
+      'INVALID_PAYLOAD',
+      {
+        field: fieldList,
+        expected: 'all required fields present',
+        actual: `missing: ${fieldList}`,
+        context: {
+          missingFields,
+          missingCount: missingFields.length,
+          schema: {
+            missingFieldDefinitions: schemaForMissing,
+            allRequiredFields: schema.requiredFields.map((f) => f.name),
+          },
+        },
+      },
+    );
+  }
 
   /**
    * Create an X402ValidationError from multiple validation errors

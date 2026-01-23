@@ -578,7 +578,7 @@ export const PAYMENT_PAYLOAD_SCHEMA = {
     { name: 'validAfter', type: 'string', description: 'Unix timestamp (seconds) after which authorization is valid' },
     { name: 'validBefore', type: 'string', description: 'Unix timestamp (seconds) before which authorization is valid' },
     { name: 'nonce', type: 'string', description: 'Unique 32-byte nonce (0x + 64 hex chars)' },
-    { name: 'v', type: 'number', description: 'ECDSA signature recovery id (27 or 28)' },
+    { name: 'v', type: 'number', description: 'ECDSA signature recovery id (27, 28, or EIP-155 value)' },
     { name: 'r', type: 'string', description: 'ECDSA signature r component (0x + 64 hex chars)' },
     { name: 's', type: 'string', description: 'ECDSA signature s component (0x + 64 hex chars)' },
   ] as const,
@@ -626,6 +626,101 @@ export function checkMissingPayloadFields(obj: Record<string, unknown>): {
     missingFields,
     schema: PAYMENT_PAYLOAD_SCHEMA,
   };
+}
+
+/**
+ * Validate an ECDSA signature v value
+ *
+ * The v value can be:
+ * - 27 or 28 (legacy recovery id)
+ * - EIP-155 values: chainId * 2 + 35 or chainId * 2 + 36
+ *
+ * EIP-155 v values for common chains:
+ * - Cronos Testnet (338): 711, 712
+ * - Cronos Mainnet (25): 85, 86
+ * - Ethereum Mainnet (1): 37, 38
+ *
+ * @param v - The v value to validate
+ * @param chainId - Optional chainId for strict EIP-155 validation
+ * @returns true if v is a valid signature recovery value
+ *
+ * @example
+ * ```typescript
+ * isValidSignatureV(27)    // => true (legacy)
+ * isValidSignatureV(28)    // => true (legacy)
+ * isValidSignatureV(711)   // => true (EIP-155 for chainId 338)
+ * isValidSignatureV(712)   // => true (EIP-155 for chainId 338)
+ * isValidSignatureV(0)     // => false (invalid)
+ * isValidSignatureV(26)    // => false (invalid)
+ * ```
+ */
+export function isValidSignatureV(v: number, chainId?: number): boolean {
+  // Must be a positive integer
+  if (!Number.isInteger(v) || v < 0) {
+    return false;
+  }
+
+  // Legacy v values (pre-EIP-155)
+  if (v === 27 || v === 28) {
+    return true;
+  }
+
+  // EIP-155 v values: v = chainId * 2 + 35 or v = chainId * 2 + 36
+  // For any v >= 35, we can derive the chainId and parity
+  if (v >= 35) {
+    // If a specific chainId is provided, validate against it
+    if (chainId !== undefined) {
+      const expectedV1 = chainId * 2 + 35;
+      const expectedV2 = chainId * 2 + 36;
+      return v === expectedV1 || v === expectedV2;
+    }
+
+    // Otherwise, check that v follows the EIP-155 pattern
+    // v - 35 should be even (for recovery id 0) or v - 36 should be even (for recovery id 1)
+    const possibleChainId1 = (v - 35) / 2; // If recovery id is 0
+    const possibleChainId2 = (v - 36) / 2; // If recovery id is 1
+
+    // At least one should result in a valid positive integer chainId
+    return (
+      (Number.isInteger(possibleChainId1) && possibleChainId1 > 0) ||
+      (Number.isInteger(possibleChainId2) && possibleChainId2 > 0)
+    );
+  }
+
+  return false;
+}
+
+/**
+ * Normalize an EIP-155 v value to legacy format (27 or 28)
+ *
+ * Converts EIP-155 v values to standard 27/28 format for signature verification.
+ *
+ * @param v - The v value to normalize
+ * @returns 27 or 28
+ * @throws Error if v is not a valid signature v value
+ *
+ * @example
+ * ```typescript
+ * normalizeSignatureV(27)   // => 27
+ * normalizeSignatureV(28)   // => 28
+ * normalizeSignatureV(711)  // => 27 (chainId 338, recovery id 0)
+ * normalizeSignatureV(712)  // => 28 (chainId 338, recovery id 1)
+ * ```
+ */
+export function normalizeSignatureV(v: number): 27 | 28 {
+  if (v === 27 || v === 28) {
+    return v;
+  }
+
+  if (v >= 35) {
+    // EIP-155: recovery_id = v - (chainId * 2 + 35)
+    // If (v - 35) is even, recovery_id is 0 (maps to 27)
+    // If (v - 35) is odd, recovery_id is 1 (maps to 28)
+    const recoveryId = (v - 35) % 2;
+    return recoveryId === 0 ? 27 : 28;
+  }
+
+  throw new Error(`Invalid signature v value: ${v}`);
 }
 
 /**
@@ -688,16 +783,22 @@ export function validatePaymentPayload(payload: PaymentPayload): {
   }
 
   // Signature validation
-  if (payload.v !== 27 && payload.v !== 28) {
-    errors.push(`Invalid v value: ${payload.v}, expected 27 or 28`);
+  // v can be 27, 28 (legacy) or EIP-155 values (chainId * 2 + 35 or chainId * 2 + 36)
+  // EIP-155 v values for common chains:
+  //   Cronos Testnet (338): 711, 712
+  //   Cronos Mainnet (25): 85, 86
+  //   Ethereum (1): 37, 38
+  if (!isValidSignatureV(payload.v)) {
+    errors.push(`Invalid v value: ${payload.v}, expected 27, 28, or valid EIP-155 value`);
   }
 
+  // r and s must be exactly 32 bytes (64 hex chars) with 0x prefix
   if (!/^0x[a-fA-F0-9]{64}$/.test(payload.r)) {
-    errors.push(`Invalid r value format: ${payload.r}`);
+    errors.push(`Invalid r value format: ${payload.r}, expected 0x-prefixed 64 hex characters (32 bytes)`);
   }
 
   if (!/^0x[a-fA-F0-9]{64}$/.test(payload.s)) {
-    errors.push(`Invalid s value format: ${payload.s}`);
+    errors.push(`Invalid s value format: ${payload.s}, expected 0x-prefixed 64 hex characters (32 bytes)`);
   }
 
   return {
