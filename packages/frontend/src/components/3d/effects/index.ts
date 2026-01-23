@@ -34,3 +34,17 @@ export {
   type UseNebulaResult,
   default as NebulaDefault,
 } from './Nebula'
+
+// Grid floor perspective effect
+export {
+  GridFloor,
+  useGridFloor,
+  getGridFloorPreset,
+  GRID_FLOOR_PRESETS,
+  type GridFloorProps,
+  type GridFloorHandle,
+  type GridFloorPreset,
+  type UseGridFloorOptions,
+  type UseGridFloorResult,
+  default as GridFloorDefault,
+} from './GridFloor'
