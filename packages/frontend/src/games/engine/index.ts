@@ -128,5 +128,19 @@ export {
   type PlayingSound,
 } from './audio-manager'
 
+// Export music manager utilities
+export {
+  createMusicManager,
+  getGlobalMusicManager,
+  disposeGlobalMusicManager,
+  DEFAULT_MUSIC_CONFIG,
+  DEFAULT_CROSSFADE,
+  type MusicManager,
+  type MusicManagerConfig,
+  type MusicTrack,
+  type MusicState,
+  type CrossfadeConfig,
+} from './music-manager'
+
 // Default export for convenient importing
 export { default as types } from '../types'
