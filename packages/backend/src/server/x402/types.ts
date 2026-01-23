@@ -14,6 +14,17 @@ import type {
   TransferWithAuthorizationMessage,
   SignedTransferWithAuthorization,
 } from '../../lib/chain/constants.js';
+import {
+  isValidAddress,
+  formatUSDC,
+  getUsdcEip712Domain,
+  USDC_NAME,
+  USDC_DECIMALS,
+  USDC_VERSION,
+  CRONOS_TESTNET_CHAIN_ID,
+  getUsdcContractAddress,
+  getFacilitatorBaseUrl,
+} from '../../lib/chain/constants.js';
 
 /**
  * x402 Middleware Configuration
@@ -316,14 +327,12 @@ export function createPaymentRequiredResponse(
   resource: string,
   description?: string,
 ): PaymentRequiredResponse {
-  const { getUsdcEip712Domain } = require('../../lib/chain/constants.js');
-
   const amount =
     typeof config.paymentAmount === 'bigint'
       ? config.paymentAmount.toString()
       : String(config.paymentAmount);
 
-  const eip712Domain = getUsdcEip712Domain(config.chainId);
+  const eip712Domain = getUsdcEip712Domain();
 
   return {
     x402Version: '1',
@@ -565,9 +574,6 @@ export function validatePaymentPayload(payload: PaymentPayload): {
   errors: string[];
 } {
   const errors: string[] = [];
-
-  // Import validator at runtime
-  const { isValidAddress } = require('../../lib/chain/constants.js');
 
   // Version check
   if (payload.version !== '1') {
@@ -889,9 +895,6 @@ export function validateSettlementRequest(request: SettlementRequest): {
   valid: boolean;
   errors: string[];
 } {
-  // Import validator at runtime to avoid circular deps
-  const { isValidAddress } = require('../../lib/chain/constants.js');
-
   const errors: string[] = [];
 
   // Validate addresses
@@ -1395,9 +1398,6 @@ export interface PaymentInfoOptions {
 export function createPaymentInfo(options: PaymentInfoOptions): PaymentInfo {
   const { payload, settlement, config, receivedAt = new Date() } = options;
 
-  // Import formatUSDC at runtime
-  const { formatUSDC } = require('../../lib/chain/constants.js');
-
   const amount = BigInt(payload.value);
 
   return {
@@ -1431,8 +1431,6 @@ export function createPendingPaymentInfo(
   payload: PaymentPayload,
   config: X402Config,
 ): Omit<PaymentInfo, 'transactionHash' | 'blockNumber' | 'settledAt'> {
-  const { formatUSDC } = require('../../lib/chain/constants.js');
-
   const amount = BigInt(payload.value);
 
   return {
@@ -1554,16 +1552,6 @@ export function createDefaultX402Config(
   payTo: string,
   paymentAmount: bigint | string,
 ): X402Config {
-  // Import from chain constants at runtime to avoid circular deps
-  const {
-    USDC_NAME,
-    USDC_DECIMALS,
-    USDC_VERSION,
-    CRONOS_TESTNET_CHAIN_ID,
-    getUsdcContractAddress,
-    getFacilitatorBaseUrl,
-  } = require('../../lib/chain/constants.js');
-
   return {
     payTo,
     paymentAmount,
@@ -1588,9 +1576,6 @@ export function createDefaultX402Config(
  * @returns true if valid, throws Error if invalid
  */
 export function validateX402Config(config: X402Config): boolean {
-  // Import validator at runtime
-  const { isValidAddress } = require('../../lib/chain/constants.js');
-
   if (!config.payTo || !isValidAddress(config.payTo)) {
     throw new Error(`Invalid payTo address: ${config.payTo}`);
   }
