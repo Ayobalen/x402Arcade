@@ -30,6 +30,7 @@ import {
   createPaymentInfo,
   validateX402Config,
   setPaymentResponseHeader,
+  PAYMENT_PAYLOAD_SCHEMA,
 } from './types.js';
 import { X402Error, X402ValidationError } from './errors.js';
 import { getDefaultNonceStore } from './nonce-store.js';
@@ -172,6 +173,26 @@ export function createX402Middleware(config: X402Config): X402Middleware {
       // Validate payload structure
       const validation = validatePaymentPayload(payload);
       if (!validation.valid) {
+        // Check for signature-specific errors and log them
+        const signatureErrors = validation.errors.filter(
+          (err) =>
+            err.includes('Invalid v value') ||
+            err.includes('Invalid r value') ||
+            err.includes('Invalid s value'),
+        );
+
+        if (signatureErrors.length > 0) {
+          // Log invalid signature attempts for security monitoring
+          console.warn('[x402] Invalid signature format detected:', {
+            from: payload.from,
+            signatureErrors,
+            v: payload.v,
+            rFormat: payload.r ? `${payload.r.substring(0, 10)}...` : 'missing',
+            sFormat: payload.s ? `${payload.s.substring(0, 10)}...` : 'missing',
+            timestamp: new Date().toISOString(),
+          });
+        }
+
         throw X402Error.invalidPayload(validation.errors);
       }
 
