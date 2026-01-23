@@ -219,3 +219,19 @@ export {
   type MarqueePreset,
   default as MarqueeDefault,
 } from './Marquee';
+
+// Cabinet Lighting Component
+export {
+  CabinetLighting,
+  useCabinetLighting,
+  getCabinetLightingPreset,
+  getOptimalLightConfig,
+  CABINET_LIGHTING_PRESETS,
+  type CabinetLightingProps,
+  type CabinetLightingHandle,
+  type CabinetLightingState,
+  type CabinetLightingPreset,
+  type UseCabinetLightingOptions,
+  type UseCabinetLightingResult,
+  default as CabinetLightingDefault,
+} from './CabinetLighting';
