@@ -197,6 +197,94 @@ type WalletActions = Pick<
 >
 
 // ============================================================================
+// Chain Configuration
+// ============================================================================
+
+/**
+ * Chain parameters for wallet_addEthereumChain
+ */
+interface AddEthereumChainParameter {
+  chainId: string
+  chainName: string
+  nativeCurrency: {
+    name: string
+    symbol: string
+    decimals: number
+  }
+  rpcUrls: string[]
+  blockExplorerUrls?: string[]
+}
+
+/**
+ * Default required chain ID for the application
+ * Base Sepolia testnet for development
+ */
+export const REQUIRED_CHAIN_ID: ChainId = 84532
+
+/**
+ * Chain configurations for supported networks
+ */
+const CHAIN_CONFIGS: Record<number, AddEthereumChainParameter> = {
+  // Base Sepolia (testnet)
+  84532: {
+    chainId: '0x14a34',
+    chainName: 'Base Sepolia',
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+    rpcUrls: ['https://sepolia.base.org'],
+    blockExplorerUrls: ['https://sepolia.basescan.org'],
+  },
+  // Base Mainnet
+  8453: {
+    chainId: '0x2105',
+    chainName: 'Base',
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+    rpcUrls: ['https://mainnet.base.org'],
+    blockExplorerUrls: ['https://basescan.org'],
+  },
+  // Polygon Mainnet
+  137: {
+    chainId: '0x89',
+    chainName: 'Polygon',
+    nativeCurrency: {
+      name: 'MATIC',
+      symbol: 'MATIC',
+      decimals: 18,
+    },
+    rpcUrls: ['https://polygon-rpc.com'],
+    blockExplorerUrls: ['https://polygonscan.com'],
+  },
+  // Polygon Mumbai (testnet)
+  80001: {
+    chainId: '0x13881',
+    chainName: 'Polygon Mumbai',
+    nativeCurrency: {
+      name: 'MATIC',
+      symbol: 'MATIC',
+      decimals: 18,
+    },
+    rpcUrls: ['https://rpc-mumbai.maticvigil.com'],
+    blockExplorerUrls: ['https://mumbai.polygonscan.com'],
+  },
+}
+
+/**
+ * Get chain configuration for adding to wallet
+ * @param chainId - Chain ID to get config for
+ * @returns Chain config or undefined if not supported
+ */
+function getChainConfig(chainId: ChainId): AddEthereumChainParameter | undefined {
+  return CHAIN_CONFIGS[chainId]
+}
+
+// ============================================================================
 // Store Creation
 // ============================================================================
 
@@ -411,6 +499,145 @@ export const useWalletStore = create<WalletState>()(
           return null
         }
       },
+
+      switchChain: async (targetChainId?: ChainId): Promise<boolean> => {
+        // Check for ethereum provider
+        if (typeof window === 'undefined' || !window.ethereum) {
+          set(
+            {
+              error: {
+                code: 'NO_PROVIDER',
+                message: 'No Ethereum provider found. Please install MetaMask.',
+              },
+            },
+            false,
+            'wallet/switchChain/noProvider'
+          )
+          return false
+        }
+
+        // Use provided chain ID or default to REQUIRED_CHAIN_ID
+        const chainIdToSwitch = targetChainId ?? REQUIRED_CHAIN_ID
+        const chainIdHex = `0x${chainIdToSwitch.toString(16)}`
+
+        try {
+          // Try to switch to the target chain
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: chainIdHex }],
+          })
+
+          // Update state on success
+          set(
+            {
+              chainId: chainIdToSwitch,
+              error: null,
+            },
+            false,
+            'wallet/switchChain/success'
+          )
+
+          return true
+        } catch (switchError: unknown) {
+          const err = switchError as { code?: number; message?: string }
+
+          // Chain not added to wallet (error code 4902)
+          if (err.code === 4902) {
+            try {
+              // Get chain config and try to add the chain
+              const chainConfig = getChainConfig(chainIdToSwitch)
+
+              if (!chainConfig) {
+                set(
+                  {
+                    error: {
+                      code: 'UNSUPPORTED_CHAIN',
+                      message: `Chain ${chainIdToSwitch} is not supported.`,
+                    },
+                  },
+                  false,
+                  'wallet/switchChain/unsupportedChain'
+                )
+                return false
+              }
+
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [chainConfig],
+              })
+
+              // Update state on success
+              set(
+                {
+                  chainId: chainIdToSwitch,
+                  error: null,
+                },
+                false,
+                'wallet/switchChain/addedAndSwitched'
+              )
+
+              return true
+            } catch (addError: unknown) {
+              const addErr = addError as { code?: number; message?: string }
+
+              // User rejected adding the chain
+              if (addErr.code === 4001) {
+                set(
+                  {
+                    error: {
+                      code: 'USER_REJECTED',
+                      message: 'User rejected adding the network.',
+                    },
+                  },
+                  false,
+                  'wallet/switchChain/addRejected'
+                )
+                return false
+              }
+
+              set(
+                {
+                  error: {
+                    code: 'ADD_CHAIN_ERROR',
+                    message: addErr.message || 'Failed to add network.',
+                  },
+                },
+                false,
+                'wallet/switchChain/addError'
+              )
+              return false
+            }
+          }
+
+          // User rejected the switch
+          if (err.code === 4001) {
+            set(
+              {
+                error: {
+                  code: 'USER_REJECTED',
+                  message: 'User rejected switching networks.',
+                },
+              },
+              false,
+              'wallet/switchChain/rejected'
+            )
+            return false
+          }
+
+          // Generic error
+          set(
+            {
+              error: {
+                code: 'SWITCH_CHAIN_ERROR',
+                message: err.message || 'Failed to switch network.',
+              },
+            },
+            false,
+            'wallet/switchChain/error'
+          )
+          return false
+        }
+      },
     }),
     {
       name: 'wallet-store',
@@ -461,12 +688,6 @@ export const selectFormattedAddress = (state: WalletState): string | null => {
   if (!state.address) return null
   return `${state.address.slice(0, 6)}...${state.address.slice(-4)}`
 }
-
-/**
- * Default required chain ID for the application
- * Base Sepolia testnet for development
- */
-export const REQUIRED_CHAIN_ID: ChainId = 84532
 
 /**
  * Selector for checking if wallet is on the correct chain
