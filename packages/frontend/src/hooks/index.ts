@@ -43,3 +43,15 @@ export {
   type UseCameraControlsResult,
   type OrbitControlsProps,
 } from './useCameraControls'
+
+export {
+  useX402,
+  type PaymentStatus,
+  type PaymentError,
+  type PaymentRequest,
+  type PaymentResult,
+  type UseX402State,
+  type UseX402Actions,
+  type UseX402Options,
+  type UseX402Result,
+} from './useX402'
