@@ -80,3 +80,10 @@ export {
   type PowerUpColorConfig,
   type UsePowerUpEffectResult,
 } from './PowerUpEffect3D'
+
+export {
+  GameOver3D,
+  useGameOver3D,
+  type GameOver3DProps,
+  type UseGameOver3DResult,
+} from './GameOver3D'
