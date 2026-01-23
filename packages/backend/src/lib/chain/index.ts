@@ -8,3 +8,6 @@
 
 export * from './constants.js';
 export { default as chainConstants } from './constants.js';
+
+export * from './viem-chains.js';
+export { default as cronosTestnet } from './viem-chains.js';
