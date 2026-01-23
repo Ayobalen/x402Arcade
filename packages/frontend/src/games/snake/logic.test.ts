@@ -29,7 +29,9 @@ import {
   isEatingFood,
   calculateScore,
   calculateSpeed,
+  processSnakeMove,
 } from './logic'
+import type { SnakeState } from './types'
 import { GRID_SIZE, INITIAL_SNAKE_LENGTH, INITIAL_DIRECTION } from './constants'
 
 // ============================================================================
@@ -505,6 +507,236 @@ describe('Score Utilities', () => {
 
     it('should never go below minimum speed', () => {
       expect(calculateSpeed(100)).toBeGreaterThanOrEqual(50)
+    })
+  })
+})
+
+// ============================================================================
+// State-Level Function Tests (Feature #713)
+// ============================================================================
+
+describe('State-Level Game Functions', () => {
+  // Helper to create a full SnakeState for testing
+  function createTestState(overrides: Partial<SnakeState> = {}): SnakeState {
+    const gameSpecific = createInitialSnakeState()
+    return {
+      score: 0,
+      isPlaying: true,
+      isPaused: false,
+      isGameOver: false,
+      level: 1,
+      lives: 3,
+      highScore: 0,
+      startTime: Date.now(),
+      elapsedTime: 0,
+      gameSpecific,
+      ...overrides,
+    }
+  }
+
+  describe('processSnakeMove', () => {
+    it('should return unchanged state if paused', () => {
+      const state = createTestState({ isPaused: true })
+      const result = processSnakeMove(state)
+
+      expect(result).toBe(state)
+    })
+
+    it('should return unchanged state if game over', () => {
+      const state = createTestState({ isGameOver: true, isPlaying: false })
+      const result = processSnakeMove(state)
+
+      expect(result).toBe(state)
+    })
+
+    it('should return unchanged state if not playing', () => {
+      const state = createTestState({ isPlaying: false })
+      const result = processSnakeMove(state)
+
+      expect(result).toBe(state)
+    })
+
+    it('should move snake in current direction', () => {
+      const state = createTestState()
+      const originalHead = state.gameSpecific!.segments[0]
+      const result = processSnakeMove(state)
+
+      const newHead = result.gameSpecific!.segments[0]
+
+      // Snake starts facing right, so head should move right
+      expect(newHead.x).toBe(originalHead.x + 1)
+      expect(newHead.y).toBe(originalHead.y)
+    })
+
+    it('should return new state object (immutable)', () => {
+      const state = createTestState()
+      const result = processSnakeMove(state)
+
+      expect(result).not.toBe(state)
+      expect(result.gameSpecific).not.toBe(state.gameSpecific)
+    })
+
+    it('should detect wall collision and set game over', () => {
+      const state = createTestState()
+      // Move snake head to the right edge
+      state.gameSpecific!.segments[0] = { x: GRID_SIZE - 1, y: 10, isHead: true, isTail: false }
+      state.gameSpecific!.nextDirection = 'right'
+
+      const result = processSnakeMove(state)
+
+      expect(result.isGameOver).toBe(true)
+      expect(result.isPlaying).toBe(false)
+    })
+
+    it('should wrap around when wallsWrap is true', () => {
+      const state = createTestState()
+      state.gameSpecific!.segments[0] = { x: GRID_SIZE - 1, y: 10, isHead: true, isTail: false }
+      state.gameSpecific!.nextDirection = 'right'
+      state.gameSpecific!.wallsWrap = true
+
+      const result = processSnakeMove(state)
+
+      expect(result.isGameOver).toBe(false)
+      expect(result.gameSpecific!.segments[0].x).toBe(0)
+    })
+
+    it('should detect self collision and set game over', () => {
+      const state = createTestState()
+      // Create a snake that will collide with itself
+      state.gameSpecific!.segments = [
+        { x: 5, y: 5, isHead: true, isTail: false },
+        { x: 6, y: 5, isHead: false, isTail: false },
+        { x: 6, y: 4, isHead: false, isTail: false },
+        { x: 5, y: 4, isHead: false, isTail: false },
+        { x: 4, y: 4, isHead: false, isTail: false },
+        { x: 4, y: 5, isHead: false, isTail: true },
+      ]
+      state.gameSpecific!.nextDirection = 'left' // Move left into body at (4, 5)
+
+      const result = processSnakeMove(state)
+
+      expect(result.isGameOver).toBe(true)
+    })
+
+    it('should grow snake when eating food', () => {
+      const state = createTestState()
+      const head = state.gameSpecific!.segments[0]
+      // Place food directly in front of snake
+      state.gameSpecific!.food = {
+        x: head.x + 1,
+        y: head.y,
+        type: 'standard',
+        points: 10,
+        hasEffect: false,
+      }
+
+      const originalLength = state.gameSpecific!.segments.length
+      const result = processSnakeMove(state)
+
+      expect(result.gameSpecific!.segments.length).toBe(originalLength + 1)
+    })
+
+    it('should increase score when eating food', () => {
+      const state = createTestState()
+      const head = state.gameSpecific!.segments[0]
+      state.gameSpecific!.food = {
+        x: head.x + 1,
+        y: head.y,
+        type: 'standard',
+        points: 10,
+        hasEffect: false,
+      }
+
+      const result = processSnakeMove(state)
+
+      expect(result.score).toBeGreaterThan(0)
+    })
+
+    it('should spawn new food after eating', () => {
+      const state = createTestState()
+      const head = state.gameSpecific!.segments[0]
+      const oldFood = {
+        x: head.x + 1,
+        y: head.y,
+        type: 'standard' as const,
+        points: 10,
+        hasEffect: false,
+      }
+      state.gameSpecific!.food = oldFood
+
+      const result = processSnakeMove(state)
+      const newFood = result.gameSpecific!.food
+
+      // New food should be spawned at a different location
+      expect(newFood).not.toEqual(oldFood)
+    })
+
+    it('should update high score when current score exceeds it', () => {
+      const state = createTestState()
+      state.score = 100
+      state.highScore = 50
+
+      // Set up to eat food and trigger score update
+      const head = state.gameSpecific!.segments[0]
+      state.gameSpecific!.food = {
+        x: head.x + 1,
+        y: head.y,
+        type: 'standard',
+        points: 10,
+        hasEffect: false,
+      }
+
+      const result = processSnakeMove(state)
+
+      expect(result.highScore).toBeGreaterThanOrEqual(result.score)
+    })
+
+    it('should update direction to nextDirection after move', () => {
+      const state = createTestState()
+      state.gameSpecific!.direction = 'right'
+      state.gameSpecific!.nextDirection = 'up'
+      // Move snake to a position where up is safe
+      state.gameSpecific!.segments[0] = { x: 10, y: 15, isHead: true, isTail: false }
+      state.gameSpecific!.segments[1] = { x: 9, y: 15, isHead: false, isTail: false }
+      state.gameSpecific!.segments[2] = { x: 8, y: 15, isHead: false, isTail: true }
+
+      const result = processSnakeMove(state)
+
+      expect(result.gameSpecific!.direction).toBe('up')
+    })
+
+    it('should increment combo when eating food consecutively', () => {
+      const state = createTestState()
+      const head = state.gameSpecific!.segments[0]
+      state.gameSpecific!.food = {
+        x: head.x + 1,
+        y: head.y,
+        type: 'standard',
+        points: 10,
+        hasEffect: false,
+      }
+      state.gameSpecific!.currentCombo = 2
+
+      const result = processSnakeMove(state)
+
+      expect(result.gameSpecific!.currentCombo).toBe(3)
+    })
+
+    it('should reset combo when not eating food', () => {
+      const state = createTestState()
+      state.gameSpecific!.currentCombo = 5
+      // Food is not in the snake's path
+      state.gameSpecific!.food = {
+        x: 0,
+        y: 0,
+        type: 'standard',
+        points: 10,
+        hasEffect: false,
+      }
+
+      const result = processSnakeMove(state)
+
+      expect(result.gameSpecific!.currentCombo).toBe(0)
     })
   })
 })

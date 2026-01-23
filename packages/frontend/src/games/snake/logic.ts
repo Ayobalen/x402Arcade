@@ -13,6 +13,7 @@ import type {
   Food,
   FoodType,
   SnakeGameSpecificState,
+  SnakeState,
   SnakeConfig,
   DirectionVector,
   OppositeDirection,
@@ -416,6 +417,127 @@ export function calculateSpeed(
 }
 
 // ============================================================================
+// State-Level Game Functions
+// ============================================================================
+
+/**
+ * Process one snake move and return updated game state.
+ *
+ * This is the main game tick function that handles:
+ * - Snake movement in the current direction
+ * - Wall and self collision detection
+ * - Food eating and growth
+ * - Score and level updates
+ *
+ * @param state - Current full snake game state
+ * @returns New game state after processing one move (immutable update)
+ */
+export function processSnakeMove(state: SnakeState): SnakeState {
+  // Return unchanged state if game is paused or over
+  if (state.isPaused || state.isGameOver || !state.isPlaying) {
+    return state
+  }
+
+  const gameSpecific = state.gameSpecific
+  if (!gameSpecific) {
+    return state
+  }
+
+  // Get current state values
+  const { segments, nextDirection, food, wallsWrap, currentSpeed } = gameSpecific
+  const gridSize = GRID_SIZE
+
+  // Calculate next head position
+  const head = getSnakeHead(segments)
+  let newHeadPos = getNextPosition(head, nextDirection)
+
+  // Handle wall wrapping or collision
+  if (wallsWrap) {
+    newHeadPos = wrapPosition(newHeadPos, gridSize)
+  } else if (!isWithinBounds(newHeadPos, gridSize)) {
+    // Wall collision - game over
+    return {
+      ...state,
+      isPlaying: false,
+      isGameOver: true,
+      highScore: Math.max(state.highScore, state.score),
+    }
+  }
+
+  // Check for self collision (check against current body, not the new head position)
+  const wouldCollideWithSelf = collidesWithSnake(newHeadPos, segments, false)
+  if (wouldCollideWithSelf) {
+    // Self collision - game over
+    return {
+      ...state,
+      isPlaying: false,
+      isGameOver: true,
+      highScore: Math.max(state.highScore, state.score),
+    }
+  }
+
+  // Check if eating food
+  const eating = positionsEqual(newHeadPos, food)
+
+  // Move the snake (grow if eating)
+  const newSegments = moveSnake(segments, nextDirection, eating, wallsWrap, gridSize)
+
+  // Calculate new score and food if eating
+  let newScore = state.score
+  let newFood = food
+  let newFoodEatenThisLevel = gameSpecific.foodEatenThisLevel
+  let newTotalFoodEaten = gameSpecific.totalFoodEaten
+  let newCombo = gameSpecific.currentCombo
+  let newMaxCombo = gameSpecific.maxCombo
+  let newLevel = state.level
+  let newSpeed = currentSpeed
+
+  if (eating) {
+    // Calculate score with combo bonus
+    newCombo += 1
+    newMaxCombo = Math.max(newMaxCombo, newCombo)
+    newScore += calculateScore(food, state.level, newCombo)
+
+    // Update food counters
+    newFoodEatenThisLevel += 1
+    newTotalFoodEaten += 1
+
+    // Check for level up (every 10 food)
+    if (newFoodEatenThisLevel >= 10) {
+      newLevel += 1
+      newFoodEatenThisLevel = 0
+      newSpeed = calculateSpeed(newLevel)
+    }
+
+    // Spawn new food
+    newFood = spawnFood(newSegments, gridSize)
+  } else {
+    // Reset combo if not eating
+    newCombo = 0
+  }
+
+  // Return new state
+  return {
+    ...state,
+    score: newScore,
+    level: newLevel,
+    highScore: Math.max(state.highScore, newScore),
+    gameSpecific: {
+      ...gameSpecific,
+      segments: newSegments,
+      direction: nextDirection,
+      food: newFood,
+      currentSpeed: newSpeed,
+      foodEatenThisLevel: newFoodEatenThisLevel,
+      totalFoodEaten: newTotalFoodEaten,
+      currentCombo: newCombo,
+      maxCombo: newMaxCombo,
+      timeSinceLastMove: 0,
+    },
+  }
+}
+
+// ============================================================================
 // State Creation
 // ============================================================================
 
@@ -482,6 +604,8 @@ export default {
   // Score utilities
   calculateScore,
   calculateSpeed,
+  // State-level functions
+  processSnakeMove,
   // State creation
   createInitialSnakeState,
 }
