@@ -305,3 +305,56 @@
   - seed-helpers.test.ts: 51 tests
 
 **Next:** Continue with remaining TDD infrastructure features
+
+### Session 5 (TDD Infrastructure - Cleanup and Integration Harness)
+**Completed:**
+- Feature #363: Create test cleanup utilities ✅
+  - Created packages/backend/__tests__/utils/cleanup-helpers.ts
+  - Implemented clearAllTables() for database reset
+  - Added clearMockServers() for HTTP mock cleanup
+  - Created resetEnvironment() for env var restoration
+  - Added cleanupTimers() for setTimeout/setInterval cleanup
+  - Implemented globalTeardown() for Jest afterAll hook
+  - Added withCleanup() and assertCleanupSuccessful() utilities
+  - Written 58 comprehensive tests
+
+- Feature #364: Configure test environment variables ✅
+  - Created packages/backend/.env.test with test configuration
+  - DATABASE_PATH=:memory: for in-memory SQLite tests
+  - JWT_SECRET with static value for determinism
+  - FACILITATOR_URL pointing to mock server
+  - Created env-helpers.ts with loadTestEnv(), withTestEnv()
+  - Added getRequiredEnv(), getEnvNumber(), getEnvBoolean() accessors
+  - Implemented validateTestEnv() and assertTestEnvConfigured()
+  - Added createTestEnvSetup() for Jest integration
+  - Written 66 comprehensive tests
+
+- Feature #365: Create integration test harness ✅
+  - Created packages/backend/__tests__/integration/harness.ts
+  - Implemented IntegrationTestHarness class
+  - setup() initializes Express app, database, and mock servers
+  - teardown() performs comprehensive cleanup
+  - reset() clears state between tests
+  - getClient() returns fluent API client with:
+    - Chain methods: withPayment(), withAuth(), withHeader()
+    - Wallet context: asAdmin(), asPlayer(), asGuest()
+  - Mock configuration methods: setFacilitatorToFail(), setBlockNumber()
+  - Added createIntegrationTestSetup() for Jest hooks
+  - Written 55 comprehensive tests with example API tests
+
+**Test Summary:**
+- cleanup-helpers.test.ts: 58 tests passing
+- env-helpers.test.ts: 66 tests passing
+- harness.test.ts: 55 tests passing
+
+**Progress:** 24/1215 features passing (2.0%)
+
+**Session Summary:**
+- Total features completed this session: 3 (#363-#365)
+- Total tests written this session: 179 tests
+- TDD infrastructure now includes:
+  - Test cleanup utilities
+  - Test environment configuration
+  - Integration test harness
+
+**Next:** Continue with remaining TDD infrastructure features (MSW setup, E2E skeleton, etc.)
