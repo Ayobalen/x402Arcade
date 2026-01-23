@@ -423,12 +423,15 @@ export function createX402Middleware(config: X402Config): X402Middleware {
     } catch (error) {
       // Handle x402 errors
       if (error instanceof X402Error) {
-        // Add Retry-After header for 502 Bad Gateway and 503 Service Unavailable
-        // These are retryable server-side errors
-        if (error.httpStatus === 502 || error.httpStatus === 503) {
+        // Add Retry-After header for 5xx errors (retryable server-side errors)
+        // 502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout
+        if (error.httpStatus >= 502 && error.httpStatus <= 504) {
           // Check if error details include retryAfterSeconds
-          const details = error.details as { retryAfterSeconds?: number } | undefined;
-          const retryAfterSeconds = details?.retryAfterSeconds ?? 30;
+          const details = error.details as { retryAfterSeconds?: number; timeoutMs?: number } | undefined;
+          // For 504 timeout, suggest 60 seconds retry (to allow facilitator to recover)
+          // For 502/503, use retryAfterSeconds from details or default to 30
+          const defaultRetrySeconds = error.httpStatus === 504 ? 60 : 30;
+          const retryAfterSeconds = details?.retryAfterSeconds ?? defaultRetrySeconds;
           res.setHeader('Retry-After', retryAfterSeconds.toString());
         }
         res.status(error.httpStatus).json(error.toJSON());
@@ -454,6 +457,41 @@ function isRetryableStatusCode(statusCode: number): boolean {
 }
 
 /**
+ * Check if an error is a timeout/abort error
+ *
+ * Detects AbortError from AbortController as well as other timeout patterns.
+ *
+ * @param error - The error to check
+ * @returns true if the error is a timeout/abort error
+ */
+function isTimeoutError(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  const name = error.name.toLowerCase();
+
+  // AbortController.abort() throws DOMException with name 'AbortError'
+  if (name === 'aborterror' || error.name === 'AbortError') {
+    return true;
+  }
+
+  // Check for timeout keywords in error message
+  if (
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('aborted') ||
+    name.includes('timeout')
+  ) {
+    return true;
+  }
+
+  // Node.js timeout error
+  if (message.includes('etimedout')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Check if a settlement error is transient and retryable
  *
  * @param error - The error to check
@@ -462,6 +500,11 @@ function isRetryableStatusCode(statusCode: number): boolean {
 function isTransientSettlementError(error: Error): boolean {
   const message = error.message.toLowerCase();
   const name = error.name.toLowerCase();
+
+  // Timeout errors are retryable
+  if (isTimeoutError(error)) {
+    return true;
+  }
 
   // Network errors are retryable
   if (
@@ -473,15 +516,6 @@ function isTransientSettlementError(error: Error): boolean {
     message.includes('network error') ||
     message.includes('fetch failed') ||
     (name.includes('typeerror') && message.includes('fetch'))
-  ) {
-    return true;
-  }
-
-  // Timeout errors are retryable
-  if (
-    message.includes('timeout') ||
-    message.includes('timed out') ||
-    name.includes('timeout')
   ) {
     return true;
   }
@@ -666,9 +700,9 @@ async function settlePayment(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-      let response: Response;
+      let fetchResponse: globalThis.Response;
       try {
-        response = await fetch(settleUrl, {
+        fetchResponse = await fetch(settleUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -682,9 +716,9 @@ async function settlePayment(
       }
 
       // Check if this is a retryable 5xx error
-      if (isRetryableStatusCode(response.status)) {
+      if (isRetryableStatusCode(fetchResponse.status)) {
         const statusError = new Error(
-          `HTTP ${response.status}: ${response.statusText}`,
+          `HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`,
         );
 
         // Check if we should retry
@@ -695,7 +729,7 @@ async function settlePayment(
           if (effectiveDelay > 0) {
             if (debug) {
               console.log(
-                `[x402] Retry ${attempt}: ${response.status} error, waiting ${effectiveDelay}ms before retry`,
+                `[x402] Retry ${attempt}: ${fetchResponse.status} error, waiting ${effectiveDelay}ms before retry`,
               );
             }
             lastError = statusError;
@@ -706,8 +740,8 @@ async function settlePayment(
 
         // No more retries or no time left - log the 5xx error
         console.error('[x402] Facilitator 5xx server error:', {
-          statusCode: response.status,
-          statusText: response.statusText,
+          statusCode: fetchResponse.status,
+          statusText: fetchResponse.statusText,
           facilitatorUrl: settleUrl,
           attempts: attempt,
           maxRetries: MAX_RETRIES,
@@ -717,9 +751,9 @@ async function settlePayment(
 
         // Create error with retry suggestion in details
         throw X402Error.facilitatorError(
-          `HTTP ${response.status}: ${response.statusText}`,
+          `HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`,
           {
-            statusCode: response.status,
+            statusCode: fetchResponse.status,
             retryAfterSeconds: 30, // Suggest 30 second retry for 5xx errors
             isRetryable: true,
             attemptsExhausted: true,
@@ -729,13 +763,13 @@ async function settlePayment(
       }
 
       // For 4xx errors, don't retry but parse the error response
-      if (!response.ok) {
+      if (!fetchResponse.ok) {
         let errorData: SettlementResponse;
         try {
-          errorData = (await response.json()) as SettlementResponse;
+          errorData = (await fetchResponse.json()) as SettlementResponse;
         } catch {
           throw X402Error.facilitatorError(
-            `HTTP ${response.status}: ${response.statusText}`,
+            `HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`,
           );
         }
 
@@ -743,7 +777,7 @@ async function settlePayment(
       }
 
       // Success
-      const data = (await response.json()) as SettlementResponse;
+      const data = (await fetchResponse.json()) as SettlementResponse;
 
       if (debug) {
         console.log('[x402] Settlement response:', data);
@@ -762,12 +796,48 @@ async function settlePayment(
       }
 
       const err = error instanceof Error ? error : new Error(String(error));
+      const requestDurationMs = Date.now() - startTime;
       lastError = err;
+
+      // Check if this is a timeout/abort error specifically
+      if (isTimeoutError(err)) {
+        // Log timeout error with request duration for monitoring
+        console.error('[x402] Facilitator request timeout:', {
+          facilitatorUrl: settleUrl,
+          errorName: err.name,
+          errorMessage: err.message,
+          requestDurationMs,
+          requestTimeoutMs: REQUEST_TIMEOUT_MS,
+          attempt,
+          totalAttempts: MAX_RETRIES + 1,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Check if we should retry the timeout
+        if (attempt <= MAX_RETRIES) {
+          const delay = calculateBackoff(attempt, BASE_DELAY_MS, MAX_DELAY_MS);
+          const remainingAfterError = TOTAL_TIMEOUT_MS - requestDurationMs;
+          const effectiveDelay = Math.min(delay, remainingAfterError - 100);
+
+          if (effectiveDelay > 0) {
+            if (debug) {
+              console.log(
+                `[x402] Retry ${attempt} after timeout: waiting ${effectiveDelay}ms before retry`,
+              );
+            }
+            await sleep(effectiveDelay);
+            continue;
+          }
+        }
+
+        // No more retries - return 504 Gateway Timeout
+        throw X402Error.timeout(requestDurationMs);
+      }
 
       // Check if this is a transient error that should be retried
       if (attempt <= MAX_RETRIES && isTransientSettlementError(err)) {
         const delay = calculateBackoff(attempt, BASE_DELAY_MS, MAX_DELAY_MS);
-        const remainingAfterError = TOTAL_TIMEOUT_MS - (Date.now() - startTime);
+        const remainingAfterError = TOTAL_TIMEOUT_MS - requestDurationMs;
         const effectiveDelay = Math.min(delay, remainingAfterError - 100);
 
         if (effectiveDelay > 0) {
@@ -792,7 +862,7 @@ async function settlePayment(
           errorMessage: err.message,
           attempt,
           totalAttempts: MAX_RETRIES + 1,
-          elapsedMs: Date.now() - startTime,
+          elapsedMs: requestDurationMs,
           timestamp: new Date().toISOString(),
         });
 
