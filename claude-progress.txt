@@ -16,6 +16,8 @@
   - Frontend: packages/frontend/__tests__/ (components, hooks, pages, utils)
   - Backend: packages/backend/__tests__/ (unit, integration, fixtures, mocks)
 - Test documentation: docs/TESTING.md
+- Shared package: packages/shared - Test factories and shared utilities
+- CI workflow: .github/workflows/test.yml - Runs tests on push/PR
 
 ## Session Log - January 23, 2026
 
@@ -86,6 +88,14 @@
   - Added test data factories: gameSessionFactory, leaderboardEntryFactory, paymentFactory
   - Exported all helpers from central index files
 
-**Progress:** 9/1215 features passing (0.7%)
+- Feature #350: Create mock factories ✅
+  - Created @x402arcade/shared package for shared utilities
+  - Added user factory with wallet address generation
+  - Added game session factory with active/completed/expired variants
+  - Added transaction factory with x402 header support
+  - Added leaderboard factory with ranking support
+  - Exported all factories from central index
+
+**Progress:** 10/1215 features passing (0.8%)
 
 **Next:** Continue with remaining TDD infrastructure or start Phase 1 setup
