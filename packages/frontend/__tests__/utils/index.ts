@@ -70,3 +70,28 @@ export {
   type RenderWithAllOptions,
   type ExtendedRenderResult,
 } from './component-utils';
+
+// Hook test utilities
+export {
+  // Render hook functions
+  renderHookWithProviders,
+  renderHookWithAllProviders,
+  // Async utilities
+  waitForHook,
+  waitForHookState,
+  // Timer utilities
+  actWithTimers,
+  actAndRunAllTimers,
+  actAndRunOnlyPendingTimers,
+  // Mock dependency utilities
+  createMockDependencies,
+  createMockApiHook,
+  // Re-exports
+  act,
+  renderHook,
+  vi,
+  // Types
+  type RenderHookWithProvidersOptions,
+  type ExtendedRenderHookResult,
+  type MockDependencies,
+} from './hook-utils';
