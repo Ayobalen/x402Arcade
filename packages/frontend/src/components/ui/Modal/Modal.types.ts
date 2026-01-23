@@ -89,6 +89,31 @@ export interface ModalProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'
    * @default true
    */
   preventScroll?: boolean
+
+  /**
+   * Whether to trap focus within the modal
+   * Critical for accessibility - keeps keyboard navigation inside the modal
+   * @default true
+   */
+  trapFocus?: boolean
+
+  /**
+   * Whether to auto-focus the first focusable element when modal opens
+   * @default true
+   */
+  autoFocus?: boolean
+
+  /**
+   * Whether to return focus to the trigger element when modal closes
+   * @default true
+   */
+  returnFocus?: boolean
+
+  /**
+   * Selector or element to focus initially when modal opens
+   * If not provided, focuses the first focusable element
+   */
+  initialFocus?: string | HTMLElement
 }
 
 /**

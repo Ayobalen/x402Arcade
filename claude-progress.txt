@@ -1130,3 +1130,24 @@ All x402 payment constants now defined in packages/backend/src/lib/chain/constan
    - Added debug logging in middleware with date and seconds until valid
    - Error context includes all timing info for client retry logic
    - Git commit: 290c535f
+
+## Session Log - 2026-01-23 (3D Workstream - Agent 2 continued)
+
+### Completed This Session:
+1. **Feature #563: Create button 3D models** - PASSING
+   - Created `/packages/frontend/src/components/3d/cabinet/ArcadeButton.tsx`
+   - Used CylinderGeometry with concave top using LatheGeometry
+   - Implemented color props, press animation, glow effects
+   - Created ButtonGrid component for 6-button arcade layout
+   - Added useArcadeButton and useButtonGrid hooks
+   - Git commit: 627786df
+
+2. **Feature #569: Create cabinet idle sway animation** - PASSING
+   - Created `/packages/frontend/src/components/3d/cabinet/CabinetIdleSway.tsx`
+   - Implemented Y-axis rotation + Z-axis tilt using layered sine functions
+   - Included breathing scale animation and vertical bob motion
+   - Created SWAY_PRESETS: subtle, calm, lively, minimal, none
+   - Added useIdleSway hook with bump() method for impacts
+   - Git commit: 7fc90926
+
+**Progress:** 210/1215 features passing (17.3%)
