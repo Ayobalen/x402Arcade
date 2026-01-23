@@ -71,3 +71,52 @@ export {
   type X402PaymentHeader,
   type AuthContext,
 } from './auth-helpers';
+
+// Cleanup utilities
+export {
+  // Database cleanup
+  clearAllTables,
+  clearTable,
+  resetDatabase,
+  getTableRowCount,
+  verifyDatabaseEmpty,
+  // Mock server cleanup
+  registerMockServer,
+  unregisterMockServer,
+  clearMockServers,
+  getActiveMockServers,
+  isMockServerRegistered,
+  clearAllJestMocks,
+  resetAllJestMocks,
+  restoreAllJestMocks,
+  // Environment cleanup
+  captureEnvironment,
+  resetEnvironment,
+  initEnvironmentTracking,
+  restoreOriginalEnvironment,
+  setEnvWithCleanup,
+  // Timer cleanup
+  trackTimeout,
+  trackInterval,
+  untrackTimeout,
+  untrackInterval,
+  cleanupTimers,
+  trackedSetTimeout,
+  trackedSetInterval,
+  getTrackedTimerCounts,
+  runAllFakeTimers,
+  advanceFakeTimers,
+  // Comprehensive cleanup
+  testCleanup,
+  fullTestCleanup,
+  globalTeardown,
+  createCleanupScope,
+  withCleanup,
+  assertCleanupSuccessful,
+  // Types
+  type DatabaseConnection,
+  type MockServer,
+  type EnvironmentSnapshot,
+  type TimerTracking,
+  type CleanupStats,
+} from './cleanup-helpers';
