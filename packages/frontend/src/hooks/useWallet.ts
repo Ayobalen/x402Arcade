@@ -87,6 +87,25 @@ export interface UseWalletState {
 }
 
 /**
+ * Typed data parameters for signing
+ */
+export interface SignTypedDataParams {
+  /** EIP-712 domain */
+  domain: {
+    name: string
+    version: string
+    chainId: number | bigint
+    verifyingContract: `0x${string}`
+  }
+  /** Type definitions */
+  types: Record<string, Array<{ name: string; type: string }>>
+  /** Primary type name */
+  primaryType: string
+  /** Message to sign */
+  message: Record<string, unknown>
+}
+
+/**
  * Hook actions
  */
 export interface UseWalletActions {
@@ -95,6 +114,17 @@ export interface UseWalletActions {
    * @throws Error if wallet not connected or on wrong chain
    */
   getWalletClient: () => Promise<WalletClient>
+  /**
+   * Sign typed data using EIP-712
+   *
+   * Calls the wallet's signTypedData method with the provided parameters.
+   * Handles user rejection with a specific error.
+   *
+   * @param params - Typed data parameters (domain, types, primaryType, message)
+   * @returns Signature hex string
+   * @throws Error if wallet not ready or user rejects
+   */
+  signTypedData: (params: SignTypedDataParams) => Promise<`0x${string}`>
   /**
    * Request wallet connection
    * @returns Promise resolving when connected
@@ -216,6 +246,58 @@ export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
   }, [isConnected, isCorrectChain, expectedChainId])
 
   /**
+   * Sign typed data using EIP-712
+   *
+   * Calls the wallet's signTypedData method with domain, types, primaryType, and message.
+   * Handles user rejection with a specific error message.
+   */
+  const signTypedData = useCallback(
+    async (params: SignTypedDataParams): Promise<`0x${string}`> => {
+      // Verify wallet is ready
+      if (!isConnected) {
+        throw new Error('Wallet not connected. Please connect your wallet first.')
+      }
+
+      if (!isCorrectChain) {
+        throw new Error(
+          `Wrong network. Please switch to Cronos Testnet (chain ID: ${expectedChainId}).`
+        )
+      }
+
+      try {
+        // Get wallet client
+        const client = await getWalletClient()
+
+        // Call signTypedData on the wallet client
+        // This will prompt the user to sign in their wallet
+        const signature = await client.signTypedData({
+          domain: params.domain,
+          types: params.types,
+          primaryType: params.primaryType,
+          message: params.message,
+        })
+
+        return signature
+      } catch (error) {
+        // Handle user rejection
+        if (
+          error instanceof Error &&
+          (error.message.includes('rejected') ||
+            error.message.includes('denied') ||
+            error.message.includes('cancelled') ||
+            error.message.includes('User rejected'))
+        ) {
+          throw new Error('User rejected the signature request.')
+        }
+
+        // Re-throw other errors
+        throw error
+      }
+    },
+    [isConnected, isCorrectChain, expectedChainId, getWalletClient]
+  )
+
+  /**
    * Connect wallet
    */
   const connect = useCallback(async (): Promise<void> => {
@@ -256,6 +338,7 @@ export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
       isCorrectChain,
       // Actions
       getWalletClient,
+      signTypedData,
       connect,
       disconnect,
       switchChain,
@@ -269,6 +352,7 @@ export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
       isConnected,
       isCorrectChain,
       getWalletClient,
+      signTypedData,
       connect,
       disconnect,
       switchChain,
