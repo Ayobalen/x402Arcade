@@ -179,3 +179,129 @@
 **Progress:** 15/1215 features passing (1.2%)
 
 **Next:** Continue with remaining TDD infrastructure features
+
+- Feature #357: Set up supertest for API testing ✅
+  - Created packages/backend/__tests__/setup/supertest-setup.ts
+  - Implemented createTestApp() factory for configurable Express test apps
+  - Implemented getTestApp() singleton for simple test cases
+  - Added request/response logging middleware with JSON parsing
+  - Configured JSON body parsing and URL-encoded form support
+  - Added custom error handler with stack traces in dev mode
+  - Created authentication helpers: createPaymentRequest(), createWalletAuthRequest()
+  - Added assertion helpers: assertJsonSuccess, assertNotFound, assertBadRequest, etc.
+  - Created test data helpers: createGameSessionBody(), createScoreSubmissionBody()
+  - Added TEST_WALLETS constant with common test addresses
+  - Wrote 40+ example API tests in __tests__/integration/api.test.ts
+
+**Test Summary:**
+- api.test.ts: 40+ tests passing
+
+**Progress:** 16/1215 features passing (1.3%)
+
+- Feature #358: Create fixture factories for game sessions ✅
+  - Created packages/backend/__tests__/fixtures/game-session.factory.ts
+  - Implemented createGameSession() with sensible defaults
+  - Added createActiveSession() for in-progress games
+  - Added createCompletedSession() with scores and durations
+  - Created createAbandonedSession() for timeout scenarios
+  - Implemented createSessionWithPayment() linking sessions to payments
+  - Added createPlayerHistory() for player game history datasets
+  - Added createLeaderboardDataset() for leaderboard testing
+  - Created isValidSession() and isValidPayment() validation utilities
+  - Fixed TEST_ADDRESSES to use valid hex characters (0xA0CADE, 0xFAC111)
+  - Wrote 62 comprehensive tests in game-session-factory.test.ts
+
+**GOTCHA FIXED:** TEST_ADDRESSES used non-hex characters (R, C, I, L) which caused regex validation tests to fail. Changed addresses to use only valid hex characters while maintaining readability.
+
+**Test Summary:**
+- game-session-factory.test.ts: 62 tests passing
+
+**Progress:** 17/1215 features passing (1.4%)
+
+- Feature #359: Create fixture factories for leaderboard entries ✅
+  - Created packages/backend/__tests__/fixtures/leaderboard.factory.ts
+  - Implemented createLeaderboardEntry() with sensible defaults
+  - Added createDailyLeaderboard() generating sorted daily entries
+  - Added createWeeklyLeaderboard() with week date range support
+  - Created createAllTimeLeaderboard() for persistent rankings
+  - Implemented createTiedEntries() for tie-breaking tests
+  - Added createLeaderboardWithTies() for specific tie configurations
+  - Created createPlayerLeaderboardHistory() and createPlayerDailyHistory()
+  - Added createRankedLeaderboard() with metadata
+  - Added createMultiGameLeaderboard() for snake and tetris
+  - Implemented calculatePrizeDistribution() for prize pool testing
+  - Added isValidLeaderboardEntry() and isProperlyRanked() validation
+  - Fixed getWeekStart() and getToday() to use local time consistently
+
+**GOTCHA FIXED:** getWeekStart() was using toISOString() for formatting which converts to UTC, causing week start calculations to be incorrect. Fixed by using local time formatting.
+
+**Test Summary:**
+- leaderboard-factory.test.ts: 81 tests passing
+
+**Progress:** 18/1215 features passing (1.5%)
+
+- Feature #360: Create fixture factories for prize pools ✅
+  - Created packages/backend/__tests__/fixtures/prize-pool.factory.ts
+  - Implemented createPrizePool() with default distribution (50/30/20)
+  - Added createActivePrizePool() for accumulating pools
+  - Added createDistributedPrizePool() for completed payouts
+  - Created createCustomDistribution() for varied prize splits
+  - Implemented createEmptyPrizePool() for edge case testing
+  - Added createLockedPrizePool() and createDistributingPrizePool()
+  - Created createPrizePoolHistory() for historical data
+  - Added createMultiGamePools() for snake and tetris pools
+  - Implemented test scenario factories: createMinimumThresholdPool, createBelowThresholdPool, createPartialPayoutPool
+  - Added validation utilities: isValidPrizePool, distributionsMatchTotal
+
+**Test Summary:**
+- prize-pool-factory.test.ts: 69 tests passing
+
+**Progress:** 19/1215 features passing (1.6%)
+
+- Feature #361: Create fixture factories for payments ✅
+  - Created packages/backend/__tests__/fixtures/payment.factory.ts
+  - Implemented createPayment() with default USDC amount
+  - Added createPendingPayment() for unverified transactions
+  - Added createVerifiedPayment() for completed transactions
+  - Created createFailedPayment() with error reason codes
+  - Implemented createRefundedPayment() for refund testing
+  - Added x402 payment header factories: createPaymentHeader, createExpiredPaymentHeader
+  - Created encode/decode utilities for base64 payment headers
+  - Added createPlayerPaymentHistory() and createPrizePayment()
+  - Implemented validation utilities: isValidPayment, isValidPaymentHeader
+
+**GOTCHA FIXED:** Null-coalescing (??) treats null as nullish, so passing `tx_hash: null` would fall back to generateTxHash(). Fixed by using `'key' in options` check to detect explicit null values.
+
+**Test Summary:**
+- payment-factory.test.ts: 63 tests passing
+
+**Progress:** 20/1215 features passing (1.6%)
+
+- Feature #362: Set up test database seeding ✅
+  - Created packages/backend/__tests__/utils/seed-helpers.ts
+  - Implemented seedMinimalData() for basic test scenarios
+  - Added seedFullLeaderboard() with ranked entries
+  - Created seedActiveGames() with in-progress sessions
+  - Added seedPaymentHistory() with transaction records
+  - Implemented seedFullArcade() for complete test environment
+  - Added seedLeaderboardWithTies() for tie-breaking tests
+  - Created seedPrizeDistribution() for prize payout testing
+  - Added seedPaymentFailures() for error scenario testing
+  - Implemented seedForScenario() for named scenarios (8 scenarios)
+  - Added validateSeedIntegrity() and getSeedStats() utilities
+
+**Test Summary:**
+- seed-helpers.test.ts: 51 tests passing
+
+**Progress:** 21/1215 features passing (1.7%)
+
+**Session Summary:**
+- Total features completed this session: 5 (#358-#362)
+- Total tests written this session: 326 tests
+  - game-session-factory.test.ts: 62 tests
+  - leaderboard-factory.test.ts: 81 tests
+  - prize-pool-factory.test.ts: 69 tests
+  - payment-factory.test.ts: 63 tests
+  - seed-helpers.test.ts: 51 tests
+
+**Next:** Continue with remaining TDD infrastructure features
