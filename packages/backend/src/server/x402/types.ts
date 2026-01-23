@@ -207,6 +207,256 @@ export interface X402PaymentHeader {
 }
 
 /**
+ * x402 Payment Payload (Decoded X-Payment Header Content)
+ *
+ * The fully decoded and flattened payment payload from the X-Payment header.
+ * This interface provides a convenient flat structure for working with
+ * payment data, combining the authorization message and signature fields.
+ *
+ * @example
+ * ```typescript
+ * // Decoding from X-Payment header
+ * const header = req.headers['x-payment'];
+ * const decoded = JSON.parse(Buffer.from(header, 'base64').toString());
+ * const payload: PaymentPayload = {
+ *   version: decoded.x402Version,
+ *   scheme: decoded.scheme,
+ *   network: decoded.network,
+ *   from: decoded.payload.message.from,
+ *   to: decoded.payload.message.to,
+ *   value: decoded.payload.message.value,
+ *   validAfter: decoded.payload.message.validAfter,
+ *   validBefore: decoded.payload.message.validBefore,
+ *   nonce: decoded.payload.message.nonce,
+ *   v: decoded.payload.v,
+ *   r: decoded.payload.r,
+ *   s: decoded.payload.s,
+ * };
+ * ```
+ */
+export interface PaymentPayload {
+  /**
+   * Protocol version identifier
+   */
+  version: '1';
+
+  /**
+   * Payment scheme (currently only 'exact' supported)
+   */
+  scheme: 'exact';
+
+  /**
+   * Network/chain identifier (e.g., 'cronos-testnet')
+   */
+  network: string;
+
+  /**
+   * Sender's address (the player paying)
+   * Must be a valid Ethereum address (0x + 40 hex chars)
+   */
+  from: string;
+
+  /**
+   * Recipient's address (the arcade wallet)
+   * Must be a valid Ethereum address (0x + 40 hex chars)
+   */
+  to: string;
+
+  /**
+   * Payment value in token's smallest units
+   * Represented as a string for uint256 compatibility
+   */
+  value: string;
+
+  /**
+   * Unix timestamp (seconds) after which the authorization is valid
+   * Typically '0' for immediate validity
+   */
+  validAfter: string;
+
+  /**
+   * Unix timestamp (seconds) before which the authorization is valid
+   * Authorization expires after this time
+   */
+  validBefore: string;
+
+  /**
+   * Unique 32-byte nonce to prevent replay attacks
+   * Hex string with 0x prefix (66 characters total)
+   */
+  nonce: string;
+
+  /**
+   * ECDSA signature recovery identifier (27 or 28)
+   */
+  v: number;
+
+  /**
+   * First 32 bytes of the ECDSA signature
+   * Hex string with 0x prefix
+   */
+  r: string;
+
+  /**
+   * Second 32 bytes of the ECDSA signature
+   * Hex string with 0x prefix
+   */
+  s: string;
+}
+
+/**
+ * Convert X402PaymentHeader to flat PaymentPayload
+ *
+ * Extracts and flattens the payment data from the structured header format
+ * into a more convenient flat interface for processing.
+ *
+ * @param header - The X402PaymentHeader to convert
+ * @returns Flattened PaymentPayload
+ *
+ * @example
+ * ```typescript
+ * const payload = headerToPayload(x402Header);
+ * console.log(payload.from, payload.to, payload.value);
+ * ```
+ */
+export function headerToPayload(header: X402PaymentHeader): PaymentPayload {
+  return {
+    version: header.x402Version,
+    scheme: header.scheme,
+    network: header.network,
+    from: header.payload.message.from,
+    to: header.payload.message.to,
+    value:
+      typeof header.payload.message.value === 'bigint'
+        ? header.payload.message.value.toString()
+        : String(header.payload.message.value),
+    validAfter:
+      typeof header.payload.message.validAfter === 'bigint'
+        ? header.payload.message.validAfter.toString()
+        : String(header.payload.message.validAfter),
+    validBefore:
+      typeof header.payload.message.validBefore === 'bigint'
+        ? header.payload.message.validBefore.toString()
+        : String(header.payload.message.validBefore),
+    nonce: header.payload.message.nonce,
+    v: header.payload.v,
+    r: header.payload.r,
+    s: header.payload.s,
+  };
+}
+
+/**
+ * Convert flat PaymentPayload back to X402PaymentHeader format
+ *
+ * Reconstructs the structured header format from a flat payload.
+ * Useful for creating test data or reconstructing headers.
+ *
+ * @param payload - The PaymentPayload to convert
+ * @returns Structured X402PaymentHeader
+ */
+export function payloadToHeader(payload: PaymentPayload): X402PaymentHeader {
+  return {
+    x402Version: payload.version,
+    scheme: payload.scheme,
+    network: payload.network,
+    payload: {
+      message: {
+        from: payload.from,
+        to: payload.to,
+        value: payload.value,
+        validAfter: payload.validAfter,
+        validBefore: payload.validBefore,
+        nonce: payload.nonce,
+      },
+      v: payload.v,
+      r: payload.r,
+      s: payload.s,
+    },
+  };
+}
+
+/**
+ * Validate a PaymentPayload structure
+ *
+ * Checks that all required fields are present and have valid formats.
+ *
+ * @param payload - The payload to validate
+ * @returns Validation result with error details if invalid
+ */
+export function validatePaymentPayload(payload: PaymentPayload): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  // Import validator at runtime
+  const { isValidAddress } = require('../../lib/chain/constants.js');
+
+  // Version check
+  if (payload.version !== '1') {
+    errors.push(`Invalid version: ${payload.version}, expected '1'`);
+  }
+
+  // Scheme check
+  if (payload.scheme !== 'exact') {
+    errors.push(`Invalid scheme: ${payload.scheme}, expected 'exact'`);
+  }
+
+  // Network check
+  if (!payload.network || typeof payload.network !== 'string') {
+    errors.push('Missing or invalid network');
+  }
+
+  // Address validation
+  if (!isValidAddress(payload.from)) {
+    errors.push(`Invalid 'from' address: ${payload.from}`);
+  }
+
+  if (!isValidAddress(payload.to)) {
+    errors.push(`Invalid 'to' address: ${payload.to}`);
+  }
+
+  // Value validation (must be positive number string)
+  if (!payload.value || !/^\d+$/.test(payload.value)) {
+    errors.push(`Invalid value: ${payload.value}`);
+  } else if (BigInt(payload.value) <= 0n) {
+    errors.push('Value must be positive');
+  }
+
+  // Timestamp validation
+  if (!payload.validAfter || !/^\d+$/.test(payload.validAfter)) {
+    errors.push(`Invalid validAfter: ${payload.validAfter}`);
+  }
+
+  if (!payload.validBefore || !/^\d+$/.test(payload.validBefore)) {
+    errors.push(`Invalid validBefore: ${payload.validBefore}`);
+  }
+
+  // Nonce validation (0x + 64 hex chars = 66 total)
+  if (!/^0x[a-fA-F0-9]{64}$/.test(payload.nonce)) {
+    errors.push(`Invalid nonce format: ${payload.nonce}`);
+  }
+
+  // Signature validation
+  if (payload.v !== 27 && payload.v !== 28) {
+    errors.push(`Invalid v value: ${payload.v}, expected 27 or 28`);
+  }
+
+  if (!/^0x[a-fA-F0-9]{64}$/.test(payload.r)) {
+    errors.push(`Invalid r value format: ${payload.r}`);
+  }
+
+  if (!/^0x[a-fA-F0-9]{64}$/.test(payload.s)) {
+    errors.push(`Invalid s value format: ${payload.s}`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
  * x402 Settlement Request
  *
  * The request sent to the facilitator to settle a payment.
