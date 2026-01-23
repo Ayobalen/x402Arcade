@@ -133,6 +133,33 @@ export const secondary = {
 } as const;
 
 /**
+ * Surface Colors
+ *
+ * Colors for elevated UI elements like cards, modals, and dropdowns.
+ * Creates visual hierarchy through subtle lightening of backgrounds.
+ */
+export const surfaces = {
+  /** Primary surface - elevated cards, main content areas (#1e1e2e) */
+  primary: '#1e1e2e',
+  /** Secondary surface - nested cards, secondary panels (#252535) */
+  secondary: '#252535',
+  /** Tertiary surface - highest elevation, tooltips (#2d2d45) */
+  tertiary: '#2d2d45',
+  /** Primary surface hover state - slightly lighter */
+  primaryHover: '#252538',
+  /** Secondary surface hover state */
+  secondaryHover: '#2d2d40',
+  /** Tertiary surface hover state */
+  tertiaryHover: '#353550',
+  /** Surface border with subtle neon tint (#3d3d5c) */
+  border: '#3d3d5c',
+  /** Surface border with cyan accent for focus/active states */
+  borderAccent: 'rgba(0, 255, 255, 0.3)',
+  /** Surface border with magenta accent for special states */
+  borderSecondary: 'rgba(255, 0, 255, 0.3)',
+} as const;
+
+/**
  * Accent Colors
  *
  * Primary and secondary accent colors for interactive elements,
@@ -230,6 +257,7 @@ export const gradients = {
 export const colors = {
   backgrounds,
   backgroundGradients,
+  surfaces,
   primary,
   secondary,
   accents,
@@ -245,6 +273,7 @@ export const colors = {
  */
 export type BackgroundColors = typeof backgrounds;
 export type BackgroundGradients = typeof backgroundGradients;
+export type SurfaceColors = typeof surfaces;
 export type PrimaryColors = typeof primary;
 export type SecondaryColors = typeof secondary;
 export type AccentColors = typeof accents;
