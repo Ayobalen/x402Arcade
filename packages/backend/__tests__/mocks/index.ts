@@ -25,3 +25,33 @@ export {
   type SettlementResult,
   type MockX402ServerConfig,
 } from './x402-mock';
+
+// Blockchain Mocks (Cronos/viem compatible)
+export {
+  MockWeb3Provider,
+  CRONOS_TESTNET,
+  CRONOS_MAINNET,
+  DEV_USDC_CONFIG,
+  DEFAULT_GAS_VALUES,
+  randomHex,
+  generateTxHash,
+  generateBlockHash,
+  resetBlockchainCounters,
+  toChecksumAddress,
+  mockTransactionReceipt,
+  mockBlock,
+  mockTransactionLog,
+  mockFailedTransactionReceipt,
+  mockUSDCTransferLog,
+  mockGasPrice,
+  mockBlockNumber,
+  createTestProvider,
+  createMockPublicClient,
+  createMockWalletClient,
+  createMockUSDCContract,
+  type ChainConfig,
+  type TransactionReceipt,
+  type TransactionLog,
+  type Block,
+  type MockProviderConfig,
+} from './blockchain-mock';
