@@ -190,6 +190,118 @@ export function getPaymentRequiredHeader(response: Response): string | null {
   return response.headers.get('X-Payment-Required')
 }
 
+/**
+ * Parse the base64-encoded X-Payment-Required header
+ *
+ * The X-Payment-Required header contains base64-encoded JSON with the
+ * payment requirements. This function:
+ * 1. Extracts the header value
+ * 2. Base64 decodes it
+ * 3. JSON parses the decoded string
+ * 4. Validates required fields
+ * 5. Returns typed PaymentRequirements
+ *
+ * @param response - Fetch API Response object with X-Payment-Required header
+ * @returns Parsed payment requirements
+ * @throws {X402Error} If header is missing, decode fails, or validation fails
+ *
+ * @example
+ * ```typescript
+ * const response = await fetch('/api/play/snake')
+ * if (is402Response(response)) {
+ *   try {
+ *     const requirements = parsePaymentRequiredHeader(response)
+ *     console.log(`Pay ${requirements.amount} ${requirements.currency}`)
+ *   } catch (e) {
+ *     if (e instanceof X402Error) {
+ *       console.error('Invalid header:', e.code)
+ *     }
+ *   }
+ * }
+ * ```
+ */
+export function parsePaymentRequiredHeader(
+  response: Response
+): PaymentRequirements {
+  // Step 1: Extract header
+  const headerValue = getPaymentRequiredHeader(response)
+  if (!headerValue) {
+    throw new X402Error(
+      'UNEXPECTED_402',
+      'Missing X-Payment-Required header in response'
+    )
+  }
+
+  // Step 2: Base64 decode
+  let decoded: string
+  try {
+    // Use atob for browser-compatible base64 decoding
+    decoded = atob(headerValue)
+  } catch (error) {
+    throw new X402Error(
+      'INVALID_RESPONSE',
+      `Failed to base64 decode X-Payment-Required header: ${error instanceof Error ? error.message : 'invalid encoding'}`
+    )
+  }
+
+  // Step 3: JSON parse
+  let body: PaymentRequiredResponse
+  try {
+    body = JSON.parse(decoded) as PaymentRequiredResponse
+  } catch (error) {
+    throw new X402Error(
+      'INVALID_RESPONSE',
+      `Failed to parse X-Payment-Required header JSON: ${error instanceof Error ? error.message : 'invalid JSON'}`
+    )
+  }
+
+  // Step 4: Validate required fields
+  if (!body.amount || !body.payTo || !body.tokenAddress || !body.chainId) {
+    throw new X402Error(
+      'INVALID_RESPONSE',
+      'Missing required fields in X-Payment-Required header'
+    )
+  }
+
+  // Validate x402 version if present
+  if (body.x402Version && body.x402Version !== '1') {
+    throw new X402Error(
+      'UNSUPPORTED_VERSION',
+      `Unsupported x402 version: ${body.x402Version}`
+    )
+  }
+
+  // Get the first accepted payment method
+  const acceptedMethod = body.accepts?.[0]
+
+  // Validate payment scheme if present
+  if (acceptedMethod?.scheme && acceptedMethod.scheme !== 'exact') {
+    throw new X402Error(
+      'UNSUPPORTED_SCHEME',
+      `Unsupported payment scheme: ${acceptedMethod.scheme}`
+    )
+  }
+
+  // Step 5: Return typed PaymentRequirements
+  return {
+    amount: BigInt(body.amount),
+    payTo: body.payTo as `0x${string}`,
+    tokenAddress: body.tokenAddress as `0x${string}`,
+    chainId: body.chainId,
+    currency: body.currency,
+    decimals: acceptedMethod?.asset?.decimals ?? 6,
+    resource: body.resource,
+    description: body.description,
+    eip712Domain: acceptedMethod?.eip712Domain ?? {
+      name: '',
+      version: '',
+      chainId: body.chainId,
+      verifyingContract: body.tokenAddress,
+    },
+    raw: body,
+  }
+}
+
 // ============================================================================
 // Parsing Functions
 // ============================================================================
