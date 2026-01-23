@@ -419,4 +419,44 @@ that don't get cleared by Vitest mock restoration.
   - Component test utilities with provider wrappers
   - Wallet context testing support
 
+- Feature #369: Create hook test utilities ✅
+  - Created packages/frontend/__tests__/utils/hook-utils.tsx
+  - Implemented renderHookWithProviders() with context options:
+    - withRouter, withQueryClient, withWallet options
+  - Added renderHookWithAllProviders() for all contexts
+  - Created async hook utilities:
+    - waitForHook() for predicate-based waiting
+    - waitForHookState() for state condition waiting
+  - Added timer utilities:
+    - actWithTimers() to advance timers by specific amount
+    - actAndRunAllTimers() to run all pending timers
+    - actAndRunOnlyPendingTimers() for interval hooks
+  - Created mock dependency utilities:
+    - createMockDependencies() for injection testing
+    - createMockApiHook() for API hook mocking
+  - Written 28 comprehensive tests in hook-utils.test.tsx
+
+**Note:** @testing-library/react-hooks is deprecated in React 18.
+Using renderHook from @testing-library/react instead.
+
+**Test Summary (Updated):**
+- App.test.tsx: 19 tests passing
+- jsdom-verification.test.ts: 35 tests passing
+- component-utils.test.tsx: 34 tests passing
+- hook-utils.test.tsx: 28 tests passing
+- Total frontend tests: 121 passing
+
+**Progress:** 28/1215 features passing (2.3%)
+
+**Session Summary (Updated):**
+- Total features completed this session: 4 (#366-#369)
+- Total tests written this session: 116 tests
+- Frontend TDD infrastructure now includes:
+  - React Testing Library with custom render functions
+  - Browser API mocks (jsdom properly configured)
+  - Component test utilities with provider wrappers
+  - Hook test utilities with context support
+  - Timer testing utilities
+  - Mock dependency utilities
+
 **Next:** Continue with remaining TDD infrastructure features
