@@ -46,3 +46,35 @@ export {
   type MockWalletState,
   type WalletCallRecord,
 } from './wallet-mock';
+
+// Canvas and WebGL mocks
+export {
+  // Canvas creation
+  createMockCanvas,
+  createMock2DContext,
+  createMockWebGLContext,
+  createMockWebGL2Context,
+  // Animation frame controller
+  AnimationFrameController,
+  // Performance mock
+  PerformanceMock,
+  // Factory functions
+  createTestCanvas2D,
+  createTestCanvasWebGL,
+  createTestCanvasWebGL2,
+  createAnimationFrameSetup,
+  createPerformanceSetup,
+  // Assertion helpers
+  assertCanvasCallsInclude,
+  assertWebGLCallsInclude,
+  assertDrawCallCount,
+  getCanvasCallCount,
+  // Types
+  type MockCanvasConfig,
+  type CanvasCallRecord,
+  type Mock2DContextConfig,
+  type MockWebGLConfig,
+  type WebGLExtensionName,
+  type MockPerformanceConfig,
+  type MockAnimationFrameConfig,
+} from './canvas-mock';
