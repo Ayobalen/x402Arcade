@@ -16,8 +16,20 @@
  * @module lib/chain/constants
  */
 
-// Placeholder export - will be populated with chain configuration
-// in subsequent features (chain ID, contract addresses, etc.)
-export const chainConstants = {} as const;
+/**
+ * Cronos Testnet Chain ID
+ *
+ * The unique identifier for the Cronos Testnet blockchain network.
+ * Used for wallet connections, transaction validation, and network switching.
+ *
+ * @see https://docs.cronos.org/cronos-zkevm/for-developers/dev-tools-and-integrations/chain-integration
+ */
+export const CRONOS_TESTNET_CHAIN_ID: 338 = 338;
+
+// Placeholder export - will be populated with additional chain configuration
+// in subsequent features (contract addresses, RPC URLs, etc.)
+export const chainConstants = {
+  CRONOS_TESTNET_CHAIN_ID,
+} as const;
 
 export default chainConstants;
