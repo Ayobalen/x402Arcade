@@ -20,4 +20,5 @@ export {
   type WalletError,
   type ChainId,
   type ConnectionStatus,
+  type EthereumProvider,
 } from './walletStore'

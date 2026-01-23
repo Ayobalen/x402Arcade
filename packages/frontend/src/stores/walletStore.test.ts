@@ -15,7 +15,9 @@ import {
   selectError,
   selectStatus,
   selectFormattedAddress,
+  selectIsCorrectChain,
   getWalletState,
+  REQUIRED_CHAIN_ID,
 } from './walletStore'
 
 describe('walletStore', () => {
@@ -337,6 +339,40 @@ describe('walletStore', () => {
       useWalletStore.getState().disconnect()
       const state = useWalletStore.getState()
       expect(selectFormattedAddress(state)).toBeNull()
+    })
+
+    it('selectIsCorrectChain returns true when on required chain', () => {
+      useWalletStore.getState().connect({
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        chainId: REQUIRED_CHAIN_ID,
+      })
+      const state = useWalletStore.getState()
+      expect(selectIsCorrectChain(state)).toBe(true)
+    })
+
+    it('selectIsCorrectChain returns false when on wrong chain', () => {
+      useWalletStore.getState().connect({
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        chainId: 1, // Mainnet, not required chain
+      })
+      const state = useWalletStore.getState()
+      expect(selectIsCorrectChain(state)).toBe(false)
+    })
+
+    it('selectIsCorrectChain returns false when disconnected', () => {
+      useWalletStore.getState().disconnect()
+      const state = useWalletStore.getState()
+      expect(selectIsCorrectChain(state)).toBe(false)
+    })
+
+    it('selectIsCorrectChain accepts custom required chain ID', () => {
+      useWalletStore.getState().connect({
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        chainId: 137, // Polygon
+      })
+      const state = useWalletStore.getState()
+      expect(selectIsCorrectChain(state, 137)).toBe(true)
+      expect(selectIsCorrectChain(state, 1)).toBe(false)
     })
   })
 
