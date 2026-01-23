@@ -169,3 +169,21 @@ export {
   type UseIdleSwayResult,
   default as CabinetIdleSwayDefault,
 } from './CabinetIdleSway';
+
+// Cabinet Selection Animation Component
+export {
+  CabinetSelection,
+  useSelection,
+  useMultiSelection,
+  SELECTION_PRESETS,
+  type CabinetSelectionProps,
+  type CabinetSelectionHandle,
+  type SelectionAnimationConfig,
+  type SelectionState,
+  type SelectionPreset,
+  type UseSelectionOptions,
+  type UseSelectionResult,
+  type UseMultiSelectionOptions,
+  type UseMultiSelectionResult,
+  default as CabinetSelectionDefault,
+} from './CabinetSelection';
