@@ -5,7 +5,7 @@
  * connection state, actions, selectors, and edge cases.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   useWalletStore,
   selectAddress,
@@ -389,6 +389,169 @@ describe('walletStore', () => {
       const state = getWalletState()
       expect(state.address).toBe('0x1234567890abcdef1234567890abcdef12345678')
       expect(state.isConnected).toBe(true)
+    })
+  })
+
+  // ============================================================
+  // Async Action Tests (connectWallet, switchChain)
+  // ============================================================
+  describe('async actions', () => {
+    // Mock ethereum provider
+    const mockProvider = {
+      request: vi.fn(),
+      on: vi.fn(),
+      removeListener: vi.fn(),
+    }
+
+    beforeEach(() => {
+      // Reset mocks
+      vi.clearAllMocks()
+      // Set up window.ethereum mock
+      ;(window as Window & { ethereum?: typeof mockProvider }).ethereum = mockProvider
+    })
+
+    afterEach(() => {
+      // Clean up
+      delete (window as Window & { ethereum?: typeof mockProvider }).ethereum
+    })
+
+    describe('connectWallet action', () => {
+      it('connects wallet successfully', async () => {
+        mockProvider.request
+          .mockResolvedValueOnce(['0xABCdef1234567890abcdef1234567890abcdef12']) // eth_requestAccounts
+          .mockResolvedValueOnce('0x14a34') // eth_chainId (Base Sepolia = 84532)
+
+        const result = await useWalletStore.getState().connectWallet()
+
+        expect(result).toEqual({
+          address: '0xABCdef1234567890abcdef1234567890abcdef12',
+          chainId: 84532,
+        })
+
+        const state = useWalletStore.getState()
+        expect(state.isConnected).toBe(true)
+        expect(state.address).toBe('0xABCdef1234567890abcdef1234567890abcdef12')
+        expect(state.chainId).toBe(84532)
+        expect(state.status).toBe('connected')
+      })
+
+      it('returns null and sets error when no provider available', async () => {
+        delete (window as Window & { ethereum?: typeof mockProvider }).ethereum
+
+        const result = await useWalletStore.getState().connectWallet()
+
+        expect(result).toBeNull()
+
+        const state = useWalletStore.getState()
+        expect(state.isConnected).toBe(false)
+        expect(state.error).toEqual({
+          code: 'NO_PROVIDER',
+          message: 'No Ethereum provider found. Please install MetaMask.',
+        })
+      })
+
+      it('handles user rejection (code 4001)', async () => {
+        mockProvider.request.mockRejectedValueOnce({ code: 4001, message: 'User rejected' })
+
+        const result = await useWalletStore.getState().connectWallet()
+
+        expect(result).toBeNull()
+
+        const state = useWalletStore.getState()
+        expect(state.isConnected).toBe(false)
+        expect(state.error?.code).toBe('USER_REJECTED')
+      })
+
+      it('handles no accounts returned', async () => {
+        mockProvider.request.mockResolvedValueOnce([]) // Empty accounts array
+
+        const result = await useWalletStore.getState().connectWallet()
+
+        expect(result).toBeNull()
+
+        const state = useWalletStore.getState()
+        expect(state.error?.code).toBe('NO_ACCOUNTS')
+      })
+
+      it('sets connecting state during connection', async () => {
+        // Create a promise that we can resolve manually
+        let resolveAccounts: (value: string[]) => void
+        const accountsPromise = new Promise<string[]>((resolve) => {
+          resolveAccounts = resolve
+        })
+        mockProvider.request.mockImplementationOnce(() => accountsPromise)
+
+        // Start connecting
+        const connectPromise = useWalletStore.getState().connectWallet()
+
+        // Check connecting state
+        expect(useWalletStore.getState().isConnecting).toBe(true)
+        expect(useWalletStore.getState().status).toBe('connecting')
+
+        // Resolve and wait
+        resolveAccounts!(['0x1234567890abcdef1234567890abcdef12345678'])
+        mockProvider.request.mockResolvedValueOnce('0x1') // eth_chainId
+        await connectPromise
+      })
+    })
+
+    describe('switchChain action', () => {
+      beforeEach(() => {
+        // Set up connected state
+        useWalletStore.getState().connect({
+          address: '0x1234567890abcdef1234567890abcdef12345678',
+          chainId: 1,
+        })
+      })
+
+      it('switches chain successfully', async () => {
+        mockProvider.request.mockResolvedValueOnce(null) // wallet_switchEthereumChain
+
+        const result = await useWalletStore.getState().switchChain(84532)
+
+        expect(result).toBe(true)
+
+        const state = useWalletStore.getState()
+        expect(state.chainId).toBe(84532)
+      })
+
+      it('returns false when no provider available', async () => {
+        delete (window as Window & { ethereum?: typeof mockProvider }).ethereum
+
+        const result = await useWalletStore.getState().switchChain(84532)
+
+        expect(result).toBe(false)
+
+        const state = useWalletStore.getState()
+        expect(state.error?.code).toBe('NO_PROVIDER')
+      })
+
+      it('handles user rejection during switch', async () => {
+        mockProvider.request.mockRejectedValueOnce({ code: 4001, message: 'User rejected' })
+
+        const result = await useWalletStore.getState().switchChain(84532)
+
+        expect(result).toBe(false)
+
+        const state = useWalletStore.getState()
+        expect(state.error?.code).toBe('USER_REJECTED')
+      })
+
+      it('tries to add chain when not found (code 4902)', async () => {
+        // First call fails with 4902 (chain not found)
+        mockProvider.request
+          .mockRejectedValueOnce({ code: 4902, message: 'Chain not found' })
+          .mockResolvedValueOnce(null) // wallet_addEthereumChain
+
+        const result = await useWalletStore.getState().switchChain(84532)
+
+        expect(result).toBe(true)
+
+        // Verify wallet_addEthereumChain was called
+        expect(mockProvider.request).toHaveBeenCalledWith(
+          expect.objectContaining({ method: 'wallet_addEthereumChain' })
+        )
+      })
     })
   })
 })
