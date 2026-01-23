@@ -253,6 +253,55 @@ export function getFacilitatorBaseUrl(): string {
 export const FACILITATOR_BASE_URL: string = getFacilitatorBaseUrl();
 
 /**
+ * x402 Facilitator Settle Endpoint Path
+ *
+ * The API endpoint path for settling authorized USDC payments via the facilitator.
+ * This endpoint accepts signed EIP-3009 authorizations and executes them on-chain.
+ *
+ * **Request Format (POST):**
+ * ```json
+ * {
+ *   "authorization": {
+ *     "from": "0x...",
+ *     "to": "0x...",
+ *     "value": "10000",
+ *     "validAfter": "0",
+ *     "validBefore": "1735689600",
+ *     "nonce": "0x...",
+ *     "v": 27,
+ *     "r": "0x...",
+ *     "s": "0x..."
+ *   }
+ * }
+ * ```
+ *
+ * **Response Format:**
+ * ```json
+ * {
+ *   "success": true,
+ *   "transactionHash": "0x...",
+ *   "blockNumber": 12345678
+ * }
+ * ```
+ *
+ * @see https://facilitator.cronoslabs.org/docs - Facilitator API Documentation
+ */
+export const FACILITATOR_SETTLE_ENDPOINT = '/v2/x402/settle';
+
+/**
+ * Get the full URL for the facilitator settle endpoint
+ *
+ * Combines the facilitator base URL with the settle endpoint path.
+ *
+ * @returns Full URL for the settle endpoint
+ * @example
+ * getFacilitatorSettleUrl() // => 'https://facilitator.cronoslabs.org/v2/x402/settle'
+ */
+export function getFacilitatorSettleUrl(): string {
+  return `${getFacilitatorBaseUrl()}${FACILITATOR_SETTLE_ENDPOINT}`;
+}
+
+/**
  * Parse a human-readable USDC amount into the smallest unit representation
  *
  * Converts a decimal USDC value (e.g., "1.50" or 1.5) into the integer
@@ -417,12 +466,14 @@ export const chainConstants = {
   USDC_CONTRACT_ADDRESS,
   DEFAULT_FACILITATOR_BASE_URL,
   FACILITATOR_BASE_URL,
+  FACILITATOR_SETTLE_ENDPOINT,
   getCronosTestnetRpcUrl,
   getExplorerTxUrl,
   getExplorerAddressUrl,
   isValidAddress,
   getUsdcContractAddress,
   getFacilitatorBaseUrl,
+  getFacilitatorSettleUrl,
   parseUSDC,
   formatUSDC,
   formatUSDCWithSymbol,
