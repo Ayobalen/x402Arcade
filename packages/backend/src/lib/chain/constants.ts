@@ -127,6 +127,34 @@ export const NATIVE_CURRENCY: NativeCurrencyConfig = {
 } as const;
 
 /**
+ * USDC Token Name for EIP-712 Domain Construction
+ *
+ * The name of the USDC token as registered in the smart contract.
+ * This value MUST match the actual deployed contract's name() function return value
+ * for EIP-712 typed data signatures to be valid.
+ *
+ * Used in EIP-3009 transferWithAuthorization and receiveWithAuthorization
+ * calls, which are the foundation of the x402 payment protocol.
+ *
+ * The domain separator for EIP-712 is constructed as:
+ * ```
+ * keccak256(
+ *   abi.encode(
+ *     keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+ *     keccak256(bytes(name)),    // <-- This constant
+ *     keccak256(bytes(version)), // Domain version
+ *     chainId,
+ *     verifyingContract
+ *   )
+ * )
+ * ```
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-712 - EIP-712 Typed Data
+ * @see https://eips.ethereum.org/EIPS/eip-3009 - Transfer With Authorization
+ */
+export const USDC_NAME = 'Bridged USDC (Stargate)';
+
+/**
  * Default USDC Contract Address (devUSDC.e) on Cronos Testnet
  *
  * The bridged USDC (Stargate) contract address for payment processing.
@@ -194,6 +222,7 @@ export const chainConstants = {
   CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_EXPLORER_URL,
   NATIVE_CURRENCY,
+  USDC_NAME,
   DEFAULT_USDC_CONTRACT_ADDRESS,
   USDC_CONTRACT_ADDRESS,
   getCronosTestnetRpcUrl,
