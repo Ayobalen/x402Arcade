@@ -61,12 +61,51 @@ export function getCronosTestnetRpcUrl(): string {
  */
 export const CRONOS_TESTNET_RPC_URL: string = getCronosTestnetRpcUrl();
 
+/**
+ * Cronos Testnet Block Explorer URL
+ *
+ * The base URL for the Cronos Testnet block explorer.
+ * Used for generating links to transactions and addresses in the UI.
+ *
+ * @see https://explorer.cronos.org/testnet
+ */
+export const CRONOS_TESTNET_EXPLORER_URL = 'https://explorer.cronos.org/testnet';
+
+/**
+ * Generate a transaction URL for the Cronos Testnet block explorer
+ *
+ * @param txHash - The transaction hash (with or without 0x prefix)
+ * @returns Full URL to view the transaction on the explorer
+ * @example
+ * getExplorerTxUrl('0x123...abc') // => 'https://explorer.cronos.org/testnet/tx/0x123...abc'
+ */
+export function getExplorerTxUrl(txHash: string): string {
+  const hash = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
+  return `${CRONOS_TESTNET_EXPLORER_URL}/tx/${hash}`;
+}
+
+/**
+ * Generate an address URL for the Cronos Testnet block explorer
+ *
+ * @param address - The wallet or contract address (with or without 0x prefix)
+ * @returns Full URL to view the address on the explorer
+ * @example
+ * getExplorerAddressUrl('0xabc...123') // => 'https://explorer.cronos.org/testnet/address/0xabc...123'
+ */
+export function getExplorerAddressUrl(address: string): string {
+  const addr = address.startsWith('0x') ? address : `0x${address}`;
+  return `${CRONOS_TESTNET_EXPLORER_URL}/address/${addr}`;
+}
+
 // Chain constants object containing all defined constants
 export const chainConstants = {
   CRONOS_TESTNET_CHAIN_ID,
   DEFAULT_CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_RPC_URL,
+  CRONOS_TESTNET_EXPLORER_URL,
   getCronosTestnetRpcUrl,
+  getExplorerTxUrl,
+  getExplorerAddressUrl,
 } as const;
 
 export default chainConstants;

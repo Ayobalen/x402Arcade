@@ -7,7 +7,10 @@ import {
   CRONOS_TESTNET_CHAIN_ID,
   DEFAULT_CRONOS_TESTNET_RPC_URL,
   CRONOS_TESTNET_RPC_URL,
+  CRONOS_TESTNET_EXPLORER_URL,
   getCronosTestnetRpcUrl,
+  getExplorerTxUrl,
+  getExplorerAddressUrl,
 } from '../../../../src/lib/chain/constants.js';
 
 describe('Chain Constants', () => {
@@ -32,6 +35,7 @@ describe('Chain Constants', () => {
     it('should contain all defined constants', () => {
       expect(chainConstants.CRONOS_TESTNET_CHAIN_ID).toBe(338);
       expect(chainConstants.DEFAULT_CRONOS_TESTNET_RPC_URL).toBe('https://evm-t3.cronos.org/');
+      expect(chainConstants.CRONOS_TESTNET_EXPLORER_URL).toBe('https://explorer.cronos.org/testnet');
     });
   });
 
