@@ -55,3 +55,16 @@ export {
   type UseX402Options,
   type UseX402Result,
 } from './useX402'
+
+export {
+  useWallet,
+  formatAddress,
+  isValidAddress,
+  type WalletStatus,
+  type WalletError,
+  type WalletClient,
+  type UseWalletState,
+  type UseWalletActions,
+  type UseWalletOptions,
+  type UseWalletResult,
+} from './useWallet'
