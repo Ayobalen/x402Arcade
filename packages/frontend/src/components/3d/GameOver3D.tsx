@@ -259,7 +259,7 @@ function Text3D({ text, color, scale, opacity, position = [0, 0, 0] }: Text3DPro
         shape.lineTo(-w, -h)
         shape.closePath()
         break
-      case 'A':
+      case 'A': {
         shape.moveTo(0, h)
         shape.lineTo(w, -h)
         shape.lineTo(w - t, -h)
@@ -275,6 +275,7 @@ function Text3D({ text, color, scale, opacity, position = [0, 0, 0] }: Text3DPro
         holeA.closePath()
         shape.holes.push(holeA)
         break
+      }
       case 'M':
         shape.moveTo(-w, -h)
         shape.lineTo(-w, h)
@@ -303,7 +304,7 @@ function Text3D({ text, color, scale, opacity, position = [0, 0, 0] }: Text3DPro
         shape.lineTo(w, -h)
         shape.closePath()
         break
-      case 'O':
+      case 'O': {
         shape.moveTo(-w, -h)
         shape.lineTo(-w, h)
         shape.lineTo(w, h)
@@ -317,6 +318,7 @@ function Text3D({ text, color, scale, opacity, position = [0, 0, 0] }: Text3DPro
         holeO.closePath()
         shape.holes.push(holeO)
         break
+      }
       case 'V':
         shape.moveTo(-w, h)
         shape.lineTo(0, -h)

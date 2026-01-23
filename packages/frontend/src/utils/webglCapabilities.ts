@@ -366,7 +366,7 @@ export function detectWebGLCapabilities(): WebGLCapabilities {
 
   // Try WebGL 2 first
   let gl: WebGLRenderingContext | WebGL2RenderingContext | null = getWebGL2Context(canvas)
-  let isWebGL2 = gl !== null
+  const isWebGL2 = gl !== null
   let contextType: WebGLCapabilities['version']['contextType'] = isWebGL2 ? 'webgl2' : null
 
   // Fall back to WebGL 1
