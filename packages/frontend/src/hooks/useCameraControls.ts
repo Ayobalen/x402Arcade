@@ -7,10 +7,29 @@
  * @module hooks/useCameraControls
  */
 
-import { useRef, useCallback, useMemo, useEffect } from 'react'
+import { useRef, useCallback, useMemo, useEffect, useState } from 'react'
 import { useThree } from '@react-three/fiber'
-import type { OrbitControls as OrbitControlsType } from 'three-stdlib'
 import * as THREE from 'three'
+
+// Type for OrbitControls from drei - we use a simplified interface
+// since the full type from three-stdlib requires additional dependencies
+interface OrbitControlsImpl {
+  target: THREE.Vector3
+  enabled: boolean
+  autoRotate: boolean
+  autoRotateSpeed: number
+  minDistance: number
+  maxDistance: number
+  minPolarAngle: number
+  maxPolarAngle: number
+  minAzimuthAngle: number
+  maxAzimuthAngle: number
+  minZoom: number
+  maxZoom: number
+  update: () => void
+}
+
+type OrbitControlsType = OrbitControlsImpl
 
 // ============================================================================
 // Types
@@ -429,8 +448,8 @@ export function useCameraControls(
   // Get Three.js context
   const { camera } = useThree()
 
-  // State
-  const stateRef = useRef<CameraControlsState>({
+  // State - using useState for state that's returned to consumers
+  const [state, setState] = useState<CameraControlsState>({
     position: initialPosition,
     target: initialTarget,
     zoom: 1,
@@ -438,6 +457,12 @@ export function useCameraControls(
     autoRotate: autoRotateSpeed > 0,
     isAnimating: false,
   })
+
+  // Keep a ref that syncs with state for use in callbacks
+  const stateRef = useRef(state)
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
 
   // Current limits state (can be updated dynamically)
   const limitsRef = useRef(limits)
@@ -448,8 +473,11 @@ export function useCameraControls(
   // Update state and notify
   const updateState = useCallback(
     (updates: Partial<CameraControlsState>) => {
-      stateRef.current = { ...stateRef.current, ...updates }
-      onChange?.(stateRef.current)
+      setState((prev) => {
+        const newState = { ...prev, ...updates }
+        onChange?.(newState)
+        return newState
+      })
     },
     [onChange]
   )
@@ -824,7 +852,7 @@ export function useCameraControls(
   }, [cancelAnimation])
 
   return {
-    state: stateRef.current,
+    state,
     controlsRef,
     setPosition,
     setTarget,
