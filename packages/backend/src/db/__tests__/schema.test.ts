@@ -83,7 +83,59 @@ describe('Database Schema', () => {
       expect(indexNames).toContain('idx_sessions_player');
       expect(indexNames).toContain('idx_sessions_status');
       expect(indexNames).toContain('idx_sessions_game_type');
-      expect(indexNames).toContain('idx_sessions_created_at');
+      expect(indexNames).toContain('idx_sessions_created');
+    });
+
+    it('should create idx_sessions_player on player_address column', () => {
+      initializeSchema(db);
+
+      // Get index details from sqlite_master
+      const indexSql = db
+        .prepare(`SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_sessions_player'`)
+        .get() as { sql: string } | undefined;
+
+      expect(indexSql).toBeDefined();
+      expect(indexSql?.sql).toContain('player_address');
+      expect(indexSql?.sql).toContain('game_sessions');
+    });
+
+    it('should create idx_sessions_status on status column', () => {
+      initializeSchema(db);
+
+      const indexSql = db
+        .prepare(`SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_sessions_status'`)
+        .get() as { sql: string } | undefined;
+
+      expect(indexSql).toBeDefined();
+      expect(indexSql?.sql).toContain('status');
+      expect(indexSql?.sql).toContain('game_sessions');
+    });
+
+    it('should create idx_sessions_game_type on game_type column', () => {
+      initializeSchema(db);
+
+      const indexSql = db
+        .prepare(
+          `SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_sessions_game_type'`
+        )
+        .get() as { sql: string } | undefined;
+
+      expect(indexSql).toBeDefined();
+      expect(indexSql?.sql).toContain('game_type');
+      expect(indexSql?.sql).toContain('game_sessions');
+    });
+
+    it('should create idx_sessions_created on created_at DESC', () => {
+      initializeSchema(db);
+
+      const indexSql = db
+        .prepare(`SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_sessions_created'`)
+        .get() as { sql: string } | undefined;
+
+      expect(indexSql).toBeDefined();
+      expect(indexSql?.sql).toContain('created_at');
+      expect(indexSql?.sql).toContain('DESC');
+      expect(indexSql?.sql).toContain('game_sessions');
     });
 
     it('should be safe to call multiple times (idempotent)', () => {
