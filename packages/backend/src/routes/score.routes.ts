@@ -3,16 +3,20 @@
  *
  * Handles score submission for completed game sessions.
  *
- * Note: GameService and LeaderboardService imports will be added
- * when route implementations are complete (upcoming features).
- *
  * @module routes/score
  */
 
 import { Router, type Request, type Response } from 'express';
 import type { Router as RouterType } from 'express';
+import * as GameService from '../services/game.js';
+import { LeaderboardService } from '../services/leaderboard.js';
 
 const router: RouterType = Router();
+
+// Services imported for upcoming score submission implementation
+// Temporary reference to satisfy linting rules until actual implementation
+void GameService;
+void LeaderboardService;
 
 /**
  * POST /api/v1/score
