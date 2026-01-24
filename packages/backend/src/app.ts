@@ -55,7 +55,53 @@ export function createApp(): Express {
   // ============================================================================
 
   // Security: Set security-related HTTP headers
-  app.use(helmet());
+  // Configure CSP to allow WebGL and Canvas for arcade games
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            // Allow unsafe-inline for game scripts and inline event handlers
+            // Note: This reduces security but is necessary for arcade game functionality
+            "'unsafe-inline'",
+            // Allow unsafe-eval for game engines that use dynamic code generation
+            // Note: Required by some WebGL libraries and physics engines
+            "'unsafe-eval'",
+          ],
+          styleSrc: [
+            "'self'",
+            // Allow unsafe-inline for game UI styling
+            "'unsafe-inline'",
+          ],
+          imgSrc: [
+            "'self'",
+            // Allow data: URIs for inline images (sprites, textures)
+            'data:',
+            // Allow blob: URIs for dynamically generated images
+            'blob:',
+          ],
+          connectSrc: [
+            "'self'",
+            // Allow connections to Cronos testnet RPC
+            'https://evm-t3.cronos.org',
+            // Allow connections to x402 facilitator
+            'https://facilitator.cronoslabs.org',
+          ],
+          // WebGL and Canvas require worker-src and child-src
+          workerSrc: ["'self'", 'blob:'],
+          childSrc: ["'self'", 'blob:'],
+          // Allow fonts from self and data URIs
+          fontSrc: ["'self'", 'data:'],
+          // Frame ancestors (prevent clickjacking)
+          frameAncestors: ["'none'"],
+        },
+      },
+      // Disable HSTS in development, enable in production
+      hsts: env.NODE_ENV === 'production',
+    })
+  );
 
   // CORS: Enable cross-origin requests from frontend
   app.use(
