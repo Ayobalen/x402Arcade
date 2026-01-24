@@ -269,6 +269,65 @@ export class PrizePoolService {
     return result ?? null;
   }
 
+  /**
+   * Get historical prize pools for a specific game and period.
+   *
+   * Retrieves past prize pools ordered by most recent first.
+   * Useful for displaying prize history and analytics.
+   * Supports pagination via limit and offset parameters.
+   *
+   * @param params - Query parameters
+   * @param params.gameType - Type of game (snake, tetris, etc.)
+   * @param params.periodType - Period type (daily or weekly)
+   * @param params.limit - Maximum number of pools to return (default: 10)
+   * @param params.offset - Number of pools to skip for pagination (default: 0)
+   * @returns Array of PrizePool objects ordered by period_date descending
+   *
+   * @example
+   * ```typescript
+   * // Get the last 5 daily snake pools
+   * const history = service.getPoolHistory({
+   *   gameType: 'snake',
+   *   periodType: 'daily',
+   *   limit: 5,
+   *   offset: 0
+   * });
+   * // Returns: [today's pool, yesterday's pool, ...]
+   * ```
+   */
+  getPoolHistory(params: {
+    gameType: GameType;
+    periodType: PeriodType;
+    limit?: number;
+    offset?: number;
+  }): PrizePool[] {
+    const { gameType, periodType, limit = 10, offset = 0 } = params;
+
+    // Query for historical pools, ordered by most recent first
+    const query = this.db.prepare(`
+      SELECT
+        id,
+        game_type as gameType,
+        period_type as periodType,
+        period_date as periodDate,
+        total_amount_usdc as totalAmountUsdc,
+        total_games as totalGames,
+        status,
+        winner_address as winnerAddress,
+        payout_tx_hash as payoutTxHash,
+        created_at as createdAt,
+        finalized_at as finalizedAt
+      FROM prize_pools
+      WHERE game_type = ? AND period_type = ?
+      ORDER BY period_date DESC
+      LIMIT ? OFFSET ?
+    `);
+
+    const results = query.all(gameType, periodType, limit, offset) as PrizePool[];
+
+    return results;
+  }
+
   // ============================================================================
   // Private Helper Methods
   // ============================================================================
