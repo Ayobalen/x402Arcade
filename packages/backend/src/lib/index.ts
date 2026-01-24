@@ -7,3 +7,4 @@
  */
 
 export * from './chain/index.js';
+export * from './game-types.js';
