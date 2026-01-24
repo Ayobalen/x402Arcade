@@ -21,6 +21,7 @@ import express, { type Express, type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 
 // Import environment configuration
 import { getEnv } from './config/env.js';
@@ -104,12 +105,27 @@ export function createApp(): Express {
   );
 
   // CORS: Enable cross-origin requests from frontend
+  // Configure allowed headers for x402 payment protocol
   app.use(
     cors({
       origin: env.CORS_ORIGIN,
       credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-402-Payment', 'X-402-Signature'],
+      exposedHeaders: ['X-402-Required', 'X-402-Price', 'X-402-Network', 'X-402-Recipient'],
     })
   );
+
+  // Rate Limiting: Prevent abuse with configurable limits
+  if (env.RATE_LIMIT_ENABLED) {
+    const limiter = rateLimit({
+      windowMs: env.RATE_LIMIT_WINDOW_MS,
+      max: env.RATE_LIMIT_MAX_REQUESTS,
+      standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+      legacyHeaders: false, // Disable `X-RateLimit-*` headers
+      message: 'Too many requests from this IP, please try again later.',
+    });
+    app.use(limiter);
+  }
 
   // Logging: HTTP request logging
   app.use(morgan('combined'));
