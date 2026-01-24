@@ -18,17 +18,27 @@ import { parseUSDC } from '../lib/chain/constants.js';
 
 const router: RouterType = Router();
 
-// Initialize services with database
-const db = getDatabase();
-const gameService = new GameService(db);
-const prizePoolService = new PrizePoolService(db);
+// Lazy initialization - get services only when routes are called
+let gameService: GameService | null = null;
+let prizePoolService: PrizePoolService | null = null;
+
+function getServices() {
+  if (!gameService || !prizePoolService) {
+    const db = getDatabase();
+    gameService = new GameService(db);
+    prizePoolService = new PrizePoolService(db);
+  }
+  return { gameService, prizePoolService };
+}
 
 // Arcade wallet address from environment
-const ARCADE_WALLET = process.env.ARCADE_WALLET_ADDRESS || '';
-
-// Validate arcade wallet is configured (will fail at runtime if not set)
-if (!ARCADE_WALLET) {
-  throw new Error('ARCADE_WALLET_ADDRESS environment variable must be set');
+// Note: Validation happens at route execution time, not module load time
+function getArcadeWallet(): string {
+  const wallet = process.env.ARCADE_WALLET_ADDRESS;
+  if (!wallet || wallet === '0x0000000000000000000000000000000000000000') {
+    throw new Error('ARCADE_WALLET_ADDRESS must be configured with a valid wallet address');
+  }
+  return wallet;
 }
 
 // Game prices in USDC
@@ -85,7 +95,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
 
     // Step 2: Apply x402 payment middleware dynamically
     const x402Middleware = createX402Middleware({
-      payTo: ARCADE_WALLET,
+      payTo: getArcadeWallet(),
       paymentAmount: gamePrice,
       tokenAddress:
         process.env.USDC_CONTRACT_ADDRESS || '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0',
@@ -130,6 +140,9 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
       });
       return;
     }
+
+    // Get services (lazy initialization)
+    const { gameService, prizePoolService } = getServices();
 
     const session = gameService.createSession({
       gameType: gameType as 'snake' | 'tetris',
