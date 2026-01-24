@@ -19,7 +19,7 @@ import type { Database as DatabaseType } from 'better-sqlite3';
  * - id: Unique session identifier (UUID)
  * - game_type: Type of game played (snake, tetris, pong, breakout, space-invaders)
  * - player_address: Ethereum address of the player (42-char hex: 0x + 40 hex digits, lowercase for consistency)
- * - payment_tx_hash: On-chain transaction hash for payment verification
+ * - payment_tx_hash: On-chain transaction hash for payment verification (66-char hex: 0x + 64 hex digits, UNIQUE to prevent replay)
  * - amount_paid_usdc: Amount paid in USDC (decimal, e.g., 0.01)
  * - score: Final score achieved (NULL if game not completed)
  * - status: Session status (active, completed, expired)
@@ -41,7 +41,10 @@ CREATE TABLE IF NOT EXISTS game_sessions (
         player_address LIKE '0x%' AND
         player_address = lower(player_address)
     ),
-    payment_tx_hash TEXT NOT NULL UNIQUE,
+    payment_tx_hash TEXT NOT NULL UNIQUE CHECK (
+        length(payment_tx_hash) = 66 AND
+        payment_tx_hash LIKE '0x%'
+    ),
     amount_paid_usdc REAL NOT NULL,
     score INTEGER,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
