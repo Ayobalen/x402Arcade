@@ -951,5 +951,312 @@ describe('Database Schema', () => {
 
       expect(count.count).toBe(2);
     });
+
+    it('should create prize_pools table', () => {
+      initializeSchema(db);
+
+      const tableExists = db
+        .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='prize_pools'`)
+        .get();
+
+      expect(tableExists).toBeDefined();
+      expect(tableExists).toHaveProperty('name', 'prize_pools');
+    });
+
+    it('should create prize_pools table with correct columns', () => {
+      initializeSchema(db);
+
+      const columns = db.prepare(`PRAGMA table_info(prize_pools)`).all() as Array<{
+        name: string;
+        type: string;
+        notnull: number;
+        dflt_value: string | null;
+        pk: number;
+      }>;
+
+      const columnNames = columns.map((col) => col.name);
+
+      expect(columnNames).toContain('id');
+      expect(columnNames).toContain('game_type');
+      expect(columnNames).toContain('period_type');
+      expect(columnNames).toContain('period_date');
+      expect(columnNames).toContain('total_amount_usdc');
+      expect(columnNames).toContain('total_games');
+      expect(columnNames).toContain('status');
+      expect(columnNames).toContain('winner_address');
+      expect(columnNames).toContain('payout_tx_hash');
+      expect(columnNames).toContain('created_at');
+      expect(columnNames).toContain('finalized_at');
+    });
+
+    it('should set id as primary key AUTOINCREMENT for prize_pools', () => {
+      initializeSchema(db);
+
+      const columns = db.prepare(`PRAGMA table_info(prize_pools)`).all() as Array<{
+        name: string;
+        type: string;
+        pk: number;
+      }>;
+
+      const idColumn = columns.find((col) => col.name === 'id');
+      expect(idColumn?.type).toBe('INTEGER');
+      expect(idColumn?.pk).toBe(1);
+    });
+
+    it('should enforce period_type CHECK constraint for prize_pools (daily/weekly only)', () => {
+      initializeSchema(db);
+
+      // Valid: 'daily'
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date)
+           VALUES ('snake', 'daily', '2026-01-24')`
+        ).run();
+      }).not.toThrow();
+
+      // Valid: 'weekly'
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date)
+           VALUES ('tetris', 'weekly', '2026-W04')`
+        ).run();
+      }).not.toThrow();
+
+      // Invalid: 'alltime' (prize pools are only for daily/weekly, not alltime)
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date)
+           VALUES ('pong', 'alltime', 'alltime')`
+        ).run();
+      }).toThrow();
+
+      // Invalid: random value
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date)
+           VALUES ('breakout', 'invalid', '2026-01-24')`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should default total_amount_usdc to 0 for prize_pools', () => {
+      initializeSchema(db);
+
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date)
+         VALUES ('snake', 'daily', '2026-01-24')`
+      ).run();
+
+      const row = db
+        .prepare(
+          `SELECT total_amount_usdc FROM prize_pools
+           WHERE game_type='snake' AND period_type='daily' AND period_date='2026-01-24'`
+        )
+        .get() as { total_amount_usdc: number };
+
+      expect(row.total_amount_usdc).toBe(0);
+    });
+
+    it('should default total_games to 0 for prize_pools', () => {
+      initializeSchema(db);
+
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date)
+         VALUES ('tetris', 'weekly', '2026-W04')`
+      ).run();
+
+      const row = db
+        .prepare(
+          `SELECT total_games FROM prize_pools
+           WHERE game_type='tetris' AND period_type='weekly' AND period_date='2026-W04'`
+        )
+        .get() as { total_games: number };
+
+      expect(row.total_games).toBe(0);
+    });
+
+    it('should enforce status CHECK constraint for prize_pools (active/finalized/paid)', () => {
+      initializeSchema(db);
+
+      // Valid: 'active' (default)
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date, status)
+           VALUES ('snake', 'daily', '2026-01-25', 'active')`
+        ).run();
+      }).not.toThrow();
+
+      // Valid: 'finalized'
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date, status)
+           VALUES ('tetris', 'daily', '2026-01-25', 'finalized')`
+        ).run();
+      }).not.toThrow();
+
+      // Valid: 'paid'
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date, status)
+           VALUES ('pong', 'daily', '2026-01-25', 'paid')`
+        ).run();
+      }).not.toThrow();
+
+      // Invalid: random status
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date, status)
+           VALUES ('breakout', 'daily', '2026-01-25', 'invalid')`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should default status to active for prize_pools', () => {
+      initializeSchema(db);
+
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date)
+         VALUES ('snake', 'daily', '2026-01-26')`
+      ).run();
+
+      const row = db
+        .prepare(
+          `SELECT status FROM prize_pools
+           WHERE game_type='snake' AND period_type='daily' AND period_date='2026-01-26'`
+        )
+        .get() as { status: string };
+
+      expect(row.status).toBe('active');
+    });
+
+    it('should auto-set created_at timestamp for prize_pools', () => {
+      initializeSchema(db);
+
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date)
+         VALUES ('tetris', 'daily', '2026-01-27')`
+      ).run();
+
+      const row = db
+        .prepare(
+          `SELECT created_at FROM prize_pools
+           WHERE game_type='tetris' AND period_type='daily' AND period_date='2026-01-27'`
+        )
+        .get() as { created_at: string };
+
+      expect(row.created_at).toBeDefined();
+      expect(row.created_at).not.toBeNull();
+      expect(row.created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+      const createdDate = new Date(row.created_at + 'Z');
+      const now = new Date();
+      const diffMs = now.getTime() - createdDate.getTime();
+      expect(diffMs).toBeLessThan(5000);
+      expect(diffMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should enforce UNIQUE constraint on (game_type, period_type, period_date) for prize_pools', () => {
+      initializeSchema(db);
+
+      // First insert should succeed
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date)
+         VALUES ('snake', 'daily', '2026-01-28')`
+      ).run();
+
+      // Second insert with same game/period should fail
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date)
+           VALUES ('snake', 'daily', '2026-01-28')`
+        ).run();
+      }).toThrow();
+
+      // But different game_type should work
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date)
+           VALUES ('tetris', 'daily', '2026-01-28')`
+        ).run();
+      }).not.toThrow();
+
+      // And different period_type should work
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date)
+           VALUES ('snake', 'weekly', '2026-W04')`
+        ).run();
+      }).not.toThrow();
+
+      // And different period_date should work
+      expect(() => {
+        db.prepare(
+          `INSERT INTO prize_pools (game_type, period_type, period_date)
+           VALUES ('snake', 'daily', '2026-01-29')`
+        ).run();
+      }).not.toThrow();
+    });
+
+    it('should allow NULL for winner_address and payout_tx_hash in prize_pools', () => {
+      initializeSchema(db);
+
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date, winner_address, payout_tx_hash)
+         VALUES ('snake', 'daily', '2026-01-30', NULL, NULL)`
+      ).run();
+
+      const row = db
+        .prepare(
+          `SELECT winner_address, payout_tx_hash FROM prize_pools
+           WHERE game_type='snake' AND period_type='daily' AND period_date='2026-01-30'`
+        )
+        .get() as { winner_address: string | null; payout_tx_hash: string | null };
+
+      expect(row.winner_address).toBeNull();
+      expect(row.payout_tx_hash).toBeNull();
+    });
+
+    it('should create indexes for prize_pools', () => {
+      initializeSchema(db);
+
+      const indexes = db
+        .prepare(`SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='prize_pools'`)
+        .all() as Array<{ name: string }>;
+
+      const indexNames = indexes.map((idx) => idx.name);
+
+      expect(indexNames).toContain('idx_prize_pools_status');
+      expect(indexNames).toContain('idx_prize_pools_game_period');
+    });
+
+    it('should create idx_prize_pools_status on status column', () => {
+      initializeSchema(db);
+
+      const indexSql = db
+        .prepare(
+          `SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_prize_pools_status'`
+        )
+        .get() as { sql: string } | undefined;
+
+      expect(indexSql).toBeDefined();
+      expect(indexSql?.sql).toContain('status');
+      expect(indexSql?.sql).toContain('prize_pools');
+    });
+
+    it('should create idx_prize_pools_game_period composite index', () => {
+      initializeSchema(db);
+
+      const indexSql = db
+        .prepare(
+          `SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_prize_pools_game_period'`
+        )
+        .get() as { sql: string } | undefined;
+
+      expect(indexSql).toBeDefined();
+      expect(indexSql?.sql).toContain('game_type');
+      expect(indexSql?.sql).toContain('period_type');
+      expect(indexSql?.sql).toContain('period_date');
+      expect(indexSql?.sql).toContain('prize_pools');
+    });
   });
 });

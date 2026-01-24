@@ -203,6 +203,113 @@ CREATE INDEX IF NOT EXISTS idx_leaderboard_player ON leaderboard_entries(player_
 `;
 
 /**
+ * Prize Pools Table Schema
+ *
+ * Tracks accumulated prize pools for daily and weekly competitions.
+ * A percentage of each game payment (PRIZE_POOL_PERCENTAGE from env config)
+ * is added to the prize pool for the current period.
+ *
+ * Prize Pool Mechanics:
+ * - For each game payment (e.g., $0.01 USDC):
+ *   - 70% (configurable) goes to the prize pool
+ *   - 30% (configurable) goes to platform revenue
+ * - Prize pools are segregated by:
+ *   - game_type (snake, tetris, pong, breakout, space-invaders)
+ *   - period_type (daily or weekly)
+ *   - period_date (e.g., '2026-01-24' for daily, '2026-W04' for weekly)
+ *
+ * Columns:
+ * - id: Auto-incrementing primary key
+ * - game_type: Type of game (snake, tetris, pong, breakout, space-invaders)
+ *     - Each game has its own separate prize pool
+ * - period_type: Competition period ('daily' or 'weekly')
+ *     - CHECK constraint enforces valid values
+ *     - Note: 'alltime' is NOT a prize pool period (no prize for all-time leaderboard)
+ * - period_date: Period identifier (TEXT NOT NULL)
+ *     - Format: 'YYYY-MM-DD' for daily (e.g., '2026-01-24')
+ *     - Format: 'YYYY-WXX' for weekly (e.g., '2026-W04' for week 4)
+ *     - Used to identify which time period this pool belongs to
+ * - total_amount_usdc: Accumulated prize pool in USDC (REAL NOT NULL DEFAULT 0)
+ *     - Incremented each time a player pays to play this game in this period
+ *     - Calculated: payment_amount * PRIZE_POOL_PERCENTAGE
+ *     - Example: $0.01 payment * 70% = $0.007 added to pool
+ * - total_games: Total number of games played in this period (INTEGER NOT NULL DEFAULT 0)
+ *     - Incremented each time a game session is created
+ *     - Used for analytics and verification
+ * - status: Prize pool lifecycle status (TEXT NOT NULL DEFAULT 'active')
+ *     - CHECK constraint enforces: 'active', 'finalized', 'paid'
+ *     - Status transitions:
+ *       1. 'active' (default): Period is ongoing, pool is still accumulating
+ *       2. 'finalized': Period ended, winner determined, awaiting payout
+ *       3. 'paid': Prize has been sent to winner (terminal state)
+ *     - Cron job finalizes pools at end of period and determines winner
+ * - winner_address: Ethereum address of the winner (TEXT, NULL until finalized)
+ *     - NULL when status is 'active' (period still ongoing)
+ *     - Set when status transitions to 'finalized' (winner determined from leaderboard)
+ *     - Remains set when status transitions to 'paid'
+ *     - Format: 42-character hex address (0x + 40 hex digits, lowercase)
+ * - payout_tx_hash: On-chain transaction hash for prize payout (TEXT, NULL until paid)
+ *     - NULL when status is 'active' or 'finalized'
+ *     - Set when status transitions to 'paid' (prize sent)
+ *     - Format: 66-character hex hash (0x + 64 hex digits)
+ *     - Can be used to verify payout on blockchain explorer
+ * - created_at: Pool creation timestamp (TEXT NOT NULL, auto-set)
+ *     - ISO 8601 format: 'YYYY-MM-DD HH:MM:SS'
+ *     - UTC timezone
+ *     - Automatically set when pool is first created
+ * - finalized_at: Pool finalization timestamp (TEXT, NULL until finalized)
+ *     - NULL when status is 'active'
+ *     - Set when status transitions to 'finalized' or 'paid'
+ *     - Marks when the competition period ended and winner was determined
+ *
+ * Constraints:
+ * - UNIQUE(game_type, period_type, period_date): One pool per game per period
+ *     - Prevents duplicate pools for the same game/period combination
+ *     - Application should use INSERT OR IGNORE to create pools, then UPDATE to add funds
+ *
+ * Prize Pool Rotation (Cron Job Logic):
+ * 1. Daily pools: Finalized at midnight UTC, winner determined from daily leaderboard
+ * 2. Weekly pools: Finalized at Sunday midnight UTC, winner determined from weekly leaderboard
+ * 3. Finalization process:
+ *    - Set status to 'finalized'
+ *    - Query leaderboard_entries for highest score in this game/period
+ *    - Set winner_address to the top player's address
+ *    - Set finalized_at timestamp
+ * 4. Payout process (separate job or manual):
+ *    - Send USDC from arcade wallet to winner_address
+ *    - Set payout_tx_hash to the transaction hash
+ *    - Set status to 'paid'
+ */
+export const PRIZE_POOLS_TABLE = `
+CREATE TABLE IF NOT EXISTS prize_pools (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_type TEXT NOT NULL,
+    period_type TEXT NOT NULL CHECK (period_type IN ('daily', 'weekly')),
+    period_date TEXT NOT NULL,
+    total_amount_usdc REAL NOT NULL DEFAULT 0,
+    total_games INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'finalized', 'paid')),
+    winner_address TEXT,
+    payout_tx_hash TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    finalized_at TEXT,
+    UNIQUE(game_type, period_type, period_date)
+);
+`;
+
+/**
+ * Prize Pools Indexes
+ *
+ * Optimizes prize pool query patterns:
+ * - Status lookup: Find active/finalized/paid pools (idx_prize_pools_status)
+ * - Game + period lookup: Find pool for specific game and period (idx_prize_pools_game_period)
+ */
+export const PRIZE_POOLS_INDEXES = `
+CREATE INDEX IF NOT EXISTS idx_prize_pools_status ON prize_pools(status);
+CREATE INDEX IF NOT EXISTS idx_prize_pools_game_period ON prize_pools(game_type, period_type, period_date);
+`;
+
+/**
  * Initialize database schema
  *
  * Creates all tables and indexes if they don't exist.
@@ -222,4 +329,10 @@ export function initializeSchema(db: DatabaseType): void {
 
   // Create indexes for leaderboard_entries
   db.exec(LEADERBOARD_ENTRIES_INDEXES);
+
+  // Create prize_pools table
+  db.exec(PRIZE_POOLS_TABLE);
+
+  // Create indexes for prize_pools
+  db.exec(PRIZE_POOLS_INDEXES);
 }
