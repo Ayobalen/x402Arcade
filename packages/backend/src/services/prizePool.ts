@@ -24,6 +24,23 @@
 import type { Database as DatabaseType } from 'better-sqlite3';
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/**
+ * Percentage of each game payment that goes to the prize pool.
+ * The remaining percentage goes to platform operational costs.
+ *
+ * @example
+ * ```typescript
+ * // For a $0.01 game payment:
+ * // Prize pool gets: $0.01 * 0.70 = $0.007
+ * // Platform gets: $0.01 * 0.30 = $0.003
+ * ```
+ */
+export const PRIZE_POOL_PERCENTAGE = 0.7;
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -39,6 +56,17 @@ export type GameType = 'snake' | 'tetris' | 'pong' | 'breakout' | 'space_invader
 
 /**
  * Prize pool status lifecycle.
+ *
+ * Status transitions:
+ * 1. active: Pool is currently accumulating funds from new games
+ * 2. finalized: Period has ended, winner determined, ready for payout
+ * 3. paid: Winner has been paid, pool is closed
+ *
+ * @example
+ * ```typescript
+ * // Pool lifecycle flow
+ * active -> finalized -> paid
+ * ```
  */
 export type PoolStatus = 'active' | 'finalized' | 'paid';
 
@@ -117,11 +145,79 @@ export class PrizePoolService {
   // Public Methods
   // ============================================================================
 
-  // TODO: Implement prize pool methods
-  // - addToPool: Add funds from a game payment
-  // - getCurrentPool: Get the active pool for a game/period
-  // - finalizePool: End a period and determine the winner
-  // - recordPayout: Record the payout transaction
+  /**
+   * Add funds to prize pools from a game payment.
+   *
+   * Takes a portion of the game payment (PRIZE_POOL_PERCENTAGE) and adds it
+   * to both the daily and weekly prize pools for the specified game type.
+   *
+   * Uses UPSERT to create new pools if they don't exist, or update existing ones.
+   * Pools are identified by (game_type, period_type, period_date) UNIQUE constraint.
+   *
+   * @param params - Parameters for adding to prize pool
+   * @param params.gameType - Type of game (snake, tetris, pong, etc.)
+   * @param params.amountUsdc - Full payment amount in USDC
+   * @returns Object with daily and weekly pool totals after update
+   *
+   * @example
+   * ```typescript
+   * // Add $0.01 game payment to prize pools
+   * const result = service.addToPrizePool({
+   *   gameType: 'snake',
+   *   amountUsdc: 0.01
+   * });
+   * // Result: { dailyTotal: 0.007, weeklyTotal: 0.007 }
+   * // (70% of $0.01 goes to each pool)
+   * ```
+   */
+  addToPrizePool(params: { gameType: GameType; amountUsdc: number }): {
+    dailyTotal: number;
+    weeklyTotal: number;
+  } {
+    const { gameType, amountUsdc } = params;
+
+    // Calculate prize contribution (70% of payment)
+    const prizeContribution = amountUsdc * PRIZE_POOL_PERCENTAGE;
+
+    // Get current period dates
+    const today = this.getTodayDate();
+    const weekStart = this.getWeekStart();
+
+    // UPSERT daily pool
+    const upsertDaily = this.db.prepare(`
+      INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+      VALUES (?, 'daily', ?, ?, 1, 'active')
+      ON CONFLICT(game_type, period_type, period_date)
+      DO UPDATE SET
+        total_amount_usdc = total_amount_usdc + excluded.total_amount_usdc,
+        total_games = total_games + 1
+      RETURNING total_amount_usdc
+    `);
+
+    // UPSERT weekly pool
+    const upsertWeekly = this.db.prepare(`
+      INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+      VALUES (?, 'weekly', ?, ?, 1, 'active')
+      ON CONFLICT(game_type, period_type, period_date)
+      DO UPDATE SET
+        total_amount_usdc = total_amount_usdc + excluded.total_amount_usdc,
+        total_games = total_games + 1
+      RETURNING total_amount_usdc
+    `);
+
+    // Execute both UPSERTS
+    const dailyResult = upsertDaily.get(gameType, today, prizeContribution) as {
+      total_amount_usdc: number;
+    };
+    const weeklyResult = upsertWeekly.get(gameType, weekStart, prizeContribution) as {
+      total_amount_usdc: number;
+    };
+
+    return {
+      dailyTotal: dailyResult.total_amount_usdc,
+      weeklyTotal: weeklyResult.total_amount_usdc,
+    };
+  }
 
   // ============================================================================
   // Private Helper Methods
