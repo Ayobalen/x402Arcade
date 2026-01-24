@@ -119,8 +119,14 @@ export class LeaderboardService {
    * Records a score across all three leaderboard periods (daily, weekly, alltime).
    * Only updates existing entries if the new score is higher (high score logic).
    *
-   * Uses INSERT OR REPLACE to handle the UNIQUE constraint on
-   * (game_type, player_address, period_type, period_date).
+   * Uses INSERT ... ON CONFLICT DO UPDATE with CASE WHEN to implement
+   * conditional UPSERT based on score comparison. The UNIQUE constraint on
+   * (game_type, player_address, period_type, period_date) triggers the conflict.
+   *
+   * UPSERT Logic:
+   * - If no existing entry: INSERT new entry
+   * - If existing entry with lower score: UPDATE session_id, score, and created_at
+   * - If existing entry with higher/equal score: Keep existing values (no-op update)
    *
    * @param params - Entry parameters
    * @param params.sessionId - Game session ID reference
@@ -157,19 +163,12 @@ export class LeaderboardService {
       { periodType: 'alltime', periodDate: 'alltime' },
     ];
 
-    // Prepared statement for checking existing score
-    const checkStmt = this.db.prepare(`
-      SELECT score
-      FROM leaderboard_entries
-      WHERE game_type = ?
-        AND player_address = ?
-        AND period_type = ?
-        AND period_date = ?
-    `);
-
-    // Prepared statement for inserting/replacing entry
-    const insertStmt = this.db.prepare(`
-      INSERT OR REPLACE INTO leaderboard_entries (
+    // UPSERT query with high score logic
+    // Uses INSERT OR REPLACE with subquery to preserve higher score
+    // The UNIQUE constraint on (game_type, player_address, period_type, period_date)
+    // triggers the REPLACE when a duplicate key is encountered
+    const upsertStmt = this.db.prepare(`
+      INSERT INTO leaderboard_entries (
         session_id,
         game_type,
         player_address,
@@ -179,23 +178,26 @@ export class LeaderboardService {
         rank
       )
       VALUES (?, ?, ?, ?, ?, ?, NULL)
+      ON CONFLICT(game_type, player_address, period_type, period_date)
+      DO UPDATE SET
+        session_id = CASE
+          WHEN excluded.score > score THEN excluded.session_id
+          ELSE session_id
+        END,
+        score = CASE
+          WHEN excluded.score > score THEN excluded.score
+          ELSE score
+        END,
+        created_at = CASE
+          WHEN excluded.score > score THEN datetime('now')
+          ELSE created_at
+        END
     `);
 
     // Process each period
     for (const period of periods) {
       const { periodType, periodDate } = period;
-
-      // Check if entry exists and compare scores
-      const existing = checkStmt.get(gameType, playerAddress, periodType, periodDate) as
-        | { score: number }
-        | undefined;
-
-      // Only insert/update if:
-      // 1. No existing entry (first score)
-      // 2. New score is higher than existing score (high score logic)
-      if (!existing || score > existing.score) {
-        insertStmt.run(sessionId, gameType, playerAddress, score, periodType, periodDate);
-      }
+      upsertStmt.run(sessionId, gameType, playerAddress, score, periodType, periodDate);
     }
   }
 
