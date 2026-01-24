@@ -11,9 +11,20 @@ import { z } from 'zod';
  */
 export const envSchema = z.object({
   // Server Configuration (required)
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().int().positive().default(3001),
-  HOST: z.string().default('localhost'),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development')
+    .describe('Node.js environment mode (development, production, or test)'),
+  PORT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(3001)
+    .describe('Port number for the Express server (default: 3001)'),
+  HOST: z
+    .string()
+    .default('localhost')
+    .describe('Host address for the server to bind to (default: localhost)'),
   CORS_ORIGIN: z
     .string()
     .default('http://localhost:5173')
@@ -24,7 +35,10 @@ export const envSchema = z.object({
       }
       // Single origin - return as string for cors middleware
       return val;
-    }),
+    })
+    .describe(
+      'Allowed CORS origins (comma-separated for multiple origins, e.g., http://localhost:5173)'
+    ),
 
   // Database Configuration (required)
   DATABASE_PATH: z
@@ -38,8 +52,16 @@ export const envSchema = z.object({
     ),
 
   // JWT/Session Configuration (required)
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  JWT_EXPIRY_SECONDS: z.coerce.number().int().positive().default(3600),
+  JWT_SECRET: z
+    .string()
+    .min(32, 'JWT_SECRET must be at least 32 characters')
+    .describe('Secret key for JWT token signing (minimum 32 characters for security)'),
+  JWT_EXPIRY_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(3600)
+    .describe('JWT token expiration time in seconds (default: 3600 = 1 hour)'),
 
   // Blockchain Configuration
   CHAIN_ID: z.coerce
@@ -51,44 +73,112 @@ export const envSchema = z.object({
     })
     .default(338)
     .describe('Cronos blockchain chain ID: 25 for mainnet, 338 for testnet'),
-  RPC_URL: z.string().url().default('https://evm-t3.cronos.org/'),
-  EXPLORER_URL: z.string().url().default('https://explorer.cronos.org/testnet'),
+  RPC_URL: z
+    .string()
+    .url()
+    .default('https://evm-t3.cronos.org/')
+    .describe('JSON-RPC endpoint URL for Cronos blockchain (testnet: https://evm-t3.cronos.org/)'),
+  EXPLORER_URL: z
+    .string()
+    .url()
+    .default('https://explorer.cronos.org/testnet')
+    .describe('Block explorer URL for transaction verification and lookup'),
 
   // USDC Contract Configuration
   USDC_CONTRACT_ADDRESS: z
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
-    .optional(),
-  USDC_DECIMALS: z.coerce.number().int().min(0).max(18).default(6),
-  USDC_DOMAIN_VERSION: z.coerce.number().int().positive().default(1),
+    .optional()
+    .describe(
+      'ERC-20 USDC contract address on Cronos (testnet: 0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0)'
+    ),
+  USDC_DECIMALS: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(18)
+    .default(6)
+    .describe('Number of decimal places for USDC token (standard is 6)'),
+  USDC_DOMAIN_VERSION: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1)
+    .describe('EIP-3009 domain version for USDC contract (1 for testnet, 2 for mainnet)'),
 
   // Arcade Wallet Configuration (optional for development)
   ARCADE_WALLET_ADDRESS: z
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
-    .optional(),
+    .optional()
+    .describe('Arcade platform wallet address that receives game payments and sends prize payouts'),
   ARCADE_PRIVATE_KEY: z
     .string()
     .regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid private key format')
-    .optional(),
+    .optional()
+    .describe(
+      'Private key for arcade wallet (required for payment settlement and prize distribution)'
+    ),
 
   // x402 Facilitator Configuration
-  FACILITATOR_URL: z.string().url().default('https://facilitator.cronoslabs.org'),
+  FACILITATOR_URL: z
+    .string()
+    .url()
+    .default('https://facilitator.cronoslabs.org')
+    .describe('x402 facilitator service URL for gasless payment processing'),
 
   // Game Configuration
-  SNAKE_PRICE_USDC: z.coerce.number().positive().default(0.01),
-  TETRIS_PRICE_USDC: z.coerce.number().positive().default(0.02),
-  PRIZE_POOL_PERCENTAGE: z.coerce.number().int().min(0).max(100).default(70),
-  SESSION_EXPIRY_MINUTES: z.coerce.number().int().positive().default(30),
+  SNAKE_PRICE_USDC: z.coerce
+    .number()
+    .positive()
+    .default(0.01)
+    .describe('Price in USDC to play Snake game (default: 0.01 USDC)'),
+  TETRIS_PRICE_USDC: z.coerce
+    .number()
+    .positive()
+    .default(0.02)
+    .describe('Price in USDC to play Tetris game (default: 0.02 USDC)'),
+  PRIZE_POOL_PERCENTAGE: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(100)
+    .default(70)
+    .describe('Percentage of game payments that go to prize pool (default: 70%)'),
+  SESSION_EXPIRY_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30)
+    .describe('Minutes until game session expires if not completed (default: 30)'),
 
   // Logging Configuration
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-  LOG_SILENCE: z.coerce.boolean().default(false),
+  LOG_LEVEL: z
+    .enum(['error', 'warn', 'info', 'debug'])
+    .default('info')
+    .describe('Logging verbosity level (error, warn, info, debug)'),
+  LOG_SILENCE: z.coerce
+    .boolean()
+    .default(false)
+    .describe('Silence all logging output (useful for testing)'),
 
   // Rate Limiting Configuration
-  RATE_LIMIT_ENABLED: z.coerce.boolean().default(true),
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
+  RATE_LIMIT_ENABLED: z.coerce
+    .boolean()
+    .default(true)
+    .describe('Enable rate limiting middleware for API endpoints'),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(100)
+    .describe('Maximum requests per window (default: 100 requests)'),
+  RATE_LIMIT_WINDOW_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60000)
+    .describe('Rate limit time window in milliseconds (default: 60000 = 1 minute)'),
 });
 
 /**
