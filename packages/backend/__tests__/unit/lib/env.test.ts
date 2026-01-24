@@ -628,4 +628,145 @@ describe('Environment Validation Schema', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe('RPC_URL Validation', () => {
+    it('should accept valid HTTPS RPC URL', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: 'https://evm-t3.cronos.org/',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.RPC_URL).toBe('https://evm-t3.cronos.org/');
+      }
+    });
+
+    it('should accept valid HTTP RPC URL (for local development)', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: 'http://localhost:8545',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.RPC_URL).toBe('http://localhost:8545');
+      }
+    });
+
+    it('should accept RPC URL with port', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: 'https://rpc.cronos.org:8545',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept RPC URL with path', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject RPC URL without protocol', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: 'evm-t3.cronos.org',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const rpcError = result.error.issues.find((issue) => issue.path.includes('RPC_URL'));
+        expect(rpcError).toBeDefined();
+        expect(rpcError?.message).toContain('valid HTTP or HTTPS URL');
+      }
+    });
+
+    it('should reject RPC URL with invalid protocol (ftp)', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: 'ftp://evm-t3.cronos.org/',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const rpcError = result.error.issues.find((issue) => issue.path.includes('RPC_URL'));
+        expect(rpcError).toBeDefined();
+        expect(rpcError?.message).toContain('http:// or https://');
+      }
+    });
+
+    it('should reject RPC URL with ws:// protocol', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: 'ws://evm-t3.cronos.org/',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject malformed RPC URL', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: 'not-a-url',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject empty RPC URL', () => {
+      const testEnv = {
+        ...process.env,
+        RPC_URL: '',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should use default RPC URL when not provided', () => {
+      const testEnv = {
+        ...process.env,
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+      delete testEnv.RPC_URL;
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.RPC_URL).toBe('https://evm-t3.cronos.org/');
+      }
+    });
+  });
 });

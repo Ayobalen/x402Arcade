@@ -75,7 +75,10 @@ export const envSchema = z.object({
     .describe('Cronos blockchain chain ID: 25 for mainnet, 338 for testnet'),
   RPC_URL: z
     .string()
-    .url()
+    .url('RPC_URL must be a valid HTTP or HTTPS URL')
+    .refine((url) => url.startsWith('http://') || url.startsWith('https://'), {
+      message: 'RPC_URL must start with http:// or https://',
+    })
     .default('https://evm-t3.cronos.org/')
     .describe('JSON-RPC endpoint URL for Cronos blockchain (testnet: https://evm-t3.cronos.org/)'),
   EXPLORER_URL: z
