@@ -133,6 +133,22 @@ export interface StartGameResult {
   settlement?: SettlementRawResponse;
 }
 
+/**
+ * Options for retrieving player sessions.
+ */
+export interface GetPlayerSessionsOptions {
+  /** Player's wallet address */
+  playerAddress: string;
+  /** Filter by game type (optional) */
+  gameType?: GameType;
+  /** Filter by session status (optional) */
+  status?: SessionStatus;
+  /** Maximum number of sessions to return (default: 50) */
+  limit?: number;
+  /** Number of sessions to skip for pagination (default: 0) */
+  offset?: number;
+}
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -991,6 +1007,94 @@ export class GameService {
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to expire session: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get player's game sessions with filtering and pagination
+   *
+   * Retrieves a player's game history with support for:
+   * - Filtering by game type
+   * - Filtering by session status
+   * - Pagination (limit + offset)
+   * - Most recent sessions first
+   *
+   * @param options - Query options for filtering and pagination
+   * @returns Array of game sessions matching the criteria
+   *
+   * @example
+   * ```typescript
+   * // Get player's recent games (all types, all statuses)
+   * const recentGames = gameService.getPlayerSessions({
+   *   playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+   *   limit: 10
+   * });
+   *
+   * // Get player's completed Snake games
+   * const snakeGames = gameService.getPlayerSessions({
+   *   playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+   *   gameType: 'snake',
+   *   status: 'completed'
+   * });
+   *
+   * // Paginate through player's history
+   * const page2 = gameService.getPlayerSessions({
+   *   playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+   *   limit: 20,
+   *   offset: 20
+   * });
+   * ```
+   */
+  getPlayerSessions(options: GetPlayerSessionsOptions): GameSession[] {
+    const { playerAddress, gameType, status, limit = 50, offset = 0 } = options;
+
+    try {
+      // Build dynamic WHERE clause based on filters
+      const whereClauses: string[] = ['player_address = ?'];
+      const params: (string | number)[] = [playerAddress.toLowerCase()];
+
+      if (gameType) {
+        whereClauses.push('game_type = ?');
+        params.push(gameType);
+      }
+
+      if (status) {
+        whereClauses.push('status = ?');
+        params.push(status);
+      }
+
+      const whereClause = whereClauses.join(' AND ');
+
+      // Add limit and offset to params
+      params.push(limit, offset);
+
+      // Use SQL aliases to map snake_case columns to camelCase directly
+      const stmt = this.db.prepare(`
+        SELECT
+          id,
+          game_type AS gameType,
+          player_address AS playerAddress,
+          payment_tx_hash AS paymentTxHash,
+          amount_paid_usdc AS amountPaidUsdc,
+          score,
+          status,
+          created_at AS createdAt,
+          completed_at AS completedAt,
+          game_duration_ms AS gameDurationMs
+        FROM game_sessions
+        WHERE ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+      `);
+
+      const rows = stmt.all(...params) as GameSession[];
+
+      return rows;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to get player sessions: ${error.message}`);
       }
       throw error;
     }
