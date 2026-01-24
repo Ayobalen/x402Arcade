@@ -33,6 +33,7 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'r
 import { cn } from '@/lib/utils';
 import { useWalletStore, selectFormattedAddress, REQUIRED_CHAIN_ID } from '@/stores/walletStore';
 import { Button } from '@/components/ui/Button';
+import { Dropdown } from '@/components/ui/Dropdown';
 import type {
   ConnectButtonProps,
   ConnectButtonVariant,
@@ -176,6 +177,27 @@ function WarningIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+    </svg>
+  );
+}
+
+/**
+ * Log out / disconnect icon
+ */
+function LogOutIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   );
 }
@@ -524,6 +546,52 @@ export const ConnectButton = forwardRef<HTMLButtonElement, ConnectButtonProps>(
       }
     }, [walletInfo.hasWallet, connectionState, formattedAddress, error]);
 
+    // Render connected state with dropdown
+    if (connectionState === 'connected') {
+      const buttonElement = (
+        <Button
+          ref={ref}
+          variant={buttonVariant}
+          size={size}
+          fullWidth={fullWidth}
+          disabled={isDisabled}
+          className={cn(
+            // Base styles
+            'gap-2',
+            // Connected state styling with neon glow
+            'bg-surface-primary/50',
+            'border border-border',
+            'hover:bg-surface-primary',
+            'hover:border-primary/50',
+            'shadow-[0_0_10px_rgba(0,255,255,0.15)]',
+            'hover:shadow-[0_0_15px_rgba(0,255,255,0.3)]',
+            'transition-shadow duration-200',
+            className
+          )}
+          aria-label={ariaLabel}
+          {...props}
+        >
+          {buttonContent}
+        </Button>
+      );
+
+      return (
+        <Dropdown
+          trigger={buttonElement}
+          items={[
+            {
+              label: 'Disconnect',
+              icon: <LogOutIcon className="w-4 h-4" />,
+              onClick: handleDisconnect,
+              destructive: true,
+            },
+          ]}
+          align="right"
+        />
+      );
+    }
+
+    // Render all other states (disconnected, connecting, wrong network, etc.)
     return (
       <Button
         ref={ref}
@@ -535,16 +603,6 @@ export const ConnectButton = forwardRef<HTMLButtonElement, ConnectButtonProps>(
         className={cn(
           // Base styles
           'gap-2',
-          // Connected state styling with neon glow
-          connectionState === 'connected' && [
-            'bg-surface-primary/50',
-            'border border-border',
-            'hover:bg-surface-primary',
-            'hover:border-primary/50',
-            'shadow-[0_0_10px_rgba(0,255,255,0.15)]',
-            'hover:shadow-[0_0_15px_rgba(0,255,255,0.3)]',
-            'transition-shadow duration-200',
-          ],
           // Wrong network state styling
           connectionState === 'wrong_network' && [
             'border-warning',
