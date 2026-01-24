@@ -69,4 +69,16 @@ export interface LayoutProps {
    * @default 'medium'
    */
   glowIntensity?: 'low' | 'medium' | 'high';
+
+  /**
+   * Whether to show the noise/grain overlay effect
+   * @default true
+   */
+  showNoiseOverlay?: boolean;
+
+  /**
+   * Noise overlay intensity (0-1)
+   * @default 0.08
+   */
+  noiseIntensity?: number;
 }
