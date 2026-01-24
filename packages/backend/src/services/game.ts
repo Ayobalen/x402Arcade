@@ -1099,4 +1099,53 @@ export class GameService {
       throw error;
     }
   }
+
+  /**
+   * Expire old active sessions
+   *
+   * Marks active sessions as expired if they exceed the specified age.
+   * Sessions are considered abandoned if they remain active for more than
+   * maxAgeMinutes without completion.
+   *
+   * This method should be called periodically (e.g., via cron job) to clean up
+   * stale sessions and free up resources.
+   *
+   * @param maxAgeMinutes - Maximum age in minutes before expiring (default: 30)
+   * @returns Number of sessions that were expired
+   *
+   * @example
+   * ```typescript
+   * // Expire sessions older than 30 minutes (default)
+   * const expiredCount = gameService.expireOldSessions();
+   * console.log(`Expired ${expiredCount} stale sessions`);
+   *
+   * // Use custom timeout (e.g., 15 minutes)
+   * const expiredCount = gameService.expireOldSessions(15);
+   * ```
+   */
+  expireOldSessions(maxAgeMinutes: number = 30): number {
+    try {
+      const completedAt = new Date().toISOString();
+
+      // Calculate threshold timestamp using SQLite datetime functions
+      // datetime('now', '-N minutes') calculates the cutoff time
+      const stmt = this.db.prepare(`
+        UPDATE game_sessions
+        SET
+          status = 'expired',
+          completed_at = ?
+        WHERE status = 'active'
+          AND created_at < datetime('now', '-${maxAgeMinutes} minutes')
+      `);
+
+      const result = stmt.run(completedAt);
+
+      return result.changes;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to expire old sessions: ${error.message}`);
+      }
+      throw error;
+    }
+  }
 }
