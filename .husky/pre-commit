@@ -3,5 +3,5 @@
 # Husky pre-commit hook
 # Runs lint-staged to enforce code quality on staged files
 
-# Run lint-staged for code quality checks
-npx lint-staged
+# Run lint-staged with explicit config to avoid nested node_modules configs
+npx lint-staged --config lint-staged.config.js
