@@ -2976,3 +2976,71 @@ Backend service layer implementation ready to begin:
 ✅ getSession() - retrieves session by ID
 ⏳ Next: completeGame(), getPlayerSessions(), etc.
 
+
+---
+
+## Session Log - January 24, 2026 16:39 UTC (Backend Service - GameService.expireOldSessions)
+
+### Session Start:
+- **Current Status:** 400/1215 features passing (32.9%), 17 blocked
+
+### Smart Regression Testing:
+- Feature #253 (Create payments indexes): ✅ Passing
+  - Verified all required indexes implemented in PAYMENTS_INDEXES
+  - idx_payments_tx_hash, idx_payments_from_address, idx_payments_to_address
+  - idx_payments_purpose_status (composite), idx_payments_created_at (DESC)
+  - Test coverage exists in schema.test.ts
+
+### Features Completed:
+
+1. **Feature #269: Implement expireOldSessions method** ✅ (BLOCKED - Intervention #124)
+   - Implemented expireOldSessions method in GameService class
+   - Method signature: `expireOldSessions(maxAgeMinutes: number = 30): number`
+   - Uses SQLite datetime functions for threshold calculation
+   - SQL: `WHERE status = 'active' AND created_at < datetime('now', '-N minutes')`
+   - Returns count of expired sessions for audit logging
+   - Sets completed_at timestamp when expiring sessions
+   - Comprehensive JSDoc documentation with examples
+   - Created test file: packages/backend/src/services/__tests__/game.service.test.ts
+   - 7 comprehensive test cases:
+     1. Expire sessions older than default 30 minutes
+     2. Use custom maxAgeMinutes parameter
+     3. Don't expire completed sessions
+     4. Don't expire already expired sessions
+     5. Return 0 when no sessions need expiring
+     6. Expire multiple old sessions at once
+     7. Set completed_at timestamp when expiring
+   - Intervention created for manual test verification (better-sqlite3 native module)
+   - Feature blocked pending verification
+   - Git commit: 9ec97e7d
+
+### Implementation Highlights:
+- **SQLite datetime functions**: Uses `datetime('now', '-N minutes')` for efficient server-side calculation
+- **Atomic operation**: Single UPDATE query processes all expired sessions
+- **Configurable timeout**: Default 30 minutes, customizable via parameter
+- **Audit trail**: Returns count for logging, sets completed_at for tracking
+- **Idempotent**: Only affects active sessions, safe to run multiple times
+
+### Session Summary:
+- **Features completed:** 1
+- **Interventions created:** 1 (manual verification for better-sqlite3 tests)
+- **Progress:** 400/1215 (32.9%, unchanged - feature blocked pending verification)
+- **Blocked features:** 18 total (17 previous + 1 new intervention)
+- **Git commits:** 1 (expireOldSessions implementation)
+- **Pre-commit hooks:** ✅ Passing (ESLint + Prettier)
+
+### Quality Notes:
+- Implementation follows existing GameService patterns
+- Comprehensive test coverage (7 test cases)
+- Clean commit history with descriptive conventional commit message
+- Pre-commit hooks formatted code automatically
+
+### Files Modified:
+- `/packages/backend/src/services/game.ts` - Added expireOldSessions method to GameService class
+- `/packages/backend/src/services/__tests__/game.service.test.ts` - Created test file with 7 test cases
+
+### Next Session Recommendations:
+- Continue with Phase 3: Backend features
+- Next likely: Additional GameService methods or move to LeaderboardService
+- Feature #269 will auto-unblock after manual verification
+
