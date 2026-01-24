@@ -126,11 +126,29 @@ describe('Database Schema', () => {
     it('should enforce status CHECK constraint', () => {
       initializeSchema(db);
 
-      // Valid status should work
+      const validAddress = '0x1234567890123456789012345678901234567890';
+
+      // Valid status: 'active'
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status)
-           VALUES ('test-1', 'snake', '0x1234567890123456789012345678901234567890', 'tx1', 0.01, 'active')`
+           VALUES ('test-1', 'snake', '${validAddress}', '0x${'a'.repeat(64)}1', 0.01, 'active')`
+        ).run();
+      }).not.toThrow();
+
+      // Valid status: 'completed'
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status)
+           VALUES ('test-2', 'snake', '${validAddress}', '0x${'a'.repeat(64)}2', 0.01, 'completed')`
+        ).run();
+      }).not.toThrow();
+
+      // Valid status: 'expired'
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status)
+           VALUES ('test-3', 'snake', '${validAddress}', '0x${'a'.repeat(64)}3', 0.01, 'expired')`
         ).run();
       }).not.toThrow();
 
@@ -138,7 +156,15 @@ describe('Database Schema', () => {
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status)
-           VALUES ('test-2', 'snake', '0xabcdef1234567890123456789012345678901234', 'tx2', 0.01, 'invalid')`
+           VALUES ('test-4', 'snake', '${validAddress}', '0x${'a'.repeat(64)}4', 0.01, 'invalid')`
+        ).run();
+      }).toThrow();
+
+      // Invalid status: 'pending' should fail
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status)
+           VALUES ('test-5', 'snake', '${validAddress}', '0x${'a'.repeat(64)}5', 0.01, 'pending')`
         ).run();
       }).toThrow();
     });
