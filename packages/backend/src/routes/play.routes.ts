@@ -135,8 +135,8 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
       amountPaidUsdc,
     });
 
-    // Step 5: Return session ID to client
-    res.status(200).json({
+    // Step 5: Return session ID to client (201 Created)
+    res.status(201).json({
       success: true,
       sessionId: session.id,
       session: {
@@ -150,6 +150,18 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
   } catch (error) {
     // Handle errors that weren't caught by x402 middleware
     if (error instanceof Error) {
+      // Check for duplicate payment (unique constraint violation)
+      if (
+        error.message.includes('UNIQUE constraint failed') ||
+        error.message.includes('payment_tx_hash')
+      ) {
+        res.status(409).json({
+          error: 'Payment already processed',
+          message: 'This payment transaction has already been used to create a game session',
+        });
+        return;
+      }
+
       res.status(500).json({
         error: 'Internal server error',
         message: error.message,
