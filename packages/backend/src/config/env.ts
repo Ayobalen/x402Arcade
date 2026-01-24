@@ -117,7 +117,14 @@ export const envSchema = z.object({
     .describe('Arcade platform wallet address that receives game payments and sends prize payouts'),
   ARCADE_PRIVATE_KEY: z
     .string()
-    .regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid private key format')
+    .regex(
+      /^(0x)?[a-fA-F0-9]{64}$/,
+      'Private key must be a 64-character hex string (optionally prefixed with 0x)'
+    )
+    .transform((val) => {
+      // Strip 0x prefix if present for consistency
+      return val.startsWith('0x') ? val.slice(2) : val;
+    })
     .optional()
     .describe(
       'Private key for arcade wallet (required for payment settlement and prize distribution)'

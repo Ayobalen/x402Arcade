@@ -629,6 +629,193 @@ describe('Environment Validation Schema', () => {
     });
   });
 
+  describe('ARCADE_PRIVATE_KEY Validation', () => {
+    it('should accept valid private key with 0x prefix', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Should strip 0x prefix
+        expect(result.data.ARCADE_PRIVATE_KEY).toBe(
+          '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+        );
+      }
+    });
+
+    it('should accept valid private key without 0x prefix', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Should remain without prefix
+        expect(result.data.ARCADE_PRIVATE_KEY).toBe(
+          'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
+        );
+      }
+    });
+
+    it('should accept private key with all uppercase hex', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: 'ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept private key with mixed case hex', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '0xAbCdEf1234567890aBcDeF1234567890AbCdEf1234567890aBcDeF1234567890',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ARCADE_PRIVATE_KEY).toBe(
+          'AbCdEf1234567890aBcDeF1234567890AbCdEf1234567890aBcDeF1234567890'
+        );
+      }
+    });
+
+    it('should reject private key that is too short', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const keyError = result.error.issues.find((issue) =>
+          issue.path.includes('ARCADE_PRIVATE_KEY')
+        );
+        expect(keyError).toBeDefined();
+        expect(keyError?.message).toContain('64-character hex string');
+        // Should not leak the actual value
+        expect(keyError?.message).not.toContain('1234567890abcd');
+      }
+    });
+
+    it('should reject private key that is too long', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdefab',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject private key with invalid characters', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdeg',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject private key with special characters', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd@f',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject private key with spaces', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '0x1234567890abcdef 1234567890abcdef1234567890abcdef1234567890abcdef',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject empty private key', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept missing private key (optional)', () => {
+      const testEnv = {
+        ...process.env,
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+      delete testEnv.ARCADE_PRIVATE_KEY;
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ARCADE_PRIVATE_KEY).toBeUndefined();
+      }
+    });
+
+    it('should transform 0x-prefixed key consistently', () => {
+      const testEnv1 = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const testEnv2 = {
+        ...process.env,
+        ARCADE_PRIVATE_KEY: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result1 = envSchema.safeParse(testEnv1);
+      const result2 = envSchema.safeParse(testEnv2);
+
+      expect(result1.success).toBe(true);
+      expect(result2.success).toBe(true);
+      if (result1.success && result2.success) {
+        // Both should produce the same result (without 0x)
+        expect(result1.data.ARCADE_PRIVATE_KEY).toBe(result2.data.ARCADE_PRIVATE_KEY);
+      }
+    });
+  });
+
   describe('ARCADE_WALLET_ADDRESS Validation', () => {
     it('should accept valid Ethereum wallet address', () => {
       const testEnv = {
