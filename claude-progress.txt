@@ -6825,3 +6825,44 @@ Test coverage includes:
 - **Features completed:** 2 (both backend prize pool features)
 - **All checks:** PASSING ✅
 
+
+---
+
+## Session Log - January 25, 2026 00:30 UTC - Route Integration Tests
+
+### Feature Completed This Session:
+
+**Feature #336: Write integration tests for all routes** ✅ PASSING
+
+All 7 requirements verified:
+1. ✅ Created src/routes/__tests__/integration.test.ts (767 lines)
+2. ✅ supertest and @types/supertest already installed
+3. ✅ In-memory database setup in beforeEach (lines 30-57)
+4. ✅ POST /play/:gameType tests with mocked x402 (lines 141-169)
+5. ✅ POST /score/submit tests with valid sessions (lines 174-336)
+6. ✅ GET /leaderboard/:gameType tests (lines 341-510)
+7. ✅ GET /prize/:gameType tests (lines 515-662)
+
+Test Suite Statistics:
+- 30+ comprehensive test cases
+- 4 main test suites (Play, Score, Leaderboard, Prize)
+- Cross-route integration tests (lines 667-767)
+- Helper functions for test data creation
+- Full request/response cycle testing using supertest
+
+Key Features:
+- In-memory SQLite database for isolated tests
+- Express app setup with all routes mounted
+- Test data helpers: createTestSession, createLeaderboardEntry, createPrizePool
+- Validation testing: invalid inputs, missing fields, wrong formats
+- Business logic testing: score submission, leaderboards, prize pools
+- Integration scenarios: complete game flow from session to leaderboard
+
+### Session Summary:
+- **Features Completed:** 4 total (Features #95, #296, #300, #336)
+- **Starting Progress:** 519/1215 (42.7%)
+- **Ending Progress:** 527/1215 (43.4%)
+- **Git Commits:** 3 clean commits
+- **Code Added:** ~800 lines of integration tests
+- **Quality:** All ESLint and Prettier checks passing
+
