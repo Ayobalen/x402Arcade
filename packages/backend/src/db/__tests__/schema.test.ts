@@ -1259,4 +1259,342 @@ describe('Database Schema', () => {
       expect(indexSql?.sql).toContain('prize_pools');
     });
   });
+
+  describe('payments table', () => {
+    it('should create payments table with all columns', () => {
+      initializeSchema(db);
+
+      const columns = db.prepare(`PRAGMA table_info(payments)`).all() as Array<{
+        name: string;
+        type: string;
+        notnull: number;
+        dflt_value: string | null;
+      }>;
+
+      const columnNames = columns.map((col) => col.name);
+
+      expect(columnNames).toContain('id');
+      expect(columnNames).toContain('tx_hash');
+      expect(columnNames).toContain('from_address');
+      expect(columnNames).toContain('to_address');
+      expect(columnNames).toContain('amount_usdc');
+      expect(columnNames).toContain('purpose');
+      expect(columnNames).toContain('status');
+      expect(columnNames).toContain('created_at');
+      expect(columnNames).toContain('confirmed_at');
+    });
+
+    it('should enforce AUTOINCREMENT on payments.id', () => {
+      initializeSchema(db);
+
+      db.prepare(
+        `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+         VALUES ('0x1234', '0xplayer', '0xarcade', 0.01, 'game_payment')`
+      ).run();
+
+      db.prepare(
+        `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+         VALUES ('0x5678', '0xplayer', '0xarcade', 0.02, 'game_payment')`
+      ).run();
+
+      const rows = db.prepare(`SELECT id FROM payments ORDER BY id`).all() as Array<{ id: number }>;
+
+      expect(rows[0].id).toBe(1);
+      expect(rows[1].id).toBe(2);
+    });
+
+    it('should enforce UNIQUE constraint on tx_hash', () => {
+      initializeSchema(db);
+
+      db.prepare(
+        `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+         VALUES ('0xabc123', '0xplayer', '0xarcade', 0.01, 'game_payment')`
+      ).run();
+
+      // Duplicate tx_hash should fail
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xabc123', '0xanother', '0xarcade', 0.02, 'game_payment')`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should enforce NOT NULL constraints on required fields', () => {
+      initializeSchema(db);
+
+      // Missing tx_hash
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xplayer', '0xarcade', 0.01, 'game_payment')`
+        ).run();
+      }).toThrow();
+
+      // Missing from_address
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, to_address, amount_usdc, purpose)
+           VALUES ('0x1111', '0xarcade', 0.01, 'game_payment')`
+        ).run();
+      }).toThrow();
+
+      // Missing to_address
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, amount_usdc, purpose)
+           VALUES ('0x2222', '0xplayer', 0.01, 'game_payment')`
+        ).run();
+      }).toThrow();
+
+      // Missing amount_usdc
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, purpose)
+           VALUES ('0x3333', '0xplayer', '0xarcade', 'game_payment')`
+        ).run();
+      }).toThrow();
+
+      // Missing purpose
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc)
+           VALUES ('0x4444', '0xplayer', '0xarcade', 0.01)`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should enforce CHECK constraint on amount_usdc (positive only)', () => {
+      initializeSchema(db);
+
+      // Positive amount should work
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xpositive', '0xplayer', '0xarcade', 0.01, 'game_payment')`
+        ).run();
+      }).not.toThrow();
+
+      // Zero amount should fail
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xzero', '0xplayer', '0xarcade', 0, 'game_payment')`
+        ).run();
+      }).toThrow();
+
+      // Negative amount should fail
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xnegative', '0xplayer', '0xarcade', -0.01, 'game_payment')`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should enforce CHECK constraint on purpose (game_payment or prize_payout)', () => {
+      initializeSchema(db);
+
+      // Valid purpose: game_payment
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xgame1', '0xplayer', '0xarcade', 0.01, 'game_payment')`
+        ).run();
+      }).not.toThrow();
+
+      // Valid purpose: prize_payout
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xprize1', '0xarcade', '0xwinner', 10.0, 'prize_payout')`
+        ).run();
+      }).not.toThrow();
+
+      // Invalid purpose
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xinvalid', '0xplayer', '0xarcade', 0.01, 'refund')`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should enforce CHECK constraint on status (pending, confirmed, failed)', () => {
+      initializeSchema(db);
+
+      // Valid status: pending (default)
+      const result1 = db
+        .prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xstatus1', '0xplayer', '0xarcade', 0.01, 'game_payment')`
+        )
+        .run();
+
+      const row1 = db
+        .prepare(`SELECT status FROM payments WHERE id = ?`)
+        .get(result1.lastInsertRowid) as { status: string };
+      expect(row1.status).toBe('pending');
+
+      // Valid status: confirmed
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, status)
+           VALUES ('0xstatus2', '0xplayer', '0xarcade', 0.01, 'game_payment', 'confirmed')`
+        ).run();
+      }).not.toThrow();
+
+      // Valid status: failed
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, status)
+           VALUES ('0xstatus3', '0xplayer', '0xarcade', 0.01, 'game_payment', 'failed')`
+        ).run();
+      }).not.toThrow();
+
+      // Invalid status
+      expect(() => {
+        db.prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, status)
+           VALUES ('0xstatus4', '0xplayer', '0xarcade', 0.01, 'game_payment', 'processing')`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should auto-set created_at with ISO 8601 format', () => {
+      initializeSchema(db);
+
+      const beforeInsert = new Date();
+
+      const result = db
+        .prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+           VALUES ('0xtime1', '0xplayer', '0xarcade', 0.01, 'game_payment')`
+        )
+        .run();
+
+      const afterInsert = new Date();
+
+      const row = db
+        .prepare(`SELECT created_at FROM payments WHERE id = ?`)
+        .get(result.lastInsertRowid) as { created_at: string };
+
+      expect(row.created_at).toBeDefined();
+      expect(row.created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+      const createdDate = new Date(row.created_at + 'Z'); // Add Z for UTC
+      expect(createdDate.getTime()).toBeGreaterThanOrEqual(beforeInsert.getTime() - 5000);
+      expect(createdDate.getTime()).toBeLessThanOrEqual(afterInsert.getTime() + 5000);
+    });
+
+    it('should allow NULL for confirmed_at', () => {
+      initializeSchema(db);
+
+      const result = db
+        .prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, confirmed_at)
+           VALUES ('0xconfirm1', '0xplayer', '0xarcade', 0.01, 'game_payment', NULL)`
+        )
+        .run();
+
+      const row = db
+        .prepare(`SELECT confirmed_at FROM payments WHERE id = ?`)
+        .get(result.lastInsertRowid) as { confirmed_at: string | null };
+
+      expect(row.confirmed_at).toBeNull();
+    });
+
+    it('should accept ISO 8601 timestamps for confirmed_at', () => {
+      initializeSchema(db);
+
+      const confirmedTime = '2026-01-24 15:30:00';
+
+      const result = db
+        .prepare(
+          `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, confirmed_at)
+           VALUES ('0xconfirm2', '0xplayer', '0xarcade', 0.01, 'game_payment', ?)`
+        )
+        .run(confirmedTime);
+
+      const row = db
+        .prepare(`SELECT confirmed_at FROM payments WHERE id = ?`)
+        .get(result.lastInsertRowid) as { confirmed_at: string };
+
+      expect(row.confirmed_at).toBe(confirmedTime);
+    });
+
+    it('should create indexes for payments', () => {
+      initializeSchema(db);
+
+      const indexes = db
+        .prepare(`SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='payments'`)
+        .all() as Array<{ name: string }>;
+
+      const indexNames = indexes.map((idx) => idx.name);
+
+      expect(indexNames).toContain('idx_payments_tx_hash');
+      expect(indexNames).toContain('idx_payments_from_address');
+      expect(indexNames).toContain('idx_payments_purpose_status');
+      expect(indexNames).toContain('idx_payments_created_at');
+    });
+
+    it('should support audit trail queries (revenue calculation)', () => {
+      initializeSchema(db);
+
+      // Insert test payments
+      db.prepare(
+        `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, status)
+         VALUES ('0xrev1', '0xplayer1', '0xarcade', 0.01, 'game_payment', 'confirmed')`
+      ).run();
+
+      db.prepare(
+        `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, status)
+         VALUES ('0xrev2', '0xplayer2', '0xarcade', 0.02, 'game_payment', 'confirmed')`
+      ).run();
+
+      db.prepare(
+        `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, status)
+         VALUES ('0xrev3', '0xplayer3', '0xarcade', 0.01, 'game_payment', 'pending')`
+      ).run();
+
+      db.prepare(
+        `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose, status)
+         VALUES ('0xprize1', '0xarcade', '0xwinner', 5.0, 'prize_payout', 'confirmed')`
+      ).run();
+
+      // Revenue calculation: confirmed game payments only
+      const revenue = db
+        .prepare(
+          `SELECT SUM(amount_usdc) as total FROM payments
+           WHERE purpose = 'game_payment' AND status = 'confirmed'`
+        )
+        .get() as { total: number };
+
+      expect(revenue.total).toBe(0.03); // 0.01 + 0.02
+    });
+
+    it('should support transaction verification by tx_hash', () => {
+      initializeSchema(db);
+
+      const txHash = '0xverify123abc456def';
+
+      db.prepare(
+        `INSERT INTO payments (tx_hash, from_address, to_address, amount_usdc, purpose)
+         VALUES (?, '0xplayer', '0xarcade', 0.01, 'game_payment')`
+      ).run(txHash);
+
+      const row = db.prepare(`SELECT * FROM payments WHERE tx_hash = ?`).get(txHash) as {
+        tx_hash: string;
+        from_address: string;
+        to_address: string;
+        amount_usdc: number;
+      };
+
+      expect(row).toBeDefined();
+      expect(row.tx_hash).toBe(txHash);
+      expect(row.from_address).toBe('0xplayer');
+      expect(row.to_address).toBe('0xarcade');
+      expect(row.amount_usdc).toBe(0.01);
+    });
+  });
 });

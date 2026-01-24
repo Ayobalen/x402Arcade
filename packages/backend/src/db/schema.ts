@@ -310,6 +310,101 @@ CREATE INDEX IF NOT EXISTS idx_prize_pools_game_period ON prize_pools(game_type,
 `;
 
 /**
+ * Payments Audit Table Schema
+ *
+ * Immutable audit log of all payment transactions for accounting and dispute resolution.
+ *
+ * Purpose:
+ * - Complete financial record of all money moving through the platform
+ * - Supports regulatory compliance (AML, KYC, tax reporting)
+ * - Enables dispute resolution with verifiable on-chain proof
+ * - Provides analytics for revenue tracking and business intelligence
+ *
+ * Audit Trail Guarantees:
+ * - Records are NEVER updated or deleted (append-only log)
+ * - Each record has a unique blockchain transaction hash for verification
+ * - Timestamps are immutable and server-controlled (not client-provided)
+ * - All amounts are logged in USDC (6 decimals) for consistent accounting
+ *
+ * Columns:
+ * - id: Auto-incrementing primary key for sequential ordering
+ * - tx_hash: Blockchain transaction hash (TEXT NOT NULL UNIQUE)
+ *     - Format: 66-character hex string (0x + 64 hex digits)
+ *     - Uniqueness ensures no duplicate transaction logging
+ *     - Can be verified on Cronos Explorer
+ * - from_address: Sender's Ethereum address (TEXT NOT NULL)
+ *     - For game_payment: Player's wallet address
+ *     - For prize_payout: Arcade wallet address
+ *     - Format: 42-character hex address (0x + 40 hex digits, lowercase)
+ * - to_address: Recipient's Ethereum address (TEXT NOT NULL)
+ *     - For game_payment: Arcade wallet address
+ *     - For prize_payout: Winner's wallet address
+ *     - Format: 42-character hex address (0x + 40 hex digits, lowercase)
+ * - amount_usdc: Payment amount in USDC (REAL NOT NULL)
+ *     - Stored as decimal with 6 decimals precision (USDC standard)
+ *     - Example: 0.01 = $0.01 USDC
+ *     - CHECK constraint ensures positive amounts only
+ * - purpose: Transaction purpose (TEXT NOT NULL)
+ *     - CHECK constraint enforces: 'game_payment', 'prize_payout'
+ *     - game_payment: Player pays to play a game
+ *     - prize_payout: Arcade pays prize to winner
+ * - status: Transaction status (TEXT NOT NULL DEFAULT 'pending')
+ *     - pending: Transaction submitted but not yet confirmed on-chain
+ *     - confirmed: Transaction included in a block
+ *     - failed: Transaction reverted or rejected
+ *     - Note: In x402 flow, most transactions are confirmed immediately by facilitator
+ * - created_at: Record creation timestamp (TEXT NOT NULL, auto-set)
+ *     - ISO 8601 format: 'YYYY-MM-DD HH:MM:SS'
+ *     - UTC timezone
+ *     - Set when payment is initiated (before blockchain confirmation)
+ * - confirmed_at: Blockchain confirmation timestamp (TEXT, NULL until confirmed)
+ *     - NULL when status is 'pending' or 'failed'
+ *     - Set when status transitions to 'confirmed'
+ *     - Marks when transaction was included in a block
+ *
+ * Regulatory Compliance Notes:
+ * - Retention Policy: Records MUST be retained for 7 years minimum (financial regulations)
+ * - Access Control: Read-only access for auditors, accountants
+ * - Data Export: Support CSV/JSON export for tax reporting and audits
+ * - Privacy: Player addresses are pseudonymous (no PII stored in this table)
+ *
+ * Query Patterns:
+ * - Revenue calculation: SUM(amount_usdc) WHERE purpose = 'game_payment' AND status = 'confirmed'
+ * - Prize payouts: SUM(amount_usdc) WHERE purpose = 'prize_payout' AND status = 'confirmed'
+ * - Player history: SELECT * WHERE from_address = ? AND purpose = 'game_payment' ORDER BY created_at DESC
+ * - Transaction verification: SELECT * WHERE tx_hash = ?
+ */
+export const PAYMENTS_TABLE = `
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tx_hash TEXT NOT NULL UNIQUE,
+    from_address TEXT NOT NULL,
+    to_address TEXT NOT NULL,
+    amount_usdc REAL NOT NULL CHECK (amount_usdc > 0),
+    purpose TEXT NOT NULL CHECK (purpose IN ('game_payment', 'prize_payout')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'failed')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    confirmed_at TEXT
+);
+`;
+
+/**
+ * Payments Indexes
+ *
+ * Optimizes payment audit query patterns:
+ * - Transaction lookup: Find payment by blockchain tx hash (idx_payments_tx_hash)
+ * - Player history: Find all payments from a specific address (idx_payments_from_address)
+ * - Revenue analysis: Filter by purpose and status (idx_payments_purpose_status)
+ * - Time-based queries: Sort by creation time (idx_payments_created_at)
+ */
+export const PAYMENTS_INDEXES = `
+CREATE INDEX IF NOT EXISTS idx_payments_tx_hash ON payments(tx_hash);
+CREATE INDEX IF NOT EXISTS idx_payments_from_address ON payments(from_address);
+CREATE INDEX IF NOT EXISTS idx_payments_purpose_status ON payments(purpose, status);
+CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at DESC);
+`;
+
+/**
  * Initialize database schema
  *
  * Creates all tables and indexes if they don't exist.
@@ -335,4 +430,10 @@ export function initializeSchema(db: DatabaseType): void {
 
   // Create indexes for prize_pools
   db.exec(PRIZE_POOLS_INDEXES);
+
+  // Create payments audit table
+  db.exec(PAYMENTS_TABLE);
+
+  // Create indexes for payments
+  db.exec(PAYMENTS_INDEXES);
 }
