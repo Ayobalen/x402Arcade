@@ -744,4 +744,81 @@ export class GameService {
       throw error;
     }
   }
+
+  /**
+   * Get a game session by ID
+   *
+   * Retrieves a session from the database by its unique identifier.
+   * Returns null if the session does not exist.
+   *
+   * @param id - The session ID to look up
+   * @returns The game session or null if not found
+   *
+   * @example
+   * ```typescript
+   * const session = gameService.getSession('550e8400-e29b-41d4-a716-446655440000');
+   * if (session) {
+   *   console.log('Found session for player:', session.playerAddress);
+   * } else {
+   *   console.log('Session not found');
+   * }
+   * ```
+   */
+  getSession(id: string): GameSession | null {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT
+          id,
+          game_type,
+          player_address,
+          payment_tx_hash,
+          amount_paid_usdc,
+          score,
+          status,
+          created_at,
+          completed_at,
+          game_duration_ms
+        FROM game_sessions
+        WHERE id = ?
+      `);
+
+      const row = stmt.get(id) as
+        | {
+            id: string;
+            game_type: string;
+            player_address: string;
+            payment_tx_hash: string;
+            amount_paid_usdc: number;
+            score: number | null;
+            status: string;
+            created_at: string;
+            completed_at: string | null;
+            game_duration_ms: number | null;
+          }
+        | undefined;
+
+      if (!row) {
+        return null;
+      }
+
+      // Map database columns to camelCase properties
+      return {
+        id: row.id,
+        gameType: row.game_type as 'snake' | 'tetris',
+        playerAddress: row.player_address,
+        paymentTxHash: row.payment_tx_hash,
+        amountPaidUsdc: row.amount_paid_usdc,
+        score: row.score,
+        status: row.status as 'active' | 'completed' | 'expired',
+        createdAt: row.created_at,
+        completedAt: row.completed_at,
+        gameDurationMs: row.game_duration_ms,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to get game session: ${error.message}`);
+      }
+      throw error;
+    }
+  }
 }
