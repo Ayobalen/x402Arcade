@@ -8,6 +8,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import type { Database as DatabaseType } from 'better-sqlite3';
 import type { PaymentPayload } from '../server/x402/types.js';
 import { createDefaultX402Config, validatePaymentPayload } from '../server/x402/types.js';
 import {
@@ -618,4 +619,44 @@ export function parseGameStartResponse(responseBody: unknown): GameSession | nul
   }
 
   return getSession(result.sessionId) || null;
+}
+
+// ============================================================================
+// GameService Class (Database-backed)
+// ============================================================================
+
+/**
+ * GameService class for managing game sessions with database persistence.
+ *
+ * This class provides a clean API for game session operations using
+ * dependency injection for testability.
+ *
+ * @example
+ * ```typescript
+ * import { getDatabase } from '../db';
+ * const gameService = new GameService(getDatabase());
+ *
+ * // Create a session
+ * const session = gameService.createSession({
+ *   gameType: 'snake',
+ *   playerAddress: '0x1234...',
+ *   paymentTxHash: '0xabcd...',
+ *   amountPaidUsdc: 0.01
+ * });
+ * ```
+ */
+export class GameService {
+  /**
+   * Database instance for persistence
+   */
+  private db: DatabaseType;
+
+  /**
+   * Create a new GameService instance
+   *
+   * @param database - SQLite database instance
+   */
+  constructor(database: DatabaseType) {
+    this.db = database;
+  }
 }
