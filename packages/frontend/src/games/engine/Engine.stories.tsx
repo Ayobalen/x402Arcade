@@ -4,12 +4,14 @@ import {
   createGameLoop,
   createInputManager,
   createStateMachine,
+  createAudioManager,
   GAME_STATES,
   aabbIntersects,
   circleIntersects,
   circlePenetrationDepth,
   type InputManager,
   type StateMachine as StateMachineType,
+  type AudioManager,
 } from './index'
 import type { CircleBounds } from './types'
 
@@ -648,6 +650,303 @@ const StateMachineDemo = () => {
 }
 
 // ============================================================================
+// Audio Demo
+// ============================================================================
+
+const AudioDemo = () => {
+  const [audioManager, setAudioManager] = useState<AudioManager | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const [masterVolume, setMasterVolume] = useState(1.0)
+  const [sfxVolume, setSfxVolume] = useState(1.0)
+  const [playingCount, setPlayingCount] = useState(0)
+  const [activeSounds, setActiveSounds] = useState<Set<string>>(new Set())
+
+  // Initialize audio manager
+  const initAudio = useCallback(async () => {
+    if (audioManager) return
+
+    const manager = createAudioManager({
+      masterVolume: 1.0,
+      categoryVolumes: {
+        sfx: 1.0,
+        music: 0.7,
+        ui: 0.8,
+        voice: 1.0,
+      },
+    })
+
+    await manager.init()
+    setAudioManager(manager)
+    setIsInitialized(true)
+  }, [audioManager])
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      audioManager?.dispose()
+    }
+  }, [audioManager])
+
+  // Generate a simple beep sound using oscillator (no external files needed)
+  const playBeep = useCallback(
+    (frequency: number, duration: number, type: OscillatorType = 'sine') => {
+      if (!isInitialized) return
+
+      // Create a temporary audio context for demo sounds
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+
+      oscillator.type = type
+      oscillator.frequency.setValueAtTime(frequency, ctx.currentTime)
+
+      // Apply volume from master and sfx sliders
+      const volume = masterVolume * sfxVolume * (isMuted ? 0 : 1)
+      gainNode.gain.setValueAtTime(volume * 0.3, ctx.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
+
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+
+      oscillator.start()
+      oscillator.stop(ctx.currentTime + duration)
+
+      const soundId = `beep_${Date.now()}`
+      setActiveSounds((prev) => new Set(prev).add(soundId))
+      setPlayingCount((prev) => prev + 1)
+
+      setTimeout(() => {
+        setActiveSounds((prev) => {
+          const next = new Set(prev)
+          next.delete(soundId)
+          return next
+        })
+        setPlayingCount((prev) => Math.max(0, prev - 1))
+        ctx.close()
+      }, duration * 1000)
+    },
+    [isInitialized, masterVolume, sfxVolume, isMuted]
+  )
+
+  const handleMasterVolumeChange = (value: number) => {
+    setMasterVolume(value)
+    audioManager?.setMasterVolume(value)
+  }
+
+  const handleSfxVolumeChange = (value: number) => {
+    setSfxVolume(value)
+    audioManager?.setCategoryVolume('sfx', value)
+  }
+
+  const toggleMute = () => {
+    if (isMuted) {
+      audioManager?.unmute()
+    } else {
+      audioManager?.mute()
+    }
+    setIsMuted(!isMuted)
+  }
+
+  const SoundButton = ({
+    label,
+    frequency,
+    type = 'sine',
+    duration = 0.3,
+    color = 'cyan',
+  }: {
+    label: string
+    frequency: number
+    type?: OscillatorType
+    duration?: number
+    color?: string
+  }) => {
+    const colorClasses: Record<string, string> = {
+      cyan: 'bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_20px_rgba(0,255,255,0.3)]',
+      magenta: 'bg-fuchsia-600 hover:bg-fuchsia-500 shadow-[0_0_20px_rgba(255,0,255,0.3)]',
+      green: 'bg-green-600 hover:bg-green-500 shadow-[0_0_20px_rgba(0,255,0,0.3)]',
+      yellow: 'bg-yellow-600 hover:bg-yellow-500 shadow-[0_0_20px_rgba(255,255,0,0.3)]',
+      red: 'bg-red-600 hover:bg-red-500 shadow-[0_0_20px_rgba(255,0,0,0.3)]',
+    }
+
+    return (
+      <button
+        onClick={() => playBeep(frequency, duration, type)}
+        disabled={!isInitialized}
+        className={`
+          px-4 py-3 rounded-lg font-bold text-white transition-all
+          ${isInitialized ? colorClasses[color] : 'bg-gray-700 cursor-not-allowed opacity-50'}
+        `}
+      >
+        {label}
+      </button>
+    )
+  }
+
+  const VolumeSlider = ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string
+    value: number
+    onChange: (value: number) => void
+  }) => (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-400">{label}</span>
+        <span className="text-cyan-400 font-mono">{Math.round(value * 100)}%</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full h-2 bg-[#2a2a4a] rounded-lg appearance-none cursor-pointer accent-cyan-500"
+      />
+    </div>
+  )
+
+  return (
+    <div className="p-8 bg-[#0a0a0f] min-h-screen">
+      <SectionHeader
+        title="Audio Playback"
+        description="Click to initialize audio, then trigger different sound effects. Adjust volume with sliders."
+      />
+
+      <div className="flex gap-8">
+        <div className="flex-1 space-y-6">
+          {/* Initialize Button */}
+          {!isInitialized ? (
+            <div className="p-8 bg-[#1a1a2e] rounded-lg text-center">
+              <p className="text-gray-400 mb-4">
+                Browser autoplay policy requires user interaction to enable audio.
+              </p>
+              <button
+                onClick={initAudio}
+                className="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-all shadow-[0_0_30px_rgba(0,255,255,0.4)] text-xl"
+              >
+                🔊 Initialize Audio
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Sound Buttons Grid */}
+              <div className="p-6 bg-[#1a1a2e] rounded-lg">
+                <h3 className="text-white font-bold mb-4">Sound Effects (Synthesized)</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <SoundButton label="Beep" frequency={440} color="cyan" />
+                  <SoundButton label="Boop" frequency={220} color="cyan" />
+                  <SoundButton label="Blip" frequency={880} duration={0.1} color="cyan" />
+                  <SoundButton label="Jump" frequency={600} type="square" duration={0.15} color="green" />
+                  <SoundButton label="Hit" frequency={150} type="sawtooth" duration={0.2} color="red" />
+                  <SoundButton label="Coin" frequency={987} type="triangle" duration={0.2} color="yellow" />
+                  <SoundButton label="Power Up" frequency={523} type="sine" duration={0.5} color="magenta" />
+                  <SoundButton label="Laser" frequency={1200} type="sawtooth" duration={0.15} color="magenta" />
+                  <SoundButton label="Explosion" frequency={80} type="sawtooth" duration={0.4} color="red" />
+                </div>
+              </div>
+
+              {/* Visual Feedback */}
+              <div className="p-6 bg-[#1a1a2e] rounded-lg">
+                <h3 className="text-white font-bold mb-4">Audio Visualizer</h3>
+                <div className="flex items-end justify-center gap-1 h-32 bg-[#0a0a0f] rounded-lg p-4">
+                  {Array.from({ length: 16 }).map((_, i) => {
+                    const isActive = activeSounds.size > 0
+                    const height = isActive
+                      ? Math.random() * 80 + 20
+                      : 10 + Math.sin(i * 0.5) * 5
+                    return (
+                      <div
+                        key={i}
+                        className={`w-4 rounded-t transition-all duration-75 ${
+                          isActive ? 'bg-cyan-500' : 'bg-[#2a2a4a]'
+                        }`}
+                        style={{
+                          height: `${height}%`,
+                          boxShadow: isActive ? '0 0 10px rgba(0, 255, 255, 0.5)' : 'none',
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="w-72 space-y-4">
+          {/* Status */}
+          <div className="p-4 bg-[#1a1a2e] rounded-lg space-y-3">
+            <h3 className="text-white font-bold">Status</h3>
+            <StatDisplay
+              label="Initialized"
+              value={isInitialized ? '✓ Ready' : '○ Pending'}
+            />
+            <StatDisplay label="Playing" value={playingCount} />
+            <StatDisplay label="Muted" value={isMuted ? 'Yes' : 'No'} />
+          </div>
+
+          {/* Volume Controls */}
+          <div className="p-4 bg-[#1a1a2e] rounded-lg space-y-4">
+            <h3 className="text-white font-bold">Volume Controls</h3>
+            <VolumeSlider
+              label="Master Volume"
+              value={masterVolume}
+              onChange={handleMasterVolumeChange}
+            />
+            <VolumeSlider
+              label="SFX Volume"
+              value={sfxVolume}
+              onChange={handleSfxVolumeChange}
+            />
+            <button
+              onClick={toggleMute}
+              disabled={!isInitialized}
+              className={`w-full py-2 rounded-lg font-bold transition-all ${
+                !isInitialized
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : isMuted
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-cyan-600 hover:bg-cyan-700 text-white'
+              }`}
+            >
+              {isMuted ? '🔇 Unmute' : '🔊 Mute'}
+            </button>
+          </div>
+
+          {/* Legend */}
+          <div className="p-4 bg-[#1a1a2e] rounded-lg">
+            <h3 className="text-white font-bold mb-2">Wave Types</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-cyan-500" />
+                <span className="text-gray-400">Sine (smooth)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-green-500" />
+                <span className="text-gray-400">Square (retro)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-yellow-500" />
+                <span className="text-gray-400">Triangle (soft)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-red-500" />
+                <span className="text-gray-400">Sawtooth (harsh)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
 // Documentation Overview
 // ============================================================================
 
@@ -810,6 +1109,17 @@ export const GameStateMachine: Story = {
     docs: {
       description: {
         story: 'Interactive state machine demo showing valid transitions.',
+      },
+    },
+  },
+}
+
+export const Audio: Story = {
+  render: () => <AudioDemo />,
+  parameters: {
+    docs: {
+      description: {
+        story: 'Audio playback demo with volume controls and sound effect triggers.',
       },
     },
   },
