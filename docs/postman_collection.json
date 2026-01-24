@@ -1,0 +1,345 @@
+{
+  "info": {
+    "name": "x402Arcade API",
+    "description": "Backend API for x402Arcade - gasless arcade gaming on Cronos blockchain.\n\n## Getting Started\n\n1. Set environment variables:\n   - `base_url`: http://localhost:3001/api/v1 (dev) or https://api.x402arcade.com/api/v1 (prod)\n   - `player_address`: Your Ethereum wallet address (0x...)\n   - `usdc_contract`: 0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0 (Cronos testnet)\n\n2. Test the payment flow:\n   - Send POST to /play/snake (receives 402 Payment Required)\n   - Sign EIP-3009 authorization in your wallet\n   - Add X-Payment header with signed payload\n   - Retry POST to /play/snake (receives 200 with sessionId)\n\n## x402 Payment Flow\n\nThe API uses the x402 protocol for gasless micropayments:\n\n1. **Initial Request**: POST /play/{gameType}\n2. **402 Response**: Payment requirements returned\n3. **Sign Authorization**: Use wallet to sign EIP-3009 transferWithAuthorization\n4. **Retry with Payment**: Include X-Payment header (base64-encoded signature)\n5. **Success**: Server settles payment and returns session",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "x402arcade"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "player_address",
+      "value": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+      "type": "string"
+    },
+    {
+      "key": "usdc_contract",
+      "value": "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Play",
+      "item": [
+        {
+          "name": "Create Game Session (Snake)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save session ID for later requests",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('session_id', response.sessionId);",
+                  "    console.log('Session ID saved:', response.sessionId);",
+                  "}",
+                  "",
+                  "// Handle 402 Payment Required",
+                  "if (pm.response.code === 402) {",
+                  "    const paymentDetails = pm.response.json().paymentDetails;",
+                  "    console.log('Payment required:', JSON.stringify(paymentDetails, null, 2));",
+                  "    console.log('');",
+                  "    console.log('Next steps:');",
+                  "    console.log('1. Sign EIP-3009 authorization with your wallet');",
+                  "    console.log('2. Add X-Payment header with base64-encoded signature');",
+                  "    console.log('3. Retry this request');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Payment",
+                "value": "",
+                "description": "Base64-encoded EIP-3009 signature (add after receiving 402)",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/play/snake",
+              "host": ["{{base_url}}"],
+              "path": ["play", "snake"]
+            },
+            "description": "Create a new Snake game session.\n\n**Price**: $0.01 USDC\n\n**Flow**:\n1. First request returns 402 Payment Required\n2. Sign EIP-3009 authorization\n3. Retry with X-Payment header\n4. Receive sessionId"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Game Session (Tetris)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('session_id', response.sessionId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/play/tetris",
+              "host": ["{{base_url}}"],
+              "path": ["play", "tetris"]
+            },
+            "description": "Create a new Tetris game session.\n\n**Price**: $0.02 USDC"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Score",
+      "item": [
+        {
+          "name": "Submit Score",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Verify response",
+                  "pm.test('Score submitted successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Score submitted!');",
+                  "    console.log('Rankings:', JSON.stringify(response.rankings, null, 2));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"score\": 1250,\n  \"playerAddress\": \"{{player_address}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/score/submit",
+              "host": ["{{base_url}}"],
+              "path": ["score", "submit"]
+            },
+            "description": "Submit the final score for a completed game.\n\n**Requirements**:\n- sessionId from game creation\n- score (integer >= 0)\n- playerAddress (Ethereum address)\n\n**Returns**:\n- Updated session\n- Player rankings (daily, weekly, alltime)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "item": [
+        {
+          "name": "Get Daily Leaderboard (Snake)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/leaderboard/snake/daily?limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["leaderboard", "snake", "daily"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max entries (1-100)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Skip entries for pagination"
+                }
+              ]
+            },
+            "description": "Get today's Snake leaderboard.\n\n**Returns**:\n- Array of leaderboard entries\n- Ordered by score (highest first)\n- Pagination support"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Weekly Leaderboard (Snake)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/leaderboard/snake/weekly?limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["leaderboard", "snake", "weekly"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get this week's Snake leaderboard."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All-Time Leaderboard (Snake)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/leaderboard/snake/alltime?limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["leaderboard", "snake", "alltime"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get all-time Snake leaderboard."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Prize Pool",
+      "item": [
+        {
+          "name": "Get Current Daily Prize Pool (Snake)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/prize/snake/daily",
+              "host": ["{{base_url}}"],
+              "path": ["prize", "snake", "daily"]
+            },
+            "description": "Get today's Snake prize pool.\n\n**Returns**:\n- Total USDC in pool (70% of all payments)\n- Number of games played\n- Pool status (active/finalized/paid)\n- Winner address (if finalized)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current Weekly Prize Pool (Snake)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/prize/snake/weekly",
+              "host": ["{{base_url}}"],
+              "path": ["prize", "snake", "weekly"]
+            },
+            "description": "Get this week's Snake prize pool."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prize Pool History (Snake - Daily)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/prize/snake/history?periodType=daily&limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["prize", "snake", "history"],
+              "query": [
+                {
+                  "key": "periodType",
+                  "value": "daily",
+                  "description": "Filter by period (daily/weekly)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max pools (1-100)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Skip pools for pagination"
+                }
+              ]
+            },
+            "description": "Get historical daily prize pools for Snake.\n\n**Returns**:\n- Array of past prize pools\n- Ordered by most recent first\n- Pagination support"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prize Pool History (Snake - All Periods)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/prize/snake/history?limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["prize", "snake", "history"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get historical prize pools for Snake (both daily and weekly).\n\n**Returns**:\n- daily: Array of daily pools\n- weekly: Array of weekly pools\n- Separate counts for each period type"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
