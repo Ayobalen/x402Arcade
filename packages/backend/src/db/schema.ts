@@ -25,7 +25,11 @@ import type { Database as DatabaseType } from 'better-sqlite3';
  *     - CHECK constraint ensures positive amounts only
  *     - Note: For critical financial calculations, atomic units (INTEGER) would provide exact precision
  *     - For this arcade application, REAL is acceptable as amounts are small ($0.01-$0.02)
- * - score: Final score achieved (NULL if game not completed)
+ * - score: Final score achieved by the player (INTEGER, NULL until game completion)
+ *     - NULL indicates game has not yet been completed
+ *     - Only set when player finishes the game and submits their score
+ *     - CHECK constraint ensures non-negative scores (score >= 0 when not NULL)
+ *     - Application layer performs additional game-specific validation (e.g., max scores per game type)
  * - status: Session status (active, completed, expired)
  * - created_at: ISO timestamp when session was created
  * - completed_at: ISO timestamp when game ended (NULL if active)
@@ -50,7 +54,7 @@ CREATE TABLE IF NOT EXISTS game_sessions (
         payment_tx_hash LIKE '0x%'
     ),
     amount_paid_usdc REAL NOT NULL CHECK (amount_paid_usdc > 0),
-    score INTEGER,
+    score INTEGER CHECK (score IS NULL OR score >= 0),
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     completed_at TEXT,
