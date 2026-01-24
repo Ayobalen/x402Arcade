@@ -211,6 +211,7 @@ export class LeaderboardService {
    * @param params.gameType - Type of game to query
    * @param params.periodType - Period type (daily, weekly, alltime)
    * @param params.limit - Maximum number of entries to return (default: 10)
+   * @param params.offset - Number of entries to skip for pagination (default: 0)
    *
    * @returns Array of leaderboard entries with computed ranks
    *
@@ -219,17 +220,19 @@ export class LeaderboardService {
    * const topScores = leaderboardService.getTopScores({
    *   gameType: 'snake',
    *   periodType: 'daily',
-   *   limit: 10
+   *   limit: 10,
+   *   offset: 20
    * });
-   * // Returns top 10 scores for snake game today
+   * // Returns entries 21-30 for snake game today
    * ```
    */
   getTopScores(params: {
     gameType: GameType;
     periodType: PeriodType;
     limit?: number;
+    offset?: number;
   }): LeaderboardEntry[] {
-    const { gameType, periodType, limit = 10 } = params;
+    const { gameType, periodType, limit = 10, offset = 0 } = params;
 
     // Calculate the period_date based on periodType
     let periodDate: string;
@@ -244,6 +247,7 @@ export class LeaderboardService {
 
     // Query with ROW_NUMBER() window function for ranking
     // SQLite supports window functions since version 3.25.0 (2018-09-15)
+    // LIMIT and OFFSET are used for pagination
     const stmt = this.db.prepare(`
       SELECT
         id,
@@ -260,10 +264,10 @@ export class LeaderboardService {
         AND period_type = ?
         AND period_date = ?
       ORDER BY score DESC
-      LIMIT ?
+      LIMIT ? OFFSET ?
     `);
 
-    const rows = stmt.all(gameType, periodType, periodDate, limit) as Array<{
+    const rows = stmt.all(gameType, periodType, periodDate, limit, offset) as Array<{
       id: number;
       session_id: string;
       game_type: string;

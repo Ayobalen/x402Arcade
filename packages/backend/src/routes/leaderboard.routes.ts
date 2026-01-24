@@ -72,7 +72,9 @@ router.get('/:gameType/:periodType', (req: Request, res: Response) => {
 
   // Extract and validate query parameters
   const limitParam = req.query.limit;
+  const offsetParam = req.query.offset;
   let limit = 10; // default
+  let offset = 0; // default
 
   if (limitParam !== undefined) {
     const parsedLimit = parseInt(limitParam as string, 10);
@@ -93,6 +95,18 @@ router.get('/:gameType/:periodType', (req: Request, res: Response) => {
     limit = parsedLimit;
   }
 
+  if (offsetParam !== undefined) {
+    const parsedOffset = parseInt(offsetParam as string, 10);
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({
+        error: 'Validation error',
+        message: 'offset must be a non-negative number',
+      });
+      return;
+    }
+    offset = parsedOffset;
+  }
+
   try {
     // Get leaderboard service
     const service = getLeaderboardService();
@@ -102,6 +116,7 @@ router.get('/:gameType/:periodType', (req: Request, res: Response) => {
       gameType: gameType as GameType,
       periodType: periodType as PeriodType,
       limit,
+      offset,
     });
 
     // Return leaderboard entries
@@ -109,6 +124,7 @@ router.get('/:gameType/:periodType', (req: Request, res: Response) => {
       gameType,
       periodType,
       limit,
+      offset,
       count: entries.length,
       entries,
     });
