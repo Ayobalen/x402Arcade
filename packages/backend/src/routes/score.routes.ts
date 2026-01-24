@@ -3,6 +3,9 @@
  *
  * Handles score submission for completed game sessions.
  *
+ * Note: GameService and LeaderboardService imports will be added
+ * when route implementations are complete (upcoming features).
+ *
  * @module routes/score
  */
 
