@@ -8,21 +8,26 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Validate environment variables at startup
-import { getEnv, validateEnv } from './config/env.js';
+import { getEnv, validateEnv, type ValidationResult } from './config/env.js';
+
+/**
+ * Format environment validation errors for display
+ */
+function formatEnvErrors(result: ValidationResult): void {
+  // eslint-disable-next-line no-console
+  console.error('❌ Environment validation failed:');
+  result.errors?.issues.forEach((issue) => {
+    // eslint-disable-next-line no-console
+    console.error(`   - ${issue.path.join('.')}: ${issue.message}`);
+  });
+}
 
 // Perform validation and report errors early
 const validationResult = validateEnv();
 if (!validationResult.success) {
-  // eslint-disable-next-line no-console
-  console.error('❌ Environment validation failed:');
-  validationResult.errors?.issues.forEach((issue) => {
-    // eslint-disable-next-line no-console
-    console.error(`   - ${issue.path.join('.')}: ${issue.message}`);
-  });
-  // In production, fail fast. In development, continue with defaults where possible.
-  if (process.env.NODE_ENV === 'production') {
-    process.exit(1);
-  }
+  formatEnvErrors(validationResult);
+  // Fail fast - prevent server startup with invalid configuration
+  process.exit(1);
 }
 
 // Get validated environment (will use defaults for optional fields)
