@@ -126,11 +126,12 @@ function WalletIcon({ className }: { className?: string }) {
 }
 
 /**
- * Network indicator dot
+ * Network indicator dot with glow effect
  */
 function NetworkIndicator({ chainId, className }: { chainId: number | null; className?: string }) {
   const network = chainId ? NETWORKS[chainId] : null;
   const isCorrectNetwork = chainId === REQUIRED_CHAIN_ID;
+  const color = network?.iconColor || (isCorrectNetwork ? '#22C55E' : '#F59E0B');
 
   return (
     <span
@@ -141,7 +142,8 @@ function NetworkIndicator({ chainId, className }: { chainId: number | null; clas
         className
       )}
       style={{
-        backgroundColor: network?.iconColor || (isCorrectNetwork ? '#22C55E' : '#F59E0B'),
+        backgroundColor: color,
+        boxShadow: `0 0 6px ${color}, 0 0 10px ${color}40`,
       }}
       aria-hidden="true"
     />
@@ -533,12 +535,15 @@ export const ConnectButton = forwardRef<HTMLButtonElement, ConnectButtonProps>(
         className={cn(
           // Base styles
           'gap-2',
-          // Connected state styling
+          // Connected state styling with neon glow
           connectionState === 'connected' && [
             'bg-surface-primary/50',
             'border border-border',
             'hover:bg-surface-primary',
             'hover:border-primary/50',
+            'shadow-[0_0_10px_rgba(0,255,255,0.15)]',
+            'hover:shadow-[0_0_15px_rgba(0,255,255,0.3)]',
+            'transition-shadow duration-200',
           ],
           // Wrong network state styling
           connectionState === 'wrong_network' && [
