@@ -1,0 +1,39 @@
+# Build outputs
+dist
+build
+.next
+out
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Coverage and test reports
+coverage
+test-reports
+.nyc_output
+
+# Cache
+.cache
+.turbo
+.parcel-cache
+.vite
+
+# Misc
+*.min.js
+*.min.css
+*.bundle.js
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Auto-generated
+*.d.ts
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs
+*.log
