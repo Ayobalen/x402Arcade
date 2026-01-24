@@ -16,6 +16,7 @@
  * <Header showBalance />
  */
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
@@ -45,6 +46,61 @@ function GamepadIcon({ className }: { className?: string }) {
 }
 
 /**
+ * Hamburger menu icon that animates to X when open
+ */
+function MenuIcon({ isOpen, className }: { isOpen: boolean; className?: string }) {
+  return (
+    <svg
+      className={cn('w-6 h-6', className)}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* Top line - rotates to form top of X */}
+      <line
+        x1="3"
+        y1="6"
+        x2="21"
+        y2="6"
+        className={cn(
+          'origin-center transition-all duration-300',
+          isOpen && 'rotate-45 translate-y-[6px]'
+        )}
+        style={{
+          transformOrigin: '12px 6px',
+        }}
+      />
+      {/* Middle line - fades out when open */}
+      <line
+        x1="3"
+        y1="12"
+        x2="21"
+        y2="12"
+        className={cn('transition-opacity duration-300', isOpen && 'opacity-0')}
+      />
+      {/* Bottom line - rotates to form bottom of X */}
+      <line
+        x1="3"
+        y1="18"
+        x2="21"
+        y2="18"
+        className={cn(
+          'origin-center transition-all duration-300',
+          isOpen && '-rotate-45 -translate-y-[6px]'
+        )}
+        style={{
+          transformOrigin: '12px 18px',
+        }}
+      />
+    </svg>
+  );
+}
+
+/**
  * Header Component
  */
 export function Header({
@@ -53,6 +109,19 @@ export function Header({
   showWallet = true,
   showBalance = false,
 }: HeaderProps) {
+  // Mobile menu state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Toggle mobile menu
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen((prev) => !prev);
+  };
+
+  // Close mobile menu (e.g., when a link is clicked)
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <header
       className={cn(
@@ -88,7 +157,7 @@ export function Header({
         <span className="font-bold text-lg sm:hidden">x402</span>
       </Link>
 
-      {/* Center: Navigation */}
+      {/* Center: Desktop Navigation */}
       {showNavigation && (
         <nav className="hidden md:flex items-center gap-6">
           <Link
@@ -140,12 +209,115 @@ export function Header({
         </nav>
       )}
 
+      {/* Mobile Menu Button - Shows on small screens */}
+      {showNavigation && (
+        <button
+          onClick={toggleMobileMenu}
+          className={cn(
+            // Layout
+            'md:hidden',
+            'flex items-center justify-center',
+            'w-10 h-10',
+            'ml-auto mr-2',
+            // Styling
+            'text-[#00ffff]',
+            'hover:text-[#00ffff]/80',
+            'transition-colors duration-150',
+            // Focus styles
+            'focus:outline-none',
+            'focus-visible:ring-2',
+            'focus-visible:ring-[#00ffff]/50',
+            'rounded-md'
+          )}
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-navigation"
+        >
+          <MenuIcon isOpen={isMobileMenuOpen} />
+        </button>
+      )}
+
       {/* Right: Wallet & Balance */}
       {showWallet && (
         <div className="flex items-center gap-3">
           {showBalance && <Balance />}
           <ConnectButton />
         </div>
+      )}
+
+      {/* Mobile Navigation Menu */}
+      {showNavigation && (
+        <nav
+          id="mobile-navigation"
+          className={cn(
+            // Layout
+            'md:hidden',
+            'absolute top-full left-0 right-0',
+            'w-full',
+            // Styling
+            'bg-[#0a0a0a]/98',
+            'border-b border-[#2d2d4a]',
+            'backdrop-blur-sm',
+            'shadow-[0_4px_6px_-1px_rgba(0,0,0,0.3)]',
+            // Animation
+            'transition-all duration-300 ease-in-out',
+            'origin-top',
+            // Show/hide based on state
+            isMobileMenuOpen
+              ? 'opacity-100 scale-y-100 visible'
+              : 'opacity-0 scale-y-95 invisible pointer-events-none'
+          )}
+          aria-hidden={!isMobileMenuOpen}
+        >
+          <div className="flex flex-col py-4 px-4 gap-1">
+            <Link
+              to="/play"
+              onClick={closeMobileMenu}
+              className={cn(
+                'px-4 py-3',
+                'text-base font-medium',
+                'text-white/80 hover:text-[#00ffff]',
+                'hover:bg-[#00ffff]/5',
+                'rounded-lg',
+                'transition-all duration-150',
+                // Neon glow on hover
+                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]'
+              )}
+            >
+              Play
+            </Link>
+            <Link
+              to="/leaderboard"
+              onClick={closeMobileMenu}
+              className={cn(
+                'px-4 py-3',
+                'text-base font-medium',
+                'text-white/80 hover:text-[#00ffff]',
+                'hover:bg-[#00ffff]/5',
+                'rounded-lg',
+                'transition-all duration-150',
+                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]'
+              )}
+            >
+              Leaderboard
+            </Link>
+            <Link
+              to="/prizes"
+              onClick={closeMobileMenu}
+              className={cn(
+                'px-4 py-3',
+                'text-base font-medium',
+                'text-white/80 hover:text-[#00ffff]',
+                'hover:bg-[#00ffff]/5',
+                'rounded-lg',
+                'transition-all duration-150',
+                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]'
+              )}
+            >
+              Prizes
+            </Link>
+          </div>
+        </nav>
       )}
     </header>
   );
