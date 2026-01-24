@@ -839,7 +839,8 @@ export class GameService {
     const gameDurationMs = completedAtMs - startedAt;
 
     try {
-      // Step 4: Execute UPDATE query
+      // Step 4: Execute UPDATE query with atomic status validation
+      // WHERE clause ensures the session is still active (prevents race conditions)
       const stmt = this.db.prepare(`
         UPDATE game_sessions
         SET
@@ -847,12 +848,23 @@ export class GameService {
           status = 'completed',
           completed_at = ?,
           game_duration_ms = ?
-        WHERE id = ?
+        WHERE id = ? AND status = 'active'
       `);
 
-      stmt.run(score, completedAt, gameDurationMs, id);
+      const result = stmt.run(score, completedAt, gameDurationMs, id);
 
-      // Step 5: Return updated session
+      // Step 5: Verify that the update actually affected a row
+      // If changes is 0, the session either doesn't exist or isn't active
+      if (result.changes === 0) {
+        // Re-fetch to provide better error message
+        const currentSession = this.getSession(id);
+        if (!currentSession) {
+          throw new Error(`Session not found: ${id}`);
+        }
+        throw new Error(`Cannot complete session with status: ${currentSession.status}`);
+      }
+
+      // Step 6: Return updated session
       return {
         ...session,
         score,
