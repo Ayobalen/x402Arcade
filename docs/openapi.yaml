@@ -1,0 +1,666 @@
+openapi: 3.0.3
+info:
+  title: x402Arcade API
+  version: 1.0.0
+  description: |
+    Backend API for x402Arcade - a gasless arcade gaming platform on Cronos blockchain.
+
+    Players pay $0.01-$0.02 USDC per game with zero gas fees using the x402 protocol,
+    competing for daily prize pools on leaderboards.
+
+    ## x402 Payment Flow
+
+    1. Client sends POST request to game endpoint
+    2. Server responds with 402 Payment Required + payment details
+    3. Client signs EIP-3009 authorization
+    4. Client resends request with X-Payment header
+    5. Server settles payment via x402 facilitator
+    6. Server returns 200 OK with game session
+
+  contact:
+    name: x402Arcade Team
+    url: https://github.com/your-org/x402Arcade
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Development server
+  - url: https://api.x402arcade.com/api/v1
+    description: Production server
+
+tags:
+  - name: Play
+    description: Game session creation with x402 payment
+  - name: Score
+    description: Score submission and game completion
+  - name: Leaderboard
+    description: Leaderboard queries and rankings
+  - name: Prize Pool
+    description: Prize pool information and history
+
+paths:
+  /play/{gameType}:
+    post:
+      tags:
+        - Play
+      summary: Start a new game session
+      description: |
+        Create a new game session with x402 payment.
+
+        **Payment Flow:**
+        1. First request returns 402 with payment requirements
+        2. Client signs EIP-3009 authorization
+        3. Second request includes X-Payment header
+        4. Server settles payment and creates session
+
+      operationId: createGameSession
+      parameters:
+        - name: gameType
+          in: path
+          required: true
+          description: Type of game to play
+          schema:
+            type: string
+            enum:
+              - snake
+              - tetris
+              - pong
+              - breakout
+              - space-invaders
+      requestBody:
+        required: false
+        description: Empty body for initial request, payment data for second request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: Game session created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                    format: uuid
+                    description: Unique session identifier
+                  session:
+                    $ref: '#/components/schemas/GameSession'
+        '400':
+          description: Invalid game type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '402':
+          description: Payment Required
+          headers:
+            X-Payment-Required:
+              schema:
+                type: string
+              description: Payment requirements in JSON format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Game type not yet implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /score/submit:
+    post:
+      tags:
+        - Score
+      summary: Submit game score
+      description: |
+        Submit the final score for a completed game session.
+        Updates the session status and adds entry to leaderboards.
+
+      operationId: submitScore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - score
+                - playerAddress
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  description: Session ID from game creation
+                score:
+                  type: integer
+                  minimum: 0
+                  description: Final score achieved
+                playerAddress:
+                  type: string
+                  pattern: '^0x[a-fA-F0-9]{40}$'
+                  description: Player's Ethereum address
+      responses:
+        '200':
+          description: Score submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/GameSession'
+                  rankings:
+                    type: object
+                    properties:
+                      daily:
+                        type: integer
+                        description: Player's daily rank
+                      weekly:
+                        type: integer
+                        description: Player's weekly rank
+                      alltime:
+                        type: integer
+                        description: Player's all-time rank
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Session not active (already completed/expired)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /leaderboard/{gameType}/{periodType}:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get leaderboard rankings
+      description: |
+        Retrieve leaderboard rankings for a specific game and period.
+        Results are ordered by score (highest first) with pagination support.
+
+      operationId: getLeaderboard
+      parameters:
+        - name: gameType
+          in: path
+          required: true
+          description: Type of game
+          schema:
+            type: string
+            enum:
+              - snake
+              - tetris
+              - pong
+              - breakout
+              - space-invaders
+        - name: periodType
+          in: path
+          required: true
+          description: Leaderboard period
+          schema:
+            type: string
+            enum:
+              - daily
+              - weekly
+              - alltime
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of entries to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          required: false
+          description: Number of entries to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leaderboard:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardEntry'
+                  count:
+                    type: integer
+                    description: Number of entries returned
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  gameType:
+                    type: string
+                  periodType:
+                    type: string
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /prize/{gameType}/{periodType}:
+    get:
+      tags:
+        - Prize Pool
+      summary: Get current prize pool
+      description: |
+        Retrieve the current active prize pool for a specific game and period.
+        Returns null if no pool exists for the current period.
+
+      operationId: getCurrentPrizePool
+      parameters:
+        - name: gameType
+          in: path
+          required: true
+          description: Type of game
+          schema:
+            type: string
+            enum:
+              - snake
+              - tetris
+              - pong
+              - breakout
+              - space-invaders
+        - name: periodType
+          in: path
+          required: true
+          description: Prize pool period
+          schema:
+            type: string
+            enum:
+              - daily
+              - weekly
+      responses:
+        '200':
+          description: Prize pool retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pool:
+                    $ref: '#/components/schemas/PrizePool'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Prize pool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /prize/{gameType}/history:
+    get:
+      tags:
+        - Prize Pool
+      summary: Get prize pool history
+      description: |
+        Retrieve historical prize pools for a specific game.
+        Supports filtering by period type and pagination.
+
+      operationId: getPrizePoolHistory
+      parameters:
+        - name: gameType
+          in: path
+          required: true
+          description: Type of game
+          schema:
+            type: string
+            enum:
+              - snake
+              - tetris
+              - pong
+              - breakout
+              - space-invaders
+        - name: periodType
+          in: query
+          required: false
+          description: Filter by period type (returns both if omitted)
+          schema:
+            type: string
+            enum:
+              - daily
+              - weekly
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of pools to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          required: false
+          description: Number of pools to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Prize pool history retrieved successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    description: Response when periodType is specified
+                    properties:
+                      history:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PrizePool'
+                      count:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      gameType:
+                        type: string
+                      periodType:
+                        type: string
+                  - type: object
+                    description: Response when periodType is not specified
+                    properties:
+                      daily:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PrizePool'
+                      weekly:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PrizePool'
+                      dailyCount:
+                        type: integer
+                      weeklyCount:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      gameType:
+                        type: string
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    GameSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique session identifier
+        gameType:
+          type: string
+          enum:
+            - snake
+            - tetris
+            - pong
+            - breakout
+            - space-invaders
+        playerAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Player's wallet address (lowercase)
+        paymentTxHash:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{64}$'
+          description: Payment transaction hash
+        amountPaidUsdc:
+          type: number
+          format: float
+          description: Amount paid in USDC
+        score:
+          type: integer
+          nullable: true
+          description: Final score (null until submitted)
+        status:
+          type: string
+          enum:
+            - active
+            - completed
+            - expired
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        gameDurationMs:
+          type: integer
+          nullable: true
+          description: Game duration in milliseconds
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: string
+          format: uuid
+        gameType:
+          type: string
+        playerAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        score:
+          type: integer
+        periodType:
+          type: string
+          enum:
+            - daily
+            - weekly
+            - alltime
+        periodDate:
+          type: string
+          format: date
+          description: Period identifier (YYYY-MM-DD)
+        rank:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    PrizePool:
+      type: object
+      properties:
+        id:
+          type: integer
+        gameType:
+          type: string
+        periodType:
+          type: string
+          enum:
+            - daily
+            - weekly
+        periodDate:
+          type: string
+          format: date
+          description: Period identifier (YYYY-MM-DD for daily, Monday for weekly)
+        totalAmountUsdc:
+          type: number
+          format: float
+          description: Total USDC in pool (70% of all payments)
+        totalGames:
+          type: integer
+          description: Number of games played in this period
+        status:
+          type: string
+          enum:
+            - active
+            - finalized
+            - paid
+        winnerAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          nullable: true
+          description: Winner's address (null until finalized)
+        payoutTxHash:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{64}$'
+          nullable: true
+          description: Payout transaction hash (null until paid)
+        createdAt:
+          type: string
+          format: date-time
+        finalizedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PaymentRequired:
+      type: object
+      description: x402 payment requirements (402 response)
+      properties:
+        error:
+          type: string
+          example: Payment required
+        message:
+          type: string
+          example: Please sign payment authorization and retry
+        paymentDetails:
+          type: object
+          properties:
+            amount:
+              type: string
+              description: Amount in USDC (with decimals)
+              example: '10000'
+            token:
+              type: string
+              pattern: '^0x[a-fA-F0-9]{40}$'
+              description: USDC contract address
+              example: '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0'
+            receiver:
+              type: string
+              pattern: '^0x[a-fA-F0-9]{40}$'
+              description: Arcade wallet address
+            nonce:
+              type: string
+              description: Unique nonce for this payment
+            validAfter:
+              type: string
+              description: Timestamp after which payment is valid
+            validBefore:
+              type: string
+              description: Timestamp before which payment expires
+            domainName:
+              type: string
+              example: 'Bridged USDC (Stargate)'
+            domainVersion:
+              type: string
+              example: '1'
+            chainId:
+              type: integer
+              example: 338
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Human-readable error message
+
+  securitySchemes:
+    X-Payment:
+      type: apiKey
+      in: header
+      name: X-Payment
+      description: |
+        Base64-encoded JSON containing EIP-3009 signature.
+
+        Required after receiving 402 Payment Required response.
+
+        Format:
+        ```json
+        {
+          "signature": "0x...",
+          "from": "0x...",
+          "to": "0x...",
+          "value": "10000",
+          "validAfter": "0",
+          "validBefore": "...",
+          "nonce": "0x..."
+        }
+        ```
+
+security: []
