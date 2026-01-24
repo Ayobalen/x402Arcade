@@ -50,6 +50,23 @@ export interface LeaderboardEntry {
   createdAt: string;
 }
 
+/**
+ * Player ranking details.
+ *
+ * Used when checking a specific player's position on the leaderboard.
+ * Includes contextual information about their standing relative to others.
+ */
+export interface PlayerRanking {
+  /** Player's rank (1 = first place) */
+  rank: number;
+  /** Player's score */
+  score: number;
+  /** Total number of players on this leaderboard */
+  totalPlayers: number;
+  /** Player's percentile (top X%, e.g., 10 means top 10%) */
+  percentile: number;
+}
+
 // ============================================================================
 // LeaderboardService Class
 // ============================================================================
