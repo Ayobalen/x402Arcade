@@ -9,8 +9,27 @@
 
 import { Router, type Request, type Response } from 'express';
 import type { Router as RouterType } from 'express';
+import { LeaderboardService, type GameType, type PeriodType } from '../services/leaderboard.js';
+import { getDatabase } from '../db/index.js';
 
 const router: RouterType = Router();
+
+// Lazy initialization - get service only when routes are called
+let leaderboardService: LeaderboardService | null = null;
+
+function getLeaderboardService(): LeaderboardService {
+  if (!leaderboardService) {
+    const db = getDatabase();
+    leaderboardService = new LeaderboardService(db);
+  }
+  return leaderboardService;
+}
+
+// Valid game types
+const VALID_GAME_TYPES = new Set<string>(['snake', 'tetris', 'pong', 'breakout', 'space-invaders']);
+
+// Valid period types
+const VALID_PERIOD_TYPES = new Set<string>(['daily', 'weekly', 'alltime']);
 
 /**
  * GET /api/v1/leaderboard/:gameType/:periodType
@@ -29,16 +48,78 @@ const router: RouterType = Router();
  * - 400: Invalid parameters
  * - 200: Leaderboard entries
  */
-router.get('/:gameType/:periodType', (_req: Request, res: Response) => {
-  // TODO: Initialize LeaderboardService with getDatabase()
-  // TODO: Validate path parameters
-  // TODO: Validate query parameters
-  // TODO: Query leaderboard via LeaderboardService
-  // TODO: Return ranked entries
-  res.status(501).json({
-    error: 'Not implemented',
-    message: 'Leaderboard endpoint will be implemented in later features',
-  });
+router.get('/:gameType/:periodType', (req: Request, res: Response) => {
+  // Extract path parameters
+  const { gameType, periodType } = req.params;
+
+  // Validate gameType
+  if (!gameType || !VALID_GAME_TYPES.has(gameType)) {
+    res.status(400).json({
+      error: 'Validation error',
+      message: `Game type must be one of: ${Array.from(VALID_GAME_TYPES).join(', ')}`,
+    });
+    return;
+  }
+
+  // Validate periodType
+  if (!periodType || !VALID_PERIOD_TYPES.has(periodType)) {
+    res.status(400).json({
+      error: 'Validation error',
+      message: `Period type must be one of: ${Array.from(VALID_PERIOD_TYPES).join(', ')}`,
+    });
+    return;
+  }
+
+  // Extract and validate query parameters
+  const limitParam = req.query.limit;
+  let limit = 10; // default
+
+  if (limitParam !== undefined) {
+    const parsedLimit = parseInt(limitParam as string, 10);
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({
+        error: 'Validation error',
+        message: 'limit must be a positive number',
+      });
+      return;
+    }
+    if (parsedLimit > 100) {
+      res.status(400).json({
+        error: 'Validation error',
+        message: 'limit cannot exceed 100',
+      });
+      return;
+    }
+    limit = parsedLimit;
+  }
+
+  try {
+    // Get leaderboard service
+    const service = getLeaderboardService();
+
+    // Query leaderboard
+    const entries = service.getTopScores({
+      gameType: gameType as GameType,
+      periodType: periodType as PeriodType,
+      limit,
+    });
+
+    // Return leaderboard entries
+    res.status(200).json({
+      gameType,
+      periodType,
+      limit,
+      count: entries.length,
+      entries,
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error retrieving leaderboard:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to retrieve leaderboard',
+    });
+  }
 });
 
 export default router;
