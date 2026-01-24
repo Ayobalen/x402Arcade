@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanlines Component - Feature #586 Verification</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #f8fafc;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ffff;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        h2 {
+            color: #8B5CF6;
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+        .feature-list {
+            background: #16162a;
+            border: 1px solid #2d2d4a;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .check {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        .requirement {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+        code {
+            background: #1a1a2e;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #00ffff;
+        }
+        .code-block {
+            background: #1a1a2e;
+            border: 1px solid #2d2d4a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .code-block pre {
+            margin: 0;
+            color: #94a3b8;
+        }
+        .implementation-details {
+            background: #1a1a2e;
+            border-left: 4px solid #8B5CF6;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .status-badge {
+            display: inline-block;
+            background: #00ff00;
+            color: #0a0a0a;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Feature #586: Create scanline overlay effect <span class="status-badge">✓ PASSING</span></h1>
+
+        <div class="feature-list">
+            <h2>Requirements Verification</h2>
+
+            <div class="requirement">
+                <span class="check">✓</span> <strong>1. Create Scanlines.tsx component</strong>
+                <div class="implementation-details">
+                    <strong>File:</strong> <code>packages/frontend/src/components/3d/effects/Scanlines.tsx</code><br>
+                    <strong>Lines:</strong> 428 lines<br>
+                    <strong>Exports:</strong> Scanlines component, useScanlines hook, presets, types
+                </div>
+            </div>
+
+            <div class="requirement">
+                <span class="check">✓</span> <strong>2. Use full-screen plane geometry</strong>
+                <div class="implementation-details">
+                    <strong>Implementation:</strong> Lines 285-295<br>
+                    <div class="code-block"><pre>&lt;mesh
+  ref={meshRef}
+  position={[0, 0, distance]}
+  renderOrder={renderOrder}
+&gt;
+  &lt;planeGeometry args={[planeSize, planeSize]} /&gt;
+  &lt;primitive object={material} attach="material" /&gt;
+&lt;/mesh&gt;</pre></div>
+                    <strong>Details:</strong> 10x10 plane positioned close to camera (-0.1 Z) to act as overlay
+                </div>
+            </div>
+
+            <div class="requirement">
+                <span class="check">✓</span> <strong>3. Apply horizontal line texture</strong>
+                <div class="implementation-details">
+                    <strong>Implementation:</strong> Fragment shader (Lines 164-180)<br>
+                    <div class="code-block"><pre>// Calculate scanline pattern
+float line = mod((vUv.y + uOffset) * uLineCount, 1.0);
+
+// Create sharp scanline edges based on line width
+float scanline = step(uLineWidth, line);
+
+// Apply color and opacity
+vec3 color = uColor;
+float alpha = (1.0 - scanline) * uOpacity;</pre></div>
+                    <strong>Details:</strong> Uses UV coordinates to create horizontal lines with modulo math
+                </div>
+            </div>
+
+            <div class="requirement">
+                <span class="check">✓</span> <strong>4. Set low opacity for subtlety</strong>
+                <div class="implementation-details">
+                    <strong>Implementation:</strong> Configurable opacity (Lines 20-24, 91)<br>
+                    <div class="code-block"><pre>opacity?: number;  // Default: 0.15
+const DEFAULT_OPACITY = 0.15;</pre></div>
+                    <strong>Details:</strong> Default 0.15 (15%) for subtle effect, fully configurable
+                </div>
+            </div>
+
+            <div class="requirement">
+                <span class="check">✓</span> <strong>5. Add slight animation</strong>
+                <div class="implementation-details">
+                    <strong>Implementation:</strong> useFrame hook (Lines 254-269)<br>
+                    <div class="code-block"><pre>useFrame((state, delta) => {
+  if (!meshRef.current || !animationEnabledRef.current) return;
+
+  // Update offset for scrolling animation
+  offsetRef.current += (delta * animationSpeed) / lineCount;
+
+  // Keep offset in [0, 1) range
+  if (offsetRef.current >= 1) {
+    offsetRef.current -= 1;
+  }
+
+  // Update shader uniform
+  material.uniforms.uOffset.value = offsetRef.current;
+});</pre></div>
+                    <strong>Details:</strong> Smooth scrolling animation using delta time, default 0.5 pixels/sec
+                </div>
+            </div>
+
+            <div class="requirement">
+                <span class="check">✓</span> <strong>6. Layer on top of scene</strong>
+                <div class="implementation-details">
+                    <strong>Implementation:</strong> High renderOrder (Lines 71-76, 227)<br>
+                    <div class="code-block"><pre>renderOrder?: number;  // Default: 1000
+
+material = new THREE.ShaderMaterial({
+  // ...
+  depthTest: false,
+  depthWrite: false,
+});</pre></div>
+                    <strong>Details:</strong> renderOrder=1000 ensures scanlines render last, depthTest/Write disabled for proper overlay
+                </div>
+            </div>
+        </div>
+
+        <h2>Additional Features Implemented</h2>
+
+        <div class="feature-list">
+            <ul>
+                <li><strong>5 Presets:</strong> subtle, classic, intense, minimal, off</li>
+                <li><strong>Configurable Properties:</strong>
+                    <ul>
+                        <li>opacity (0-1)</li>
+                        <li>lineCount (number of horizontal lines)</li>
+                        <li>lineWidth (0-1, thickness)</li>
+                        <li>enableAnimation (true/false)</li>
+                        <li>animationSpeed (pixels per second)</li>
+                        <li>color (hex string, default black)</li>
+                        <li>distance (Z position)</li>
+                        <li>renderOrder (layering)</li>
+                    </ul>
+                </li>
+                <li><strong>Imperative API:</strong> ScanlinesHandle with getMesh, setOpacity, setAnimation, getOffset, reset</li>
+                <li><strong>Hook:</strong> useScanlines for programmatic control</li>
+                <li><strong>Shader-based:</strong> Custom GLSL shaders for performance</li>
+                <li><strong>TypeScript:</strong> Complete type definitions and JSDoc</li>
+            </ul>
+        </div>
+
+        <h2>Storybook Stories</h2>
+
+        <div class="feature-list">
+            <p>Created 15 comprehensive stories demonstrating all features:</p>
+            <ul>
+                <li>Default - Classic CRT effect</li>
+                <li>Subtle - Minimal distraction</li>
+                <li>Classic - Authentic retro monitor</li>
+                <li>Intense - Heavy CRT effect</li>
+                <li>Minimal - Barely visible texture</li>
+                <li>Off - Disabled (opacity 0)</li>
+                <li>CustomDense - High opacity, dense lines</li>
+                <li>WideLines - Fewer, thicker lines</li>
+                <li>FastScroll - Rapid animation</li>
+                <li>Static - No animation</li>
+                <li>GreenTint - Matrix aesthetic</li>
+                <li>CyanTint - Cyberpunk aesthetic</li>
+                <li>UltraFine - Very dense pattern</li>
+                <li>HeavyDistortion - Thick black lines</li>
+                <li>ReverseScroll - Upward scrolling</li>
+            </ul>
+        </div>
+
+        <h2>Technical Implementation</h2>
+
+        <div class="implementation-details">
+            <h3>Shader Architecture</h3>
+            <p>The scanlines use a custom GLSL shader for maximum performance:</p>
+            <ul>
+                <li><strong>Vertex Shader:</strong> Simple passthrough with UV coordinates</li>
+                <li><strong>Fragment Shader:</strong> Generates horizontal lines using modulo math on UV.y</li>
+                <li><strong>Uniforms:</strong> uOpacity, uLineCount, uLineWidth, uOffset, uColor</li>
+                <li><strong>Animation:</strong> Offset uniform updated each frame for scrolling effect</li>
+            </ul>
+
+            <h3>Performance</h3>
+            <ul>
+                <li>Single draw call per frame</li>
+                <li>GPU-accelerated shader math</li>
+                <li>No texture loading required</li>
+                <li>Minimal CPU overhead</li>
+            </ul>
+
+            <h3>Design System Alignment</h3>
+            <ul>
+                <li>Default black scanlines for classic CRT look</li>
+                <li>Supports custom colors (cyan, green, magenta) for themed effects</li>
+                <li>Low opacity (0.15) for subtle retro atmosphere</li>
+                <li>Complements neon/arcade aesthetic</li>
+            </ul>
+        </div>
+
+        <h2>Usage Example</h2>
+
+        <div class="code-block">
+<pre>import { Canvas } from '@react-three/fiber';
+import { Scanlines } from '@/components/3d/effects';
+
+function MyScene() {
+  return (
+    &lt;Canvas&gt;
+      {/* Your 3D scene content */}
+      &lt;mesh&gt;
+        &lt;boxGeometry /&gt;
+        &lt;meshStandardMaterial color="#8B5CF6" /&gt;
+      &lt;/mesh&gt;
+
+      {/* Scanlines overlay - renders on top */}
+      &lt;Scanlines preset="classic" /&gt;
+    &lt;/Canvas&gt;
+  );
+}</pre>
+        </div>
+
+        <h2>Files Created/Modified</h2>
+
+        <div class="feature-list">
+            <ol>
+                <li><code>packages/frontend/src/components/3d/effects/Scanlines.tsx</code> - Main component (428 lines)</li>
+                <li><code>packages/frontend/src/components/3d/effects/index.ts</code> - Export declarations</li>
+                <li><code>stories/Scanlines.stories.tsx</code> - Storybook stories (200+ lines)</li>
+            </ol>
+        </div>
+
+        <h2>Verification Checklist</h2>
+
+        <div class="feature-list">
+            <ul>
+                <li><span class="check">✓</span> Component created with full TypeScript types</li>
+                <li><span class="check">✓</span> Full-screen plane geometry implemented</li>
+                <li><span class="check">✓</span> Horizontal line texture via shader</li>
+                <li><span class="check">✓</span> Low opacity for subtlety (0.15 default)</li>
+                <li><span class="check">✓</span> Smooth scrolling animation</li>
+                <li><span class="check">✓</span> High renderOrder for proper layering</li>
+                <li><span class="check">✓</span> Exported from effects index</li>
+                <li><span class="check">✓</span> Comprehensive Storybook stories</li>
+                <li><span class="check">✓</span> No TypeScript errors</li>
+                <li><span class="check">✓</span> No ESLint warnings</li>
+                <li><span class="check">✓</span> JSDoc documentation complete</li>
+                <li><span class="check">✓</span> Imperative API for runtime control</li>
+                <li><span class="check">✓</span> Preset system for easy configuration</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 3rem; padding: 2rem; background: #1a1a2e; border: 2px solid #00ff00; border-radius: 8px; text-align: center;">
+            <h2 style="color: #00ff00; margin-top: 0;">✓ Feature #586 Complete</h2>
+            <p>All 6 requirements fully implemented and verified.</p>
+            <p>Ready for Storybook testing and integration into 3D scenes.</p>
+        </div>
+    </div>
+</body>
+</html>

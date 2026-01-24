@@ -80,3 +80,17 @@ export {
   type UseNeonLinesResult,
   default as NeonLinesDefault,
 } from './NeonLines';
+
+// CRT scanline overlay effect
+export {
+  Scanlines,
+  useScanlines,
+  getScanlinesPreset,
+  SCANLINES_PRESETS,
+  type ScanlinesProps,
+  type ScanlinesHandle,
+  type ScanlinesPreset,
+  type UseScanlinesOptions,
+  type UseScanlinesResult,
+  default as ScanlinesDefault,
+} from './Scanlines';
