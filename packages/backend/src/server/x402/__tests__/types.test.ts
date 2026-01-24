@@ -36,6 +36,9 @@ import {
   headerToPayload,
   payloadToHeader,
   validatePaymentPayload,
+  checkMissingPayloadFields,
+  PAYMENT_PAYLOAD_SCHEMA,
+  parsePaymentPayload,
   createSettlementRequest,
   createSettlementRequestFromPayload,
   validateSettlementRequest,
@@ -708,6 +711,78 @@ describe('X402ValidationError', () => {
     });
   });
 
+  describe('static missingRequiredFields', () => {
+    const testSchema = {
+      requiredFields: [
+        { name: 'from', type: 'string', description: 'Sender address' },
+        { name: 'to', type: 'string', description: 'Recipient address' },
+        { name: 'value', type: 'string', description: 'Payment amount' },
+      ] as const,
+    };
+
+    it('should create error with missing field list', () => {
+      const error = X402ValidationError.missingRequiredFields(
+        ['from', 'to'],
+        testSchema,
+      );
+
+      expect(error.message).toBe('Missing required fields: from, to');
+      expect(error.errorCode).toBe('INVALID_PAYLOAD');
+      expect(error.httpStatus).toBe(400);
+    });
+
+    it('should include missing fields in context', () => {
+      const error = X402ValidationError.missingRequiredFields(
+        ['from', 'value'],
+        testSchema,
+      );
+
+      const context = error.context as Record<string, unknown>;
+      expect(context.missingFields).toEqual(['from', 'value']);
+      expect(context.missingCount).toBe(2);
+    });
+
+    it('should include schema information in context', () => {
+      const error = X402ValidationError.missingRequiredFields(
+        ['from'],
+        testSchema,
+      );
+
+      const context = error.context as Record<string, unknown>;
+      const schema = context.schema as Record<string, unknown>;
+      expect(schema.allRequiredFields).toEqual(['from', 'to', 'value']);
+      expect(schema.missingFieldDefinitions).toHaveLength(1);
+      expect((schema.missingFieldDefinitions as Array<Record<string, unknown>>)[0]).toEqual({
+        field: 'from',
+        type: 'string',
+        description: 'Sender address',
+      });
+    });
+
+    it('should set field property to comma-separated missing fields', () => {
+      const error = X402ValidationError.missingRequiredFields(
+        ['from', 'to', 'value'],
+        testSchema,
+      );
+
+      expect(error.field).toBe('from, to, value');
+    });
+
+    it('should serialize correctly to JSON', () => {
+      const error = X402ValidationError.missingRequiredFields(
+        ['from'],
+        testSchema,
+      );
+      const json = error.toJSON();
+
+      expect(json.error.code).toBe('INVALID_PAYLOAD');
+      expect(json.error.message).toBe('Missing required fields: from');
+      expect(json.error.field).toBe('from');
+      expect(json.error.expected).toBe('all required fields present');
+      expect(json.error.actual).toBe('missing: from');
+    });
+  });
+
   describe('static fromMultipleErrors', () => {
     it('should create error from multiple validation errors', () => {
       const errors = ['Invalid from', 'Invalid to', 'Invalid value'];
@@ -1011,6 +1086,176 @@ describe('Types Helper Functions', () => {
       });
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(1);
+    });
+  });
+
+  describe('checkMissingPayloadFields', () => {
+    const completeObj = {
+      version: '1',
+      scheme: 'exact',
+      network: 'cronos-testnet',
+      from: TEST_PLAYER_ADDRESS,
+      to: TEST_ARCADE_ADDRESS,
+      value: '10000',
+      validAfter: '0',
+      validBefore: '1735689600',
+      nonce: TEST_NONCE,
+      v: 27,
+      r: TEST_R,
+      s: TEST_S,
+    };
+
+    it('should return valid for complete payload', () => {
+      const result = checkMissingPayloadFields(completeObj);
+      expect(result.valid).toBe(true);
+      expect(result.missingFields).toHaveLength(0);
+      expect(result.schema).toBe(PAYMENT_PAYLOAD_SCHEMA);
+    });
+
+    it('should detect single missing field', () => {
+      const { from, ...withoutFrom } = completeObj;
+      const result = checkMissingPayloadFields(withoutFrom);
+      expect(result.valid).toBe(false);
+      expect(result.missingFields).toContain('from');
+      expect(result.missingFields).toHaveLength(1);
+    });
+
+    it('should detect multiple missing fields', () => {
+      const { from, to, value, ...withoutMultiple } = completeObj;
+      const result = checkMissingPayloadFields(withoutMultiple);
+      expect(result.valid).toBe(false);
+      expect(result.missingFields).toContain('from');
+      expect(result.missingFields).toContain('to');
+      expect(result.missingFields).toContain('value');
+      expect(result.missingFields).toHaveLength(3);
+    });
+
+    it('should treat empty strings as missing', () => {
+      const result = checkMissingPayloadFields({ ...completeObj, from: '' });
+      expect(result.valid).toBe(false);
+      expect(result.missingFields).toContain('from');
+    });
+
+    it('should treat null values as missing', () => {
+      const result = checkMissingPayloadFields({ ...completeObj, from: null });
+      expect(result.valid).toBe(false);
+      expect(result.missingFields).toContain('from');
+    });
+
+    it('should treat undefined values as missing', () => {
+      const result = checkMissingPayloadFields({ ...completeObj, from: undefined });
+      expect(result.valid).toBe(false);
+      expect(result.missingFields).toContain('from');
+    });
+
+    it('should include schema in result for error messages', () => {
+      const result = checkMissingPayloadFields({});
+      expect(result.schema).toBeDefined();
+      expect(result.schema.requiredFields).toHaveLength(12);
+      expect(result.schema.requiredFields.map(f => f.name)).toContain('from');
+      expect(result.schema.requiredFields.map(f => f.name)).toContain('to');
+      expect(result.schema.requiredFields.map(f => f.name)).toContain('value');
+    });
+  });
+
+  describe('PAYMENT_PAYLOAD_SCHEMA', () => {
+    it('should define all required fields', () => {
+      const fieldNames = PAYMENT_PAYLOAD_SCHEMA.requiredFields.map(f => f.name);
+      expect(fieldNames).toContain('version');
+      expect(fieldNames).toContain('scheme');
+      expect(fieldNames).toContain('network');
+      expect(fieldNames).toContain('from');
+      expect(fieldNames).toContain('to');
+      expect(fieldNames).toContain('value');
+      expect(fieldNames).toContain('validAfter');
+      expect(fieldNames).toContain('validBefore');
+      expect(fieldNames).toContain('nonce');
+      expect(fieldNames).toContain('v');
+      expect(fieldNames).toContain('r');
+      expect(fieldNames).toContain('s');
+    });
+
+    it('should have type and description for each field', () => {
+      for (const field of PAYMENT_PAYLOAD_SCHEMA.requiredFields) {
+        expect(field.name).toBeDefined();
+        expect(field.type).toBeDefined();
+        expect(field.description).toBeDefined();
+        expect(field.description.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('parsePaymentPayload - missing fields handling', () => {
+    it('should throw error with missing field list for empty object', () => {
+      const json = JSON.stringify({});
+      expect(() => parsePaymentPayload(json)).toThrow();
+
+      try {
+        parsePaymentPayload(json);
+      } catch (error) {
+        expect(X402ValidationError.isValidationError(error)).toBe(true);
+        if (X402ValidationError.isValidationError(error)) {
+          expect(error.message).toContain('Missing required fields');
+          expect(error.context?.missingFields).toBeDefined();
+          expect((error.context?.missingFields as string[]).length).toBeGreaterThan(0);
+          expect(error.context?.schema).toBeDefined();
+        }
+      }
+    });
+
+    it('should list all missing fields in error message', () => {
+      const partialJson = JSON.stringify({ version: '1', scheme: 'exact' });
+
+      try {
+        parsePaymentPayload(partialJson);
+        fail('Expected error to be thrown');
+      } catch (error) {
+        expect(X402ValidationError.isValidationError(error)).toBe(true);
+        if (X402ValidationError.isValidationError(error)) {
+          const missing = error.context?.missingFields as string[];
+          expect(missing).not.toContain('version');
+          expect(missing).not.toContain('scheme');
+          expect(missing).toContain('from');
+          expect(missing).toContain('to');
+          expect(missing).toContain('value');
+        }
+      }
+    });
+
+    it('should include schema in error context', () => {
+      const json = JSON.stringify({ version: '1' });
+
+      try {
+        parsePaymentPayload(json);
+        fail('Expected error to be thrown');
+      } catch (error) {
+        if (X402ValidationError.isValidationError(error)) {
+          const schema = error.context?.schema as Record<string, unknown>;
+          expect(schema).toBeDefined();
+          expect(schema.allRequiredFields).toBeDefined();
+          expect(schema.missingFieldDefinitions).toBeDefined();
+        }
+      }
+    });
+
+    it('should accept x402Version as alias for version', () => {
+      const json = JSON.stringify({
+        x402Version: '1',  // aliased field
+        scheme: 'exact',
+        network: 'cronos-testnet',
+        from: TEST_PLAYER_ADDRESS,
+        to: TEST_ARCADE_ADDRESS,
+        value: '10000',
+        validAfter: '0',
+        validBefore: '1735689600',
+        nonce: TEST_NONCE,
+        v: 27,
+        r: TEST_R,
+        s: TEST_S,
+      });
+
+      const result = parsePaymentPayload(json);
+      expect(result.version).toBe('1');
     });
   });
 

@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import express, { Application, Request, Response } from 'express';
-import { TestApiClient, createTestApiClient, assertResponse, ApiResponse } from '../utils';
+import express, { type Application, type Request, type Response } from 'express';
+import { TestApiClient, createTestApiClient, assertResponse, type ApiResponse } from '../utils';
 
 describe('API Test Client', () => {
   let app: Application;

@@ -69,3 +69,10 @@ export {
   type UseWalletOptions,
   type UseWalletResult,
 } from './useWallet'
+
+export {
+  useAutoChainSwitch,
+  type ChainSwitchStatus,
+  type UseAutoChainSwitchOptions,
+  type UseAutoChainSwitchResult,
+} from './useAutoChainSwitch'

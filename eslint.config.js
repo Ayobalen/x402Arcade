@@ -27,6 +27,7 @@ export const baseConfig = tseslint.config(
       '**/.git/**',
       '**/playwright-report/**',
       '**/test-results/**',
+      'stories/**', // Legacy storybook files
     ],
   },
 
@@ -95,8 +96,8 @@ export const baseConfig = tseslint.config(
       // Prefer nullish coalescing
       '@typescript-eslint/prefer-nullish-coalescing': 'off',
 
-      // Prefer optional chaining
-      '@typescript-eslint/prefer-optional-chain': 'warn',
+      // Prefer optional chaining - disabled as it requires type information
+      '@typescript-eslint/prefer-optional-chain': 'off',
 
       // No floating promises
       '@typescript-eslint/no-floating-promises': 'off',

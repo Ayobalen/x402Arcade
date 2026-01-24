@@ -1,0 +1,36 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Snapshot Examples (Documentation) > Example 1: Basic component snapshot 1`] = `"<button class="btn btn-primary">Click me</button>"`;
+
+exports[`Snapshot Examples (Documentation) > Example 2: Component with router context 1`] = `
+"<nav>
+<a href="/">Home</a>
+<a href="/about">About</a>
+</nav>"
+`;
+
+exports[`Snapshot Examples (Documentation) > Example 3: Multiple variations > default 1`] = `"<button class="btn btn-primary">Default</button>"`;
+
+exports[`Snapshot Examples (Documentation) > Example 3: Multiple variations > disabled 1`] = `"<button disabled="" class="btn btn-primary">Disabled</button>"`;
+
+exports[`Snapshot Functions > assertVariationSnapshots > should assert all variation snapshots > default 1`] = `"<button class="btn btn-primary">Click</button>"`;
+
+exports[`Snapshot Functions > assertVariationSnapshots > should assert all variation snapshots > disabled 1`] = `"<button disabled="" class="btn btn-primary">Click</button>"`;
+
+exports[`Snapshot Functions > snapshotWithProviders > should match snapshot 1`] = `"<button class="btn btn-primary">Click me</button>"`;
+
+exports[`Snapshot Functions > snapshotWithProviders > should match snapshot with all providers 1`] = `
+"<nav>
+<a href="/">Home</a>
+<a href="/about">About</a>
+</nav>"
+`;
+
+exports[`Snapshot Functions > snapshotWithProviders > should match snapshot with query client 1`] = `"<div data-testid="result">No data</div>"`;
+
+exports[`Snapshot Functions > snapshotWithProviders > should match snapshot with router 1`] = `
+"<nav>
+<a href="/">Home</a>
+<a href="/about">About</a>
+</nav>"
+`;

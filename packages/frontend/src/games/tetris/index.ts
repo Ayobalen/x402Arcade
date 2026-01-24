@@ -6,6 +6,12 @@
  * @module games/tetris
  */
 
+// Game constants
+export * from './constants'
+
+// Game types
+export * from './types'
+
 // Placeholder - Tetris implementation to be added
 export const TETRIS_GAME_ID = 'tetris' as const
 

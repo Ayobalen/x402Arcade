@@ -14,3 +14,31 @@ export {
   type WebGLExtensionSupport,
   type WebGLCapabilities,
 } from './webglCapabilities'
+
+export {
+  ObjectPool,
+  EffectThrottle,
+  BatchProcessor,
+  FrameBudgetTracker,
+  RenderSkipController,
+  LODManager,
+  type Poolable,
+  type ObjectPoolConfig,
+  type PoolStats,
+  type ThrottleConfig,
+  type BatchConfig,
+  type FrameBudgetConfig,
+  type LODLevel,
+} from './performance'
+
+export {
+  createAppError,
+  fromUnknownError,
+  isAppError,
+  getRecoverySuggestions,
+  getUserMessage,
+  formatErrorMessage,
+  getPrimaryRecovery,
+  getSeverityClass,
+  getCategoryIcon,
+} from './errors'

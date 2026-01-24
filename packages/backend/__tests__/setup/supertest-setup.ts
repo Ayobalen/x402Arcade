@@ -18,10 +18,10 @@
  * ```
  */
 
-import express, { Express, Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import express, { type Express, type Request, type Response, type NextFunction, type ErrorRequestHandler } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import supertest, { SuperTest, Test } from 'supertest';
+import supertest, { type SuperTest, type Test } from 'supertest';
 import { jest } from '@jest/globals';
 
 // ============================================================================

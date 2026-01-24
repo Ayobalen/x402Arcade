@@ -583,6 +583,26 @@ export function changeDirection(
   }
 }
 
+/**
+ * Toggle the game pause state.
+ *
+ * Only works when the game is playing and not over.
+ *
+ * @param state - Current full snake game state
+ * @returns New game state with toggled isPaused, or unchanged if not applicable
+ */
+export function togglePause(state: SnakeState): SnakeState {
+  // Can only pause/unpause if game is playing and not over
+  if (!state.isPlaying || state.isGameOver) {
+    return state
+  }
+
+  return {
+    ...state,
+    isPaused: !state.isPaused,
+  }
+}
+
 // ============================================================================
 // State Creation
 // ============================================================================
@@ -653,6 +673,7 @@ export default {
   // State-level functions
   processSnakeMove,
   changeDirection,
+  togglePause,
   // State creation
   createInitialSnakeState,
 }

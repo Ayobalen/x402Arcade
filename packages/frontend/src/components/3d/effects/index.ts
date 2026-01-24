@@ -48,3 +48,19 @@ export {
   type UseGridFloorResult,
   default as GridFloorDefault,
 } from './GridFloor'
+
+// Floating geometric shapes
+export {
+  FloatingShapes,
+  useFloatingShapes,
+  getFloatingShapesPreset,
+  FLOATING_SHAPES_PRESETS,
+  type FloatingShapesProps,
+  type FloatingShapesHandle,
+  type FloatingShapesPreset,
+  type FloatingShapeConfig,
+  type ShapeType,
+  type UseFloatingShapesOptions,
+  type UseFloatingShapesResult,
+  default as FloatingShapesDefault,
+} from './FloatingShapes'

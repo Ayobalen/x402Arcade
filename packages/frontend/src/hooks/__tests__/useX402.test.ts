@@ -346,7 +346,7 @@ describe('useX402 Types', () => {
 
   describe('PaymentRequest', () => {
     it('should accept valid PaymentRequest', async () => {
-      const { result } = renderHook(() => useX402())
+      renderHook(() => useX402())
 
       const request: PaymentRequest = {
         to: TEST_RECIPIENT,

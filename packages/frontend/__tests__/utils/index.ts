@@ -176,3 +176,215 @@ export {
   // Setup helpers
   setupAnimationTesting,
 } from './animation-utils';
+
+// Accessibility test utilities (jest-axe integration)
+export {
+  // Core a11y checking
+  checkA11y,
+  runA11yCheck,
+  checkA11yWhenReady,
+  // Custom checker creation
+  createA11yChecker,
+  // Matchers
+  toHaveNoViolations,
+  // Configuration
+  DEFAULT_AXE_CONFIG,
+  KNOWN_ISSUES,
+  // WCAG configs
+  WCAG_CONFIGS,
+  // Presets
+  A11Y_PRESETS,
+  // Report utilities
+  summarizeViolations,
+  createA11yReport,
+  // Helper functions
+  runOnlyRules,
+  excludeRules,
+  isTestableElement,
+  // Types
+  type A11yImpact,
+  type A11yCheckConfig,
+  type A11yCheckResult,
+  type FormattedViolation,
+} from './a11y-utils';
+
+// User Event test utilities
+export {
+  // Factory functions
+  createUser,
+  createFastUser,
+  createRealisticUser,
+  defaultUser,
+  // Configuration options
+  DEFAULT_USER_EVENT_OPTIONS,
+  FAST_USER_EVENT_OPTIONS,
+  REALISTIC_USER_EVENT_OPTIONS,
+  // Key constants
+  KEYS,
+  SHORTCUTS,
+  // Click helpers
+  click,
+  doubleClick,
+  rightClick,
+  tripleClick,
+  clickWithModifiers,
+  // Type/input helpers
+  typeInInput,
+  appendToInput,
+  clearInput,
+  replaceInputText,
+  paste,
+  copy,
+  cut,
+  // Selection helpers
+  selectOption,
+  deselectOption,
+  // Keyboard helpers
+  pressKey,
+  pressEnter,
+  pressEscape,
+  pressTab,
+  pressShiftTab,
+  pressSpace,
+  pressBackspace,
+  pressDelete,
+  pressShortcut,
+  pressCtrl,
+  pressAlt,
+  pressShift,
+  pressCommonShortcut,
+  // Arrow key helpers
+  pressArrowKey,
+  pressArrowKeys,
+  pressUp,
+  pressDown,
+  pressLeft,
+  pressRight,
+  // WASD helpers (game controls)
+  pressWASD,
+  pressWASDKeys,
+  pressW,
+  pressA,
+  pressS,
+  pressD,
+  // Hover/Focus helpers
+  hover,
+  unhover,
+  tabToElement,
+  // Drag and drop
+  dragAndDrop,
+  // Form helpers
+  fillForm,
+  submitForm,
+  // Upload helpers
+  uploadFile,
+  createMockFile,
+  createMockImageFile,
+  // Pointer helpers
+  movePointerTo,
+  pointerDown,
+  pointerUp,
+  // Types
+  type UserEventSetupOptions,
+  type ModifierKeys,
+  type KeyboardShortcut,
+  type ArrowDirection,
+  type WASDDirection,
+  type PointerState,
+} from './user-event-utils';
+
+// Snapshot testing utilities
+export {
+  // Types
+  type SnapshotProviderOptions,
+  type SnapshotOptions,
+  type SerializerConfig,
+  type SnapshotResult,
+  type ComparisonOptions,
+  // Constants
+  DEFAULT_DYNAMIC_ATTRIBUTES,
+  CSS_CLASS_PATTERNS_TO_CLEAN,
+  SNAPSHOT_EXTENSION,
+  // Serializers
+  styledComponentsSerializer,
+  framerMotionSerializer,
+  htmlElementSerializer,
+  serializers,
+  // Helper functions
+  cleanClassName,
+  stripDynamicAttributes,
+  serializeHTMLElement,
+  formatHTML,
+  // Provider wrappers
+  createProviderWrapper,
+  // Snapshot functions
+  createComponentSnapshot,
+  snapshotWithProviders,
+  snapshotVariations,
+  assertVariationSnapshots,
+  // CI helpers
+  isCI,
+  getSnapshotUpdateBehavior,
+  updateSnapshots,
+  // Comparison helpers
+  normalizeHTML,
+  compareSnapshots as compareSnapshotStrings,
+  getSnapshotDiff,
+  // File naming
+  getSnapshotPath,
+  generateSnapshotName,
+  // Configuration
+  configureSnapshots,
+  defaultSnapshotConfig,
+} from './snapshot-utils';
+
+// Visual regression testing utilities
+export {
+  // Config values
+  DEFAULT_CONFIG as VISUAL_DEFAULT_CONFIG,
+  DEFAULT_THRESHOLD as VISUAL_DEFAULT_THRESHOLD,
+  STRICT_THRESHOLD as VISUAL_STRICT_THRESHOLD,
+  RELAXED_THRESHOLD as VISUAL_RELAXED_THRESHOLD,
+  STANDARD_VIEWPORTS,
+  // Config functions
+  getViewport,
+  getThreshold as getVisualThreshold,
+  getSnapshotFilename,
+  mergeConfig as mergeVisualConfig,
+  parseEnvConfig as parseVisualEnvConfig,
+  // State management
+  initVisualTesting,
+  getConfig as getVisualConfig,
+  setConfig as setVisualConfig,
+  resetConfig as resetVisualConfig,
+  // Registration
+  registerComponent,
+  registerComponents,
+  getRegisteredComponents,
+  clearRegistry,
+  // Comparison
+  compareImages,
+  compareSnapshots as compareVisualSnapshots,
+  // Screenshot capture
+  captureScreenshot,
+  captureElement,
+  // Test runners
+  runVisualTests,
+  runComponentTests,
+  runViewportTests,
+  // Component tester factory
+  createComponentTester,
+  // Formatting
+  formatComparisonResult,
+  formatTestSummary,
+  generateHtmlReport,
+  // Types
+  type VisualRegressionConfig,
+  type ViewportConfig,
+  type DiffThresholdConfig,
+  type ComparisonResult,
+  type RunVisualTestsOptions,
+  type VisualTestSummary,
+  type ComponentTestResult,
+  type CaptureOptions,
+} from '../visual';

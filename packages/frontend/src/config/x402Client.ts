@@ -115,6 +115,45 @@ export interface PaymentRequirements {
 }
 
 /**
+ * X-Payment header payload for EIP-3009 authorization
+ *
+ * This is the structure that gets base64-encoded for the X-Payment header.
+ * It contains the signed TransferWithAuthorization message.
+ */
+export interface X402PaymentPayload {
+  /** Protocol version (must be '1') */
+  x402Version: '1'
+  /** Payment scheme (must be 'exact') */
+  scheme: 'exact'
+  /** Network identifier (e.g., 'cronos-testnet') */
+  network: string
+  /** The signed authorization payload */
+  payload: {
+    /** The authorization message that was signed */
+    message: {
+      /** Token sender's address */
+      from: string
+      /** Token recipient's address */
+      to: string
+      /** Amount in smallest units (as string) */
+      value: string
+      /** Unix timestamp after which authorization is valid */
+      validAfter: string
+      /** Unix timestamp before which authorization is valid */
+      validBefore: string
+      /** Unique nonce (32-byte hex string) */
+      nonce: string
+    }
+    /** Signature recovery id (27 or 28) */
+    v: number
+    /** First 32 bytes of signature */
+    r: string
+    /** Second 32 bytes of signature */
+    s: string
+  }
+}
+
+/**
  * x402 error types
  */
 export type X402ErrorCode =
@@ -542,4 +581,115 @@ export function createX402Fetch(
       },
     })
   }
+}
+
+// ============================================================================
+// Encoding Functions
+// ============================================================================
+
+/**
+ * Encode a payment payload as base64 for the X-Payment header
+ *
+ * Creates a base64-encoded string suitable for sending in the X-Payment header.
+ * The payload contains the signed EIP-3009 TransferWithAuthorization message.
+ *
+ * @param payload - The payment payload to encode
+ * @returns Base64-encoded string for the X-Payment header
+ *
+ * @example
+ * ```typescript
+ * const payload: X402PaymentPayload = {
+ *   x402Version: '1',
+ *   scheme: 'exact',
+ *   network: 'cronos-testnet',
+ *   payload: {
+ *     message: {
+ *       from: '0x1234...',
+ *       to: '0xabcd...',
+ *       value: '10000',
+ *       validAfter: '0',
+ *       validBefore: '1700000000',
+ *       nonce: '0x1234...'
+ *     },
+ *     v: 27,
+ *     r: '0x...',
+ *     s: '0x...'
+ *   }
+ * }
+ *
+ * const header = encodePaymentPayload(payload)
+ * // Use in fetch: { headers: { 'X-Payment': header } }
+ * ```
+ */
+export function encodePaymentPayload(payload: X402PaymentPayload): string {
+  // Step 1: JSON stringify the payload
+  const json = JSON.stringify(payload)
+
+  // Step 2: Base64 encode using btoa (browser-compatible)
+  // Note: btoa works with ASCII/Latin-1, which is safe for JSON
+  return btoa(json)
+}
+
+/**
+ * Create and encode a payment header from message and signature components
+ *
+ * Convenience function that constructs the X402PaymentPayload and encodes it.
+ * This is typically used after signing a TransferWithAuthorization message.
+ *
+ * @param options - Message and signature components
+ * @returns Base64-encoded X-Payment header value
+ *
+ * @example
+ * ```typescript
+ * // After signing the message
+ * const { r, s, v } = parseSignature(signature)
+ *
+ * const paymentHeader = createPaymentHeader({
+ *   network: 'cronos-testnet',
+ *   message: {
+ *     from: playerAddress,
+ *     to: arcadeWallet,
+ *     value: '10000',
+ *     validAfter: '0',
+ *     validBefore: validBefore.toString(),
+ *     nonce: nonce
+ *   },
+ *   v,
+ *   r,
+ *   s
+ * })
+ *
+ * // Use in fetch request
+ * await fetch('/api/play/snake', {
+ *   headers: { 'X-Payment': paymentHeader }
+ * })
+ * ```
+ */
+export function createPaymentHeader(options: {
+  network: string
+  message: {
+    from: string
+    to: string
+    value: string
+    validAfter: string
+    validBefore: string
+    nonce: string
+  }
+  v: number
+  r: string
+  s: string
+}): string {
+  const payload: X402PaymentPayload = {
+    x402Version: '1',
+    scheme: 'exact',
+    network: options.network,
+    payload: {
+      message: options.message,
+      v: options.v,
+      r: options.r,
+      s: options.s,
+    },
+  }
+
+  return encodePaymentPayload(payload)
 }

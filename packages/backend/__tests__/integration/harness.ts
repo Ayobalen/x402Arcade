@@ -41,9 +41,9 @@
  * ```
  */
 
-import express, { Express, Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import express, { type Express, type Request, type Response, type NextFunction, ErrorRequestHandler } from 'express';
 import cors from 'cors';
-import supertest, { SuperTest, Test } from 'supertest';
+import supertest, { type SuperTest, type Test } from 'supertest';
 import {
   loadTestEnv,
   resetTestEnv,
@@ -61,11 +61,11 @@ import {
   type MockServer,
 } from '../utils/cleanup-helpers';
 import {
-  MockFacilitatorServer,
+  type MockFacilitatorServer,
   createTestFacilitatorServer,
 } from '../mocks/facilitator-mock';
 import {
-  MockWeb3Provider,
+  type MockWeb3Provider,
   createTestProvider,
   CRONOS_TESTNET,
 } from '../mocks/blockchain-mock';

@@ -213,3 +213,52 @@ export {
   // Test setup helpers
   setupTestServer,
 } from './msw-server';
+
+// API Mock Handlers
+export {
+  // Types
+  type GameType,
+  type SessionStatus,
+  type GameSession,
+  type LeaderboardEntry,
+  type PaymentRequirement,
+  type PaymentVerification,
+  type AuthInfo,
+  // Mock data factories
+  generateSessionId,
+  generateTxHash,
+  generateAddress,
+  generateNonce,
+  createMockSession,
+  createMockLeaderboardEntry,
+  createMockLeaderboard,
+  createPaymentRequirement,
+  // Auth handlers and utilities
+  authHandlers,
+  clearMockAuthState,
+  // Game handlers and utilities
+  gameHandlers,
+  clearMockSessions,
+  getMockSession,
+  setMockSession,
+  // Leaderboard handlers and utilities
+  leaderboardHandlers,
+  initializeMockLeaderboards,
+  clearMockLeaderboards,
+  // Payment handlers and utilities
+  paymentHandlers,
+  clearMockPayments,
+  // Error handlers and utilities
+  errorHandlers,
+  simulateError,
+  clearErrorSimulations,
+  // Combined handlers
+  handlers,
+  resetAllMockState,
+  initializeAllMockData,
+  // Scenario-specific handler sets
+  unauthenticatedHandlers,
+  paymentFailureHandlers,
+  insufficientFundsHandlers,
+  maintenanceModeHandlers,
+} from './handlers';

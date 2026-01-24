@@ -8,43 +8,429 @@
 /* Import fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
+/* ============================================
+   BASE RESET
+   ============================================ */
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ============================================
+   ROOT ELEMENT
+   Default to dark theme using semantic variables
+   ============================================ */
+
+html {
+  /* Set dark theme as default */
+  color-scheme: dark;
 }
 
-/* Arcade display font */
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-page, var(--color-bg-primary));
+  color: var(--text-default, var(--color-text-primary));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--duration-moderate) var(--ease-out),
+              color var(--duration-moderate) var(--ease-out);
+}
+
+/* ============================================
+   FONT FAMILY UTILITIES
+   ============================================ */
+
+/* Arcade display font (Orbitron) */
 .font-display {
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
 }
 
 /* Monospace for addresses and code */
 .font-mono {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
 }
 
-/* Glow effects */
+/* ============================================
+   GLOW EFFECT UTILITIES
+   Using CSS variables for theme-aware glows
+   ============================================ */
+
+/* Box glow effects */
 .glow-cyan {
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  box-shadow: var(--glow-cyan);
+}
+
+.glow-cyan-md {
+  box-shadow: var(--glow-cyan-md);
+}
+
+.glow-cyan-lg {
+  box-shadow: var(--glow-cyan-lg);
+}
+
+.glow-cyan-intense {
+  box-shadow: var(--glow-cyan-intense);
 }
 
 .glow-magenta {
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+  box-shadow: var(--glow-magenta);
 }
 
+.glow-magenta-md {
+  box-shadow: var(--glow-magenta-md);
+}
+
+.glow-magenta-lg {
+  box-shadow: var(--glow-magenta-lg);
+}
+
+.glow-magenta-intense {
+  box-shadow: var(--glow-magenta-intense);
+}
+
+.glow-green {
+  box-shadow: var(--glow-green);
+}
+
+.glow-green-lg {
+  box-shadow: var(--glow-green-lg);
+}
+
+.glow-orange {
+  box-shadow: var(--glow-orange);
+}
+
+.glow-red {
+  box-shadow: var(--glow-red);
+}
+
+/* Text glow effects */
 .text-glow-cyan {
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px var(--color-primary-glow);
 }
 
 .text-glow-magenta {
-  text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+  text-shadow: 0 0 10px var(--color-secondary-glow);
+}
+
+.text-glow-success {
+  text-shadow: 0 0 10px var(--color-success-glow);
+}
+
+.text-glow-warning {
+  text-shadow: 0 0 10px var(--color-warning-glow);
+}
+
+.text-glow-error {
+  text-shadow: 0 0 10px var(--color-error-glow);
+}
+
+/* ============================================
+   FOCUS UTILITIES
+   Accessible focus rings using design system
+   ============================================ */
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--interactive-default, var(--color-primary));
+  outline-offset: 2px;
+}
+
+.focus-glow:focus-visible {
+  outline: none;
+  box-shadow: var(--glow-cyan-md), 0 0 0 2px var(--interactive-default, var(--color-primary));
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   Theme-aware custom scrollbar
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-tertiary);
+  border-radius: var(--radius-full);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--interactive-default, var(--color-primary-600));
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-tertiary) var(--color-bg-secondary);
+}
+
+/* ============================================
+   SELECTION STYLING
+   Theme-aware text selection
+   ============================================ */
+
+::selection {
+  background-color: var(--color-primary-700);
+  color: var(--color-text-primary);
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   Arcade-style animations for the neon aesthetic
+   ============================================ */
+
+/* Glow Pulse - pulsing neon glow intensity */
+@keyframes glowPulse {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow: var(--glow-cyan);
+  }
+  50% {
+    filter: brightness(1.1);
+    box-shadow: var(--glow-cyan-lg);
+  }
+}
+
+/* Glow Pulse Magenta variant */
+@keyframes glowPulseMagenta {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow: var(--glow-magenta);
+  }
+  50% {
+    filter: brightness(1.1);
+    box-shadow: var(--glow-magenta-lg);
+  }
+}
+
+/* Glow Pulse Green variant */
+@keyframes glowPulseGreen {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow: var(--glow-green);
+  }
+  50% {
+    filter: brightness(1.1);
+    box-shadow: var(--glow-green-lg);
+  }
+}
+
+/* Glow Pulse Red variant */
+@keyframes glowPulseRed {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow: var(--glow-red);
+  }
+  50% {
+    filter: brightness(1.1);
+    box-shadow: 0 0 20px rgba(255, 51, 102, 0.5), 0 0 40px rgba(255, 51, 102, 0.3);
+  }
+}
+
+/* Neon Flicker - retro sign flicker effect */
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  20%, 24%, 55% {
+    opacity: 0.8;
+    filter: brightness(0.9);
+  }
+}
+
+/* Pulse - subtle scale pulse */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+/* Ping - radar-like expanding ring */
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Spin - 360° rotation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Bounce - vertical bounce */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+/* Shake - horizontal shake for errors */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+/* Score Pop - for score increments */
+@keyframes scorePop {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Fade In */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Fade Out */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Slide In Up */
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Slide In Down */
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Scale In */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   BUTTON GLOW ANIMATION UTILITIES
+   Apply pulsing glow effects to buttons
+   ============================================ */
+
+/* Animated glow on hover/focus */
+.btn-glow-cyan:hover,
+.btn-glow-cyan:focus-visible {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+.btn-glow-magenta:hover,
+.btn-glow-magenta:focus-visible {
+  animation: glowPulseMagenta 2s ease-in-out infinite;
+}
+
+.btn-glow-green:hover,
+.btn-glow-green:focus-visible {
+  animation: glowPulseGreen 2s ease-in-out infinite;
+}
+
+.btn-glow-red:hover,
+.btn-glow-red:focus-visible {
+  animation: glowPulseRed 2s ease-in-out infinite;
+}
+
+/* Static glow shadows (Tailwind utility compatible) */
+.shadow-glow-cyan {
+  box-shadow: var(--glow-cyan-md);
+}
+
+.shadow-glow-magenta {
+  box-shadow: var(--glow-magenta-md);
+}
+
+.shadow-glow-green {
+  box-shadow: var(--glow-green);
+}
+
+.shadow-glow-red {
+  box-shadow: var(--glow-red);
+}
+
+/* ============================================
+   ACCESSIBILITY
+   Reduced motion preference
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

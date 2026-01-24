@@ -9,7 +9,5 @@
 // Note: For production builds, tree-shaking will remove unused exports
 export * from '../test-utils';
 
-// Placeholder for future shared code
-// export * from './types';
-// export * from './constants';
-// export * from './utils';
+// Shared constants (chain config, USDC, EIP-712 types)
+export * from './constants';
