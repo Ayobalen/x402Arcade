@@ -12,13 +12,16 @@ import type { Router as RouterType } from 'express';
 import type { X402Request } from '../server/middleware/x402.js';
 import { createX402Middleware } from '../server/middleware/x402.js';
 import { GameService } from '../services/game.js';
+import { PrizePoolService } from '../services/prizePool.js';
 import { getDatabase } from '../db/index.js';
 import { parseUSDC } from '../lib/chain/constants.js';
 
 const router: RouterType = Router();
 
-// Initialize game service with database
-const gameService = new GameService(getDatabase());
+// Initialize services with database
+const db = getDatabase();
+const gameService = new GameService(db);
+const prizePoolService = new PrizePoolService(db);
 
 // Arcade wallet address from environment
 const ARCADE_WALLET = process.env.ARCADE_WALLET_ADDRESS || '';
@@ -135,7 +138,34 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
       amountPaidUsdc,
     });
 
-    // Step 5: Return session ID to client (201 Created)
+    // Step 5: Update prize pool with payment contribution
+    // This is done outside the session transaction to avoid blocking session creation
+    // if prize pool update fails. The payment has already been verified at this point.
+    try {
+      const poolUpdate = prizePoolService.addToPrizePool({
+        gameType: gameType as 'snake' | 'tetris',
+        amountUsdc: amountPaidUsdc,
+      });
+
+      // eslint-disable-next-line no-console
+      console.log('[Prize Pool] Updated successfully', {
+        sessionId: session.id,
+        gameType,
+        paymentAmount: amountPaidUsdc,
+        dailyPoolTotal: poolUpdate.dailyTotal,
+        weeklyPoolTotal: poolUpdate.weeklyTotal,
+      });
+    } catch (poolError) {
+      // Log error but don't fail the session creation
+      // The session is already created and player has paid
+      // eslint-disable-next-line no-console
+      console.error('[Prize Pool] Update failed', {
+        sessionId: session.id,
+        error: poolError instanceof Error ? poolError.message : 'Unknown error',
+      });
+    }
+
+    // Step 6: Return session ID to client (201 Created)
     res.status(201).json({
       success: true,
       sessionId: session.id,
