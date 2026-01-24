@@ -14,10 +14,18 @@ import { getDatabase } from '../db/index.js';
 
 const router: RouterType = Router();
 
-// Initialize services with database
-const db = getDatabase();
-const gameService = new GameService(db);
-const leaderboardService = new LeaderboardService(db);
+// Lazy initialization - get services only when routes are called
+let gameService: GameService | null = null;
+let leaderboardService: LeaderboardService | null = null;
+
+function getServices() {
+  if (!gameService || !leaderboardService) {
+    const db = getDatabase();
+    gameService = new GameService(db);
+    leaderboardService = new LeaderboardService(db);
+  }
+  return { gameService, leaderboardService };
+}
 
 /**
  * POST /api/v1/score/submit
@@ -80,6 +88,9 @@ router.post('/submit', (req: Request, res: Response) => {
     });
     return;
   }
+
+  // Get services (lazy initialization)
+  const { gameService, leaderboardService } = getServices();
 
   // Call GameService.completeSession() - throws on error
   let session;

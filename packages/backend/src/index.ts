@@ -14,9 +14,15 @@
  */
 
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-// Load environment variables first
-dotenv.config();
+// Get the directory of this file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables from packages/backend/.env
+dotenv.config({ path: join(__dirname, '../.env') });
 
 // Validate environment variables at startup
 import { getEnv, validateEnv, type ValidationResult } from './config/env.js';
@@ -43,6 +49,10 @@ if (!validationResult.success) {
 
 // Get validated environment (will use defaults for optional fields)
 const env = getEnv();
+
+// Initialize database before importing app (routes depend on db)
+import { initDatabase } from './db/index.js';
+initDatabase();
 
 // Import the configured Express app
 import { app } from './app.js';

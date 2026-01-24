@@ -55,6 +55,7 @@ export const envSchema = z.object({
   JWT_SECRET: z
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters')
+    .default('dev_secret_key_at_least_32_characters_long_for_testing')
     .describe('Secret key for JWT token signing (minimum 32 characters for security)'),
   JWT_EXPIRY_SECONDS: z.coerce
     .number()
