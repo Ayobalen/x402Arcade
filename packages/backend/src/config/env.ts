@@ -140,14 +140,18 @@ export const envSchema = z.object({
   // Game Configuration
   SNAKE_PRICE_USDC: z.coerce
     .number()
-    .positive()
+    .positive('Snake price must be a positive number')
     .default(0.01)
-    .describe('Price in USDC to play Snake game (default: 0.01 USDC)'),
+    .describe(
+      'Price in USDC to play Snake game (default: 0.01 USDC = 1 cent, accepts string or number)'
+    ),
   TETRIS_PRICE_USDC: z.coerce
     .number()
-    .positive()
+    .positive('Tetris price must be a positive number')
     .default(0.02)
-    .describe('Price in USDC to play Tetris game (default: 0.02 USDC)'),
+    .describe(
+      'Price in USDC to play Tetris game (default: 0.02 USDC = 2 cents, accepts string or number)'
+    ),
   PRIZE_POOL_PERCENTAGE: z.coerce
     .number()
     .int()
