@@ -6487,3 +6487,36 @@ Perfect for adding authentic CRT/retro atmosphere to 3D arcade scenes.
 3. Consider regression testing if needed
 
 ---
+
+
+---
+
+## Session Log - January 24, 2026 23:48 UTC - Bloom Post-Processing Effect
+
+### Feature #588: Create bloom post-processing ✅ PASSING
+
+Implemented bloom/glow post-processing using @react-three/postprocessing.
+
+**All 6 requirements completed:**
+1. ✅ Import EffectComposer from @react-three/postprocessing
+2. ✅ Add Bloom effect component  
+3. ✅ Configure intensity (0-10) and threshold (0-1)
+4. ✅ Target emissive materials via luminance threshold
+5. ✅ Tune bloom radius (0-2+)
+6. ✅ Optimize with kernel size, mipmapBlur, blendFunction
+
+**Files:**
+- BloomEffect.tsx (474 lines) - Main component
+- BloomEffect.stories.tsx (456 lines) - 16 Storybook stories
+- effects/index.ts - Export configuration
+
+**Features:**
+- 7 presets: subtle, moderate, intense, neon, arcade, dramatic, off
+- Imperative API: BloomEffectHandle
+- Hook: useBloomEffect for state management
+- Complete TypeScript types and JSDoc
+
+**Git Commit:** 59a65448
+
+**Progress:** 502→503/1215 (41.3%→41.4%)
+
