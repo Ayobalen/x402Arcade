@@ -85,6 +85,23 @@ export interface GamePaymentRequirement {
 }
 
 /**
+ * Parameters for creating a game session.
+ *
+ * Used when creating a new session record in the database after
+ * successful payment settlement.
+ */
+export interface CreateSessionParams {
+  /** Type of game being played */
+  gameType: 'snake' | 'tetris';
+  /** Player's wallet address */
+  playerAddress: string;
+  /** Blockchain transaction hash for the payment */
+  paymentTxHash: string;
+  /** Amount paid in USDC (smallest units, 6 decimals) */
+  amountPaidUsdc: number;
+}
+
+/**
  * Options for starting a game.
  */
 export interface StartGameOptions {
@@ -123,10 +140,10 @@ export interface StartGameResult {
  * 10000 = $0.01 USDC
  */
 export const GAME_PRICES: Record<GameType, string> = {
-  snake: '10000',        // $0.01
-  tetris: '20000',       // $0.02
-  pong: '10000',         // $0.01
-  breakout: '15000',     // $0.015
+  snake: '10000', // $0.01
+  tetris: '20000', // $0.02
+  pong: '10000', // $0.01
+  breakout: '15000', // $0.015
   space_invaders: '25000', // $0.025
 };
 
@@ -163,19 +180,20 @@ export function getSession(sessionId: string): GameSession | undefined {
  * Get all sessions for a player.
  */
 export function getPlayerSessions(playerAddress: string): GameSession[] {
-  return Array.from(sessions.values())
-    .filter(s => s.playerAddress.toLowerCase() === playerAddress.toLowerCase());
+  return Array.from(sessions.values()).filter(
+    (s) => s.playerAddress.toLowerCase() === playerAddress.toLowerCase()
+  );
 }
 
 /**
  * Get active session for a player.
  */
 export function getActiveSession(playerAddress: string): GameSession | undefined {
-  return Array.from(sessions.values())
-    .find(s =>
+  return Array.from(sessions.values()).find(
+    (s) =>
       s.playerAddress.toLowerCase() === playerAddress.toLowerCase() &&
       (s.status === 'active' || s.status === 'pending')
-    );
+  );
 }
 
 /**
@@ -545,9 +563,11 @@ export function extractSessionId(responseBody: unknown): ExtractSessionResult {
   else if (
     body.data &&
     (body.data as Record<string, unknown>).session &&
-    typeof ((body.data as Record<string, unknown>).session as Record<string, unknown>).id === 'string'
+    typeof ((body.data as Record<string, unknown>).session as Record<string, unknown>).id ===
+      'string'
   ) {
-    sessionId = ((body.data as Record<string, unknown>).session as Record<string, unknown>).id as string;
+    sessionId = ((body.data as Record<string, unknown>).session as Record<string, unknown>)
+      .id as string;
   }
 
   // Validate session ID was found
