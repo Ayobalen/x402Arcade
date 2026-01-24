@@ -54,6 +54,9 @@ export function initDatabase(): DatabaseType {
   // Enable foreign keys
   db.pragma('foreign_keys = ON');
 
+  // Set busy timeout for write conflicts (5 seconds)
+  db.pragma('busy_timeout = 5000');
+
   return db;
 }
 
@@ -78,3 +81,6 @@ export function closeDatabase(): void {
     db.close();
   }
 }
+
+// Default export for convenience
+export default { initDatabase, getDatabase, closeDatabase };
