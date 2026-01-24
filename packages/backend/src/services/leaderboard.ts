@@ -133,4 +133,44 @@ export class LeaderboardService {
     const now = new Date();
     return now.toISOString().split('T')[0];
   }
+
+  /**
+   * Get the Monday of the current week in YYYY-MM-DD format (UTC).
+   *
+   * Calculates the start of the current week (Monday) for weekly leaderboard periods.
+   * Uses UTC timezone for consistency. ISO week starts on Monday (day 1).
+   *
+   * Algorithm:
+   * 1. Get current UTC date
+   * 2. Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+   * 3. Calculate days to subtract to reach Monday
+   * 4. Subtract those days to get Monday's date
+   *
+   * @returns Monday of current week in YYYY-MM-DD format
+   *
+   * @example
+   * ```typescript
+   * // If today is Friday, Jan 24, 2026
+   * const weekStart = this.getWeekStart();
+   * // Returns: "2026-01-19" (the preceding Monday)
+   * ```
+   *
+   * @private
+   */
+  private getWeekStart(): string {
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+    // Calculate days to subtract to reach Monday
+    // If Sunday (0), go back 6 days
+    // If Monday (1), go back 0 days
+    // If Tuesday (2), go back 1 day, etc.
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+    // Create a new date and subtract the calculated days
+    const monday = new Date(now);
+    monday.setUTCDate(now.getUTCDate() - daysToSubtract);
+
+    return monday.toISOString().split('T')[0];
+  }
 }
