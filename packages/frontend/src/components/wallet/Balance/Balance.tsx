@@ -19,7 +19,7 @@
  */
 
 import { useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import { cn, formatBalance } from '@/lib/utils';
 import { useWalletStore } from '@/stores/walletStore';
 import { useBalance } from './useBalance';
 import type { BalanceProps } from './Balance.types';
@@ -78,8 +78,15 @@ export function Balance({
     refresh();
   };
 
-  // Format balance with specified decimals
-  const formattedBalance = balance ? parseFloat(balance.formatted).toFixed(decimals) : '0.00';
+  // Format balance with proper thousand separators and decimal places
+  const formattedBalance = balance
+    ? formatBalance(balance.formatted, {
+        decimals,
+        showSymbol: false, // We show symbol separately in the component
+        useThousandSeparator: true,
+        minimumDisplayValue: 0.01,
+      })
+    : '0.00';
 
   return (
     <div className={cn('inline-flex items-center gap-2', className)}>
