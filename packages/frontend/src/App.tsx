@@ -3,6 +3,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Home } from '@/pages/Home';
 import { Play } from '@/pages/Play';
 import { Leaderboard } from '@/pages/Leaderboard';
+import { NotFound } from '@/pages/NotFound';
 
 function App() {
   return (
@@ -12,7 +13,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/play" element={<Play />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
-          {/* Additional routes will be added here */}
+          {/* Catch-all route for 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>
     </Router>
