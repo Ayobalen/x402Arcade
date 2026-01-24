@@ -6520,3 +6520,31 @@ Implemented bloom/glow post-processing using @react-three/postprocessing.
 
 **Progress:** 502→503/1215 (41.3%→41.4%)
 
+
+
+## Feature #589: Create chromatic aberration effect ✅ PASSING
+
+Implemented chromatic aberration post-processing for RGB color fringing.
+
+**All 6 requirements completed:**
+1. ✅ Add ChromaticAberration effect from @react-three/postprocessing
+2. ✅ Configure offset values ([x, y] array, default [0.001, 0.001])
+3. ✅ Keep effect subtle (multiple presets, opacity control)
+4. ✅ Concentrate at edges (radialModulation + modulationOffset)
+5. ✅ Make toggleable (enabled prop, setEnabled method, 'off' preset)
+6. ✅ Test on different content (15 Storybook stories)
+
+**Files:**
+- ChromaticAberrationEffect.tsx (366 lines)
+- ChromaticAberrationEffect.stories.tsx (356 lines, 15 stories)
+- effects/index.ts (export config)
+
+**Features:**
+- 6 presets: subtle, moderate, strong, crt, lens, off
+- Radial modulation for edge concentration
+- Imperative API + hook
+
+**Git Commit:** 5a3d26db
+
+**Progress:** 502→504/1215 (41.3%→41.5%)
+
