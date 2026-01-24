@@ -122,3 +122,17 @@ export {
   type UseChromaticAberrationEffectResult,
   default as ChromaticAberrationEffectDefault,
 } from './ChromaticAberrationEffect';
+
+// Vignette post-processing effect
+export {
+  VignetteEffect,
+  useVignetteEffect,
+  getVignetteEffectPreset,
+  VIGNETTE_EFFECT_PRESETS,
+  type VignetteEffectProps,
+  type VignetteEffectHandle,
+  type VignetteEffectPreset,
+  type UseVignetteEffectOptions,
+  type UseVignetteEffectResult,
+  default as VignetteEffectDefault,
+} from './VignetteEffect';
