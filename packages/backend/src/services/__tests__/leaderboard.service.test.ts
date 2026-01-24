@@ -652,6 +652,134 @@ describe('LeaderboardService - Public Methods', () => {
   });
 
   // ============================================================================
+  // getAllTimeLeaderboard Tests
+  // ============================================================================
+
+  describe('getAllTimeLeaderboard', () => {
+    const player1 = '0x1111111111111111111111111111111111111111';
+    const player2 = '0x2222222222222222222222222222222222222222';
+    const player3 = '0x3333333333333333333333333333333333333333';
+
+    beforeEach(() => {
+      // Add some scores
+      leaderboardService.addEntry({
+        sessionId: 'session-1',
+        gameType: 'snake',
+        playerAddress: player1,
+        score: 5000,
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-2',
+        gameType: 'snake',
+        playerAddress: player2,
+        score: 3000,
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-3',
+        gameType: 'tetris',
+        playerAddress: player3,
+        score: 10000,
+      });
+    });
+
+    it('should return all-time leaderboard entries', () => {
+      const results = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'snake',
+      });
+
+      expect(results).toBeInstanceOf(Array);
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it('should call getTopScores with alltime periodType', () => {
+      const results = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'snake',
+      });
+
+      // Verify all results have alltime period type
+      expect(results.every((entry) => entry.periodType === 'alltime')).toBe(true);
+    });
+
+    it('should use "alltime" as period_date', () => {
+      const results = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'snake',
+      });
+
+      expect(results.every((entry) => entry.periodDate === 'alltime')).toBe(true);
+    });
+
+    it('should filter by game type', () => {
+      const snakeResults = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'snake',
+      });
+
+      const tetrisResults = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'tetris',
+      });
+
+      expect(snakeResults.length).toBe(2);
+      expect(tetrisResults.length).toBe(1);
+    });
+
+    it('should respect limit parameter', () => {
+      const results = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'snake',
+        limit: 1,
+      });
+
+      expect(results.length).toBe(1);
+    });
+
+    it('should use default limit of 10 when not specified', () => {
+      // Add 15 entries to test default limit
+      for (let i = 0; i < 15; i++) {
+        leaderboardService.addEntry({
+          sessionId: `session-${i + 10}`,
+          gameType: 'pong',
+          playerAddress: `0x${i.toString().padStart(40, '0')}`,
+          score: 100 + i,
+        });
+      }
+
+      const results = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'pong',
+      });
+
+      // Should return default limit of 10, not all 15
+      expect(results.length).toBe(10);
+    });
+
+    it('should return scores in descending order', () => {
+      const results = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'snake',
+      });
+
+      // First entry should have highest score
+      expect(results[0].score).toBe(5000);
+      expect(results[1].score).toBe(3000);
+    });
+
+    it('should compute ranks correctly', () => {
+      const results = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'snake',
+      });
+
+      expect(results[0].rank).toBe(1);
+      expect(results[1].rank).toBe(2);
+    });
+
+    it('should return empty array when no scores exist', () => {
+      const results = leaderboardService.getAllTimeLeaderboard({
+        gameType: 'breakout',
+      });
+
+      expect(results).toEqual([]);
+    });
+  });
+
+  // ============================================================================
   // getPlayerRanking Tests
   // ============================================================================
 
