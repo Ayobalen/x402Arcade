@@ -879,4 +879,120 @@ export class GameService {
       throw error;
     }
   }
+
+  /**
+   * Get active session for a player and game type
+   *
+   * Finds the player's current active session for a specific game type.
+   * This enforces the single-session-per-game rule: a player can only have
+   * one active session per game type at a time.
+   *
+   * Sessions are considered stale if they exceed SESSION_TIMEOUT_MS (30 minutes).
+   * Stale sessions are automatically expired before returning.
+   *
+   * @param playerAddress - The player's wallet address
+   * @param gameType - The type of game to check for
+   * @returns The active session or null if none exists
+   *
+   * @example
+   * ```typescript
+   * const activeSession = gameService.getActiveSession(
+   *   '0x1234567890abcdef1234567890abcdef12345678',
+   *   'snake'
+   * );
+   *
+   * if (activeSession) {
+   *   console.log('Player already has an active game:', activeSession.id);
+   * } else {
+   *   // Allow player to start a new game
+   * }
+   * ```
+   */
+  getActiveSession(playerAddress: string, gameType: GameType): GameSession | null {
+    try {
+      // Use SQL aliases to map snake_case columns to camelCase directly
+      const stmt = this.db.prepare(`
+        SELECT
+          id,
+          game_type AS gameType,
+          player_address AS playerAddress,
+          payment_tx_hash AS paymentTxHash,
+          amount_paid_usdc AS amountPaidUsdc,
+          score,
+          status,
+          created_at AS createdAt,
+          completed_at AS completedAt,
+          game_duration_ms AS gameDurationMs
+        FROM game_sessions
+        WHERE player_address = ? AND game_type = ? AND status = 'active'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `);
+
+      const row = stmt.get(playerAddress.toLowerCase(), gameType) as GameSession | undefined;
+
+      if (!row) {
+        return null;
+      }
+
+      // Check if session is stale (exceeded timeout)
+      const createdAt = new Date(row.createdAt).getTime();
+      const now = Date.now();
+      const sessionAge = now - createdAt;
+
+      if (sessionAge > SESSION_TIMEOUT_MS) {
+        // Session is stale - expire it
+        this.expireSession(row.id);
+        return null;
+      }
+
+      return row;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to get active session: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Expire a game session
+   *
+   * Marks an active session as expired. This is typically done when:
+   * - A session exceeds SESSION_TIMEOUT_MS without completion
+   * - Cleanup processes run to remove stale sessions
+   *
+   * @param id - The session ID to expire
+   * @returns Whether the session was successfully expired
+   *
+   * @example
+   * ```typescript
+   * const expired = gameService.expireSession('550e8400-e29b-41d4-a716-446655440000');
+   * if (expired) {
+   *   console.log('Session expired');
+   * }
+   * ```
+   */
+  expireSession(id: string): boolean {
+    try {
+      const completedAt = new Date().toISOString();
+
+      const stmt = this.db.prepare(`
+        UPDATE game_sessions
+        SET
+          status = 'expired',
+          completed_at = ?
+        WHERE id = ? AND status = 'active'
+      `);
+
+      const result = stmt.run(completedAt, id);
+
+      return result.changes > 0;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to expire session: ${error.message}`);
+      }
+      throw error;
+    }
+  }
 }
