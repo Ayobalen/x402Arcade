@@ -5,17 +5,17 @@
  * Handles the full wallet connection flow and status display.
  */
 
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 /**
  * Button size options (matches Button component)
  */
-export type ConnectButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+export type ConnectButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 /**
  * Button variant options for visual styling
  */
-export type ConnectButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost'
+export type ConnectButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 
 /**
  * Connection state for internal tracking
@@ -26,120 +26,143 @@ export type ConnectionState =
   | 'connected'
   | 'wrong_network'
   | 'switching_network'
-  | 'error'
+  | 'error';
 
 /**
  * ConnectButton Props Interface
  *
  * Extends native button attributes with wallet-specific props.
  */
-export interface ConnectButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+export interface ConnectButtonProps extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  'children'
+> {
   /**
    * Size of the button
    * @default 'md'
    */
-  size?: ConnectButtonSize
+  size?: ConnectButtonSize;
 
   /**
    * Visual style variant
    * @default 'primary'
    */
-  variant?: ConnectButtonVariant
+  variant?: ConnectButtonVariant;
 
   /**
    * Whether the button should take full width of its container
    * @default false
    */
-  fullWidth?: boolean
+  fullWidth?: boolean;
 
   /**
    * Custom label for disconnected state
    * @default 'Connect Wallet'
    */
-  connectLabel?: string
+  connectLabel?: string;
 
   /**
    * Custom label for connecting state
    * @default 'Connecting...'
    */
-  connectingLabel?: string
+  connectingLabel?: string;
 
   /**
    * Custom label for wrong network state
    * @default 'Wrong Network'
    */
-  wrongNetworkLabel?: string
+  wrongNetworkLabel?: string;
 
   /**
    * Custom label for switching network state
    * @default 'Switching...'
    */
-  switchingLabel?: string
+  switchingLabel?: string;
 
   /**
    * Whether to show abbreviated address when connected
    * @default true
    */
-  showAddress?: boolean
+  showAddress?: boolean;
 
   /**
    * Whether to show network indicator when connected
    * @default true
    */
-  showNetwork?: boolean
+  showNetwork?: boolean;
 
   /**
    * Whether to show wallet icon
    * @default true
    */
-  showIcon?: boolean
+  showIcon?: boolean;
 
   /**
    * Custom connected content renderer
    * Receives address and chainId as arguments
    */
-  connectedContent?: (address: string, chainId: number) => ReactNode
+  connectedContent?: (address: string, chainId: number) => ReactNode;
 
   /**
    * Callback fired when connection attempt starts
    */
-  onConnectStart?: () => void
+  onConnectStart?: () => void;
 
   /**
    * Callback fired when connection succeeds
    */
-  onConnectSuccess?: (address: string, chainId: number) => void
+  onConnectSuccess?: (address: string, chainId: number) => void;
 
   /**
    * Callback fired when connection fails
    */
-  onConnectError?: (error: Error) => void
+  onConnectError?: (error: Error) => void;
 
   /**
    * Callback fired when disconnect is triggered
    */
-  onDisconnect?: () => void
+  onDisconnect?: () => void;
 
   /**
    * Callback fired when network switch is initiated
    */
-  onNetworkSwitch?: () => void
+  onNetworkSwitch?: () => void;
+
+  /**
+   * Whether to automatically prompt network switch when connected to wrong network
+   * @default true
+   */
+  autoSwitchChain?: boolean;
+
+  /**
+   * Callback fired when automatic chain switch starts
+   */
+  onAutoSwitchStart?: () => void;
+
+  /**
+   * Callback fired when automatic chain switch succeeds
+   */
+  onAutoSwitchSuccess?: () => void;
+
+  /**
+   * Callback fired when automatic chain switch fails
+   */
+  onAutoSwitchError?: (error: Error) => void;
 
   /**
    * Additional CSS classes to apply
    */
-  className?: string
+  className?: string;
 }
 
 /**
  * Network configuration for display
  */
 export interface NetworkInfo {
-  chainId: number
-  name: string
-  shortName: string
-  iconColor: string
+  chainId: number;
+  name: string;
+  shortName: string;
+  iconColor: string;
 }
 
 /**
@@ -188,4 +211,4 @@ export const SUPPORTED_NETWORKS: Record<number, NetworkInfo> = {
     shortName: 'MATIC',
     iconColor: '#8247E5',
   },
-}
+};
