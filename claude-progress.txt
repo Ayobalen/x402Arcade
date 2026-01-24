@@ -23,36 +23,40 @@
 
 ## Session Log - January 24, 2026
 
-### Session: DATABASE_PATH Validation (Feature #222)
+### Session: Environment Schema Validation (Features #222, #223)
 **Completed:**
 - Feature #222: Define Zod schema for DATABASE_PATH ✅
   - Enhanced DATABASE_PATH schema with .refine() validation
   - Added validation that path ends with .db extension or is :memory:
   - Added .describe() documentation explaining database location
-  - Created 7 comprehensive tests for DATABASE_PATH validation:
-    - Valid paths with .db extension
-    - Absolute paths with .db extension
-    - :memory: special SQLite in-memory database path
-    - Invalid paths without .db extension
-    - Invalid paths with wrong extension (.sqlite)
-    - Default value ./data/arcade.db
-    - Nested directory paths with .db extension
-  - All 46 env validation tests passing
-  - Backend server validated successfully with new schema
+  - Created 7 comprehensive tests for DATABASE_PATH validation
+  - Git Commit: 536f082c
+
+- Feature #223: Define Zod schema for CHAIN_ID with transform ✅
+  - Enhanced CHAIN_ID schema with .refine() to validate Cronos chain IDs
+  - Added validation for chain ID 25 (mainnet) and 338 (testnet)
+  - Added descriptive .describe() documentation
+  - Created 9 comprehensive tests for CHAIN_ID validation:
+    - Cronos mainnet (25) and testnet (338) acceptance
+    - String to number coercion
+    - Rejection of invalid chain IDs
+    - Rejection of negative and zero values
+    - Default value 338 (testnet)
+    - Non-integer and non-numeric rejection
+  - All 55 env validation tests passing
+  - Git Commit: 36c45419
 
 **Files Modified:**
-- packages/backend/src/config/env.ts - Added DATABASE_PATH validation
-- packages/backend/__tests__/unit/lib/env.test.ts - Added 7 DATABASE_PATH tests
-
-**Git Commit:** 536f082c - feat(backend): add DATABASE_PATH validation with .db extension check
+- packages/backend/src/config/env.ts - Added DATABASE_PATH and CHAIN_ID validation
+- packages/backend/__tests__/unit/lib/env.test.ts - Added 16 new tests (7 DATABASE_PATH + 9 CHAIN_ID)
 
 **Regression Tests:** 2 features verified passing
 - Feature #396: Initialize root package.json with workspaces ✅
 - Feature #441: Create design tokens file for colors ✅
 
-**Status:** 372/1215 features passing (30.6%)
+**Status:** 373/1215 features passing (30.7%)
 
-**Note:** MCP feature database has read-only error preventing `feature_mark_passing`. Feature is fully implemented and verified working.
+**Note:** MCP feature database has read-only error preventing `feature_mark_passing`. Features are fully implemented and verified working.
 
 ---
 
