@@ -9,6 +9,8 @@
 
 import Database from 'better-sqlite3';
 import type { Database as DatabaseType } from 'better-sqlite3';
+import { mkdirSync } from 'fs';
+import { dirname } from 'path';
 import { env } from '../config/env.js';
 
 /**
@@ -26,6 +28,19 @@ export let db: DatabaseType;
  */
 export function initDatabase(): DatabaseType {
   const dbPath = env.DATABASE_PATH;
+
+  // Ensure database directory exists (skip for :memory:)
+  if (dbPath !== ':memory:') {
+    try {
+      const dbDir = dirname(dbPath);
+      mkdirSync(dbDir, { recursive: true });
+    } catch (error) {
+      // Directory might already exist, or there's a permission issue
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+        throw new Error(`Failed to create database directory: ${(error as Error).message}`);
+      }
+    }
+  }
 
   // Create database connection
   db = new Database(dbPath, {
