@@ -201,6 +201,94 @@ export class LeaderboardService {
     }
   }
 
+  /**
+   * Get the top N scores for a specific game and period.
+   *
+   * Retrieves the highest scores from the leaderboard, ordered by score descending.
+   * Calculates rank dynamically using ROW_NUMBER() window function.
+   *
+   * @param params - Query parameters
+   * @param params.gameType - Type of game to query
+   * @param params.periodType - Period type (daily, weekly, alltime)
+   * @param params.limit - Maximum number of entries to return (default: 10)
+   *
+   * @returns Array of leaderboard entries with computed ranks
+   *
+   * @example
+   * ```typescript
+   * const topScores = leaderboardService.getTopScores({
+   *   gameType: 'snake',
+   *   periodType: 'daily',
+   *   limit: 10
+   * });
+   * // Returns top 10 scores for snake game today
+   * ```
+   */
+  getTopScores(params: {
+    gameType: GameType;
+    periodType: PeriodType;
+    limit?: number;
+  }): LeaderboardEntry[] {
+    const { gameType, periodType, limit = 10 } = params;
+
+    // Calculate the period_date based on periodType
+    let periodDate: string;
+    if (periodType === 'daily') {
+      periodDate = this.getTodayDate();
+    } else if (periodType === 'weekly') {
+      periodDate = this.getWeekStart();
+    } else {
+      // alltime
+      periodDate = 'alltime';
+    }
+
+    // Query with ROW_NUMBER() window function for ranking
+    // SQLite supports window functions since version 3.25.0 (2018-09-15)
+    const stmt = this.db.prepare(`
+      SELECT
+        id,
+        session_id,
+        game_type,
+        player_address,
+        score,
+        period_type,
+        period_date,
+        ROW_NUMBER() OVER (ORDER BY score DESC) as rank,
+        created_at
+      FROM leaderboard_entries
+      WHERE game_type = ?
+        AND period_type = ?
+        AND period_date = ?
+      ORDER BY score DESC
+      LIMIT ?
+    `);
+
+    const rows = stmt.all(gameType, periodType, periodDate, limit) as Array<{
+      id: number;
+      session_id: string;
+      game_type: string;
+      player_address: string;
+      score: number;
+      period_type: string;
+      period_date: string;
+      rank: number;
+      created_at: string;
+    }>;
+
+    // Map database rows to LeaderboardEntry objects with camelCase
+    return rows.map((row) => ({
+      id: row.id,
+      sessionId: row.session_id,
+      gameType: row.game_type as GameType,
+      playerAddress: row.player_address,
+      score: row.score,
+      periodType: row.period_type as PeriodType,
+      periodDate: row.period_date,
+      rank: row.rank,
+      createdAt: row.created_at,
+    }));
+  }
+
   // ============================================================================
   // Private Helper Methods
   // ============================================================================
