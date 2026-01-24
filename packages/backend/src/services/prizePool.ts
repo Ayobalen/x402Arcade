@@ -100,6 +100,20 @@ export interface PrizePool {
   finalizedAt: string | null;
 }
 
+/**
+ * Top contributor data structure.
+ *
+ * Represents a player who contributed the most to a prize pool period.
+ */
+export interface TopContributor {
+  /** Player's wallet address */
+  playerAddress: string;
+  /** Total amount contributed in USDC */
+  totalContribution: number;
+  /** Number of games played during this period */
+  gamesPlayed: number;
+}
+
 // ============================================================================
 // PrizePoolService Class
 // ============================================================================
@@ -601,6 +615,86 @@ export class PrizePoolService {
     // External logging service can be integrated here if needed
 
     return updatedPool;
+  }
+
+  /**
+   * Get the top contributor (player who paid the most) for a prize pool period.
+   *
+   * Finds the player who contributed the most USDC to a specific game's prize pool
+   * during a given period. Useful for bonus rewards, recognition, or analytics.
+   *
+   * This method:
+   * 1. Queries game_sessions for the specified game type and period
+   * 2. Groups by player_address
+   * 3. Sums amount_paid_usdc per player
+   * 4. Counts games played per player
+   * 5. Returns the player with the highest total contribution
+   *
+   * Note: Contributions are based on full payment amounts, not just the prize pool portion.
+   * The actual prize pool contribution is amount_paid_usdc * PRIZE_POOL_PERCENTAGE (70%).
+   *
+   * @param params - Parameters for finding top contributor
+   * @param params.gameType - Type of game (snake, tetris, etc.)
+   * @param params.periodType - Period type (daily or weekly)
+   * @param params.periodDate - Period identifier (YYYY-MM-DD format)
+   * @returns TopContributor object or null if no players for this period
+   *
+   * @example
+   * ```typescript
+   * // Get top contributor for today's snake pool
+   * const topPlayer = service.getTopContributor({
+   *   gameType: 'snake',
+   *   periodType: 'daily',
+   *   periodDate: '2026-01-24'
+   * });
+   * // Returns: { playerAddress: '0x123...', totalContribution: 0.05, gamesPlayed: 5 }
+   * // (Player paid $0.05 total across 5 games)
+   * ```
+   */
+  getTopContributor(params: {
+    gameType: GameType;
+    periodType: PeriodType;
+    periodDate: string;
+  }): TopContributor | null {
+    const { gameType, periodType, periodDate } = params;
+
+    // Calculate date range for the period
+    let startDate: string;
+    let endDate: string;
+
+    if (periodType === 'daily') {
+      // For daily: period_date is the exact day (YYYY-MM-DD)
+      startDate = periodDate + 'T00:00:00';
+      endDate = periodDate + 'T23:59:59';
+    } else {
+      // For weekly: period_date is Monday, week ends on Sunday
+      const weekStart = new Date(periodDate + 'T00:00:00Z');
+      const weekEnd = new Date(weekStart);
+      weekEnd.setUTCDate(weekStart.getUTCDate() + 6); // Add 6 days to get Sunday
+
+      startDate = periodDate + 'T00:00:00';
+      endDate = weekEnd.toISOString().split('T')[0] + 'T23:59:59';
+    }
+
+    // Query to find top contributor for this period
+    const query = this.db.prepare(`
+      SELECT
+        player_address as playerAddress,
+        SUM(amount_paid_usdc) as totalContribution,
+        COUNT(*) as gamesPlayed
+      FROM game_sessions
+      WHERE game_type = ?
+        AND created_at >= ?
+        AND created_at <= ?
+        AND status = 'completed'
+      GROUP BY player_address
+      ORDER BY totalContribution DESC
+      LIMIT 1
+    `);
+
+    const result = query.get(gameType, startDate, endDate) as TopContributor | undefined;
+
+    return result ?? null;
   }
 
   // ============================================================================
