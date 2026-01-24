@@ -42,7 +42,15 @@ export const envSchema = z.object({
   JWT_EXPIRY_SECONDS: z.coerce.number().int().positive().default(3600),
 
   // Blockchain Configuration
-  CHAIN_ID: z.coerce.number().int().positive().default(338), // Cronos testnet
+  CHAIN_ID: z.coerce
+    .number()
+    .int()
+    .positive()
+    .refine((id) => id === 25 || id === 338, {
+      message: 'CHAIN_ID must be 25 (Cronos mainnet) or 338 (Cronos testnet)',
+    })
+    .default(338)
+    .describe('Cronos blockchain chain ID: 25 for mainnet, 338 for testnet'),
   RPC_URL: z.string().url().default('https://evm-t3.cronos.org/'),
   EXPLORER_URL: z.string().url().default('https://explorer.cronos.org/testnet'),
 
