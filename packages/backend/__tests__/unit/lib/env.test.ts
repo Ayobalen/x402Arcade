@@ -495,4 +495,137 @@ describe('Environment Validation Schema', () => {
       }
     });
   });
+
+  describe('CHAIN_ID Validation', () => {
+    it('should accept Cronos mainnet chain ID (25)', () => {
+      const testEnv = {
+        ...process.env,
+        CHAIN_ID: '25',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.CHAIN_ID).toBe(25);
+        expect(typeof result.data.CHAIN_ID).toBe('number');
+      }
+    });
+
+    it('should accept Cronos testnet chain ID (338)', () => {
+      const testEnv = {
+        ...process.env,
+        CHAIN_ID: '338',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.CHAIN_ID).toBe(338);
+        expect(typeof result.data.CHAIN_ID).toBe('number');
+      }
+    });
+
+    it('should accept CHAIN_ID as number', () => {
+      const testEnv = {
+        ...process.env,
+        CHAIN_ID: 338,
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.CHAIN_ID).toBe(338);
+      }
+    });
+
+    it('should reject invalid chain IDs', () => {
+      const invalidChainIds = [1, 56, 137, 250, 43114]; // Other popular chains
+
+      invalidChainIds.forEach((chainId) => {
+        const testEnv = {
+          ...process.env,
+          CHAIN_ID: chainId,
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const chainError = result.error.issues.find((issue) => issue.path.includes('CHAIN_ID'));
+          expect(chainError).toBeDefined();
+          expect(chainError?.message).toContain('25 (Cronos mainnet) or 338 (Cronos testnet)');
+        }
+      });
+    });
+
+    it('should reject negative chain IDs', () => {
+      const testEnv = {
+        ...process.env,
+        CHAIN_ID: '-1',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject zero as chain ID', () => {
+      const testEnv = {
+        ...process.env,
+        CHAIN_ID: '0',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should use default value 338 (testnet) when not specified', () => {
+      const testEnv = {
+        ...process.env,
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+      delete testEnv.CHAIN_ID;
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.CHAIN_ID).toBe(338);
+      }
+    });
+
+    it('should reject non-integer chain IDs', () => {
+      const testEnv = {
+        ...process.env,
+        CHAIN_ID: '25.5',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject non-numeric chain IDs', () => {
+      const testEnv = {
+        ...process.env,
+        CHAIN_ID: 'cronos',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+  });
 });
