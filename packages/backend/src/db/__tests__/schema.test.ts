@@ -755,6 +755,7 @@ describe('Database Schema', () => {
 
       expect(indexNames).toContain('idx_leaderboard_game_period');
       expect(indexNames).toContain('idx_leaderboard_score');
+      expect(indexNames).toContain('idx_leaderboard_player');
     });
 
     it('should create idx_leaderboard_game_period composite index', () => {
@@ -785,6 +786,20 @@ describe('Database Schema', () => {
       expect(indexSql).toBeDefined();
       expect(indexSql?.sql).toContain('score');
       expect(indexSql?.sql).toContain('DESC');
+      expect(indexSql?.sql).toContain('leaderboard_entries');
+    });
+
+    it('should create idx_leaderboard_player on player_address', () => {
+      initializeSchema(db);
+
+      const indexSql = db
+        .prepare(
+          `SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_leaderboard_player'`
+        )
+        .get() as { sql: string } | undefined;
+
+      expect(indexSql).toBeDefined();
+      expect(indexSql?.sql).toContain('player_address');
       expect(indexSql?.sql).toContain('leaderboard_entries');
     });
   });
