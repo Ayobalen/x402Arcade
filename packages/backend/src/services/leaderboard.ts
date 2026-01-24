@@ -108,4 +108,29 @@ export class LeaderboardService {
   constructor(database: DatabaseType) {
     this.db = database;
   }
+
+  // ============================================================================
+  // Private Helper Methods
+  // ============================================================================
+
+  /**
+   * Get today's date in YYYY-MM-DD format (UTC).
+   *
+   * Returns the current date in ISO 8601 date format using UTC timezone.
+   * This ensures consistent date calculations regardless of server timezone.
+   *
+   * @returns Today's date string in YYYY-MM-DD format
+   *
+   * @example
+   * ```typescript
+   * const today = this.getTodayDate();
+   * // Returns: "2026-01-24"
+   * ```
+   *
+   * @private
+   */
+  private getTodayDate(): string {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  }
 }
