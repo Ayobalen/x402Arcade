@@ -76,3 +76,12 @@ export {
   type UseAutoChainSwitchOptions,
   type UseAutoChainSwitchResult,
 } from './useAutoChainSwitch'
+
+export {
+  usePerformanceScaling,
+  type QualityLevel,
+  type PerformanceScalingConfig,
+  type QualitySettings as PerformanceQualitySettings,
+  type PerformanceStats,
+  type UsePerformanceScalingResult,
+} from './usePerformanceScaling'
