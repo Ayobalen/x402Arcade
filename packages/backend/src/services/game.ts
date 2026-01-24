@@ -34,30 +34,31 @@ export type SessionStatus = 'pending' | 'active' | 'completed' | 'expired' | 'fa
 
 /**
  * Game session information.
+ *
+ * Maps database columns to camelCase properties for use in the application.
+ * Database schema: game_sessions table
  */
 export interface GameSession {
-  /** Unique session identifier */
+  /** Unique session identifier (maps to: id) */
   id: string;
-  /** Type of game being played */
-  gameType: GameType;
-  /** Player's wallet address */
+  /** Type of game being played (maps to: game_type) */
+  gameType: 'snake' | 'tetris';
+  /** Player's wallet address (maps to: player_address) */
   playerAddress: string;
-  /** Payment transaction hash */
+  /** Payment transaction hash (maps to: payment_tx_hash) */
   paymentTxHash: string;
-  /** Amount paid in USDC (smallest units) */
-  amountPaid: string;
-  /** Session status */
-  status: SessionStatus;
-  /** Session creation timestamp (ISO string) */
+  /** Amount paid in USDC, in smallest units (maps to: amount_paid_usdc) */
+  amountPaidUsdc: number;
+  /** Final game score, null if not completed (maps to: score) */
+  score: number | null;
+  /** Session status (maps to: status) */
+  status: 'active' | 'completed' | 'expired';
+  /** Session creation timestamp ISO string (maps to: created_at) */
   createdAt: string;
-  /** Session start timestamp when game actually begins */
-  startedAt?: string;
-  /** Session completion timestamp */
-  completedAt?: string;
-  /** Final game score */
-  score?: number;
-  /** Game duration in milliseconds */
-  durationMs?: number;
+  /** Session completion timestamp ISO string (maps to: completed_at) */
+  completedAt: string | null;
+  /** Game duration in milliseconds (maps to: game_duration_ms) */
+  gameDurationMs: number | null;
 }
 
 /**
@@ -190,9 +191,7 @@ export function getPlayerSessions(playerAddress: string): GameSession[] {
  */
 export function getActiveSession(playerAddress: string): GameSession | undefined {
   return Array.from(sessions.values()).find(
-    (s) =>
-      s.playerAddress.toLowerCase() === playerAddress.toLowerCase() &&
-      (s.status === 'active' || s.status === 'pending')
+    (s) => s.playerAddress.toLowerCase() === playerAddress.toLowerCase() && s.status === 'active'
   );
 }
 
@@ -354,13 +353,15 @@ export async function startGame(options: StartGameOptions): Promise<StartGameRes
   // Step 6: Create the game session
   const session: GameSession = {
     id: uuidv4(),
-    gameType,
+    gameType: gameType as 'snake' | 'tetris',
     playerAddress,
     paymentTxHash: txHash,
-    amountPaid: paymentPayload.value,
+    amountPaidUsdc: parseFloat(paymentPayload.value),
+    score: null,
     status: 'active',
     createdAt: new Date().toISOString(),
-    startedAt: new Date().toISOString(),
+    completedAt: null,
+    gameDurationMs: null,
   };
 
   // Save the session
@@ -399,15 +400,15 @@ export function completeGame(
   // This will throw ScoreValidationError if invalid
   const validatedScore = assertValidScore(score, session.gameType);
 
-  const startedAt = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
-  const durationMs = Date.now() - startedAt;
+  const startedAt = new Date(session.createdAt).getTime();
+  const gameDurationMs = Date.now() - startedAt;
 
   const updatedSession: GameSession = {
     ...session,
     status: 'completed',
     score: validatedScore,
     completedAt: new Date().toISOString(),
-    durationMs,
+    gameDurationMs,
   };
 
   saveSession(updatedSession);
