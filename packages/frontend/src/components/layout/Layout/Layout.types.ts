@@ -57,4 +57,16 @@ export interface LayoutProps {
    * @default true
    */
   contentPadding?: boolean;
+
+  /**
+   * Whether to show the background effects (grid, glows)
+   * @default true
+   */
+  showBackgroundEffects?: boolean;
+
+  /**
+   * Glow intensity for background effects
+   * @default 'medium'
+   */
+  glowIntensity?: 'low' | 'medium' | 'high';
 }
