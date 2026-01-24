@@ -289,6 +289,117 @@ export class LeaderboardService {
     }));
   }
 
+  /**
+   * Get a specific player's ranking and statistics.
+   *
+   * Retrieves the player's rank, score, and percentile for a specific game and period.
+   * Returns null if the player has no entry for the specified game/period.
+   *
+   * Algorithm:
+   * 1. Get player's score for the period
+   * 2. Count total players with scores in the period
+   * 3. Calculate rank by counting players with higher scores + 1
+   * 4. Calculate percentile as (rank / totalPlayers) * 100
+   *
+   * @param params - Query parameters
+   * @param params.gameType - Type of game
+   * @param params.playerAddress - Player's wallet address
+   * @param params.periodType - Period type (daily, weekly, alltime)
+   *
+   * @returns Player ranking information, or null if player has no entry
+   *
+   * @example
+   * ```typescript
+   * const ranking = leaderboardService.getPlayerRanking({
+   *   gameType: 'snake',
+   *   playerAddress: '0x1234...',
+   *   periodType: 'daily'
+   * });
+   * // Returns: { rank: 5, score: 1500, totalPlayers: 100, percentile: 5.0 }
+   * ```
+   */
+  getPlayerRanking(params: {
+    gameType: GameType;
+    playerAddress: string;
+    periodType: PeriodType;
+  }): PlayerRanking | null {
+    const { gameType, playerAddress, periodType } = params;
+
+    // Calculate the period_date based on periodType
+    let periodDate: string;
+    if (periodType === 'daily') {
+      periodDate = this.getTodayDate();
+    } else if (periodType === 'weekly') {
+      periodDate = this.getWeekStart();
+    } else {
+      // alltime
+      periodDate = 'alltime';
+    }
+
+    // Get player's score for the period
+    const playerStmt = this.db.prepare(`
+      SELECT score
+      FROM leaderboard_entries
+      WHERE game_type = ?
+        AND player_address = ?
+        AND period_type = ?
+        AND period_date = ?
+    `);
+
+    const playerRow = playerStmt.get(gameType, playerAddress, periodType, periodDate) as
+      | { score: number }
+      | undefined;
+
+    // Player has no entry for this period
+    if (!playerRow) {
+      return null;
+    }
+
+    const playerScore = playerRow.score;
+
+    // Count total players in the period
+    const totalStmt = this.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM leaderboard_entries
+      WHERE game_type = ?
+        AND period_type = ?
+        AND period_date = ?
+    `);
+
+    const totalRow = totalStmt.get(gameType, periodType, periodDate) as {
+      count: number;
+    };
+    const totalPlayers = totalRow.count;
+
+    // Calculate rank by counting players with higher scores + 1
+    // Rank 1 = highest score, rank 2 = second highest, etc.
+    const rankStmt = this.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM leaderboard_entries
+      WHERE game_type = ?
+        AND period_type = ?
+        AND period_date = ?
+        AND score > ?
+    `);
+
+    const rankRow = rankStmt.get(gameType, periodType, periodDate, playerScore) as {
+      count: number;
+    };
+    const rank = rankRow.count + 1;
+
+    // Calculate percentile (what percentage of players the user is better than or equal to)
+    // Example: rank 1 out of 100 = top 1% (100 - (1/100)*100 = 99% percentile)
+    // Example: rank 5 out of 100 = top 5% (100 - (5/100)*100 = 95% percentile)
+    const percentile = totalPlayers > 0 ? ((totalPlayers - rank + 1) / totalPlayers) * 100 : 0;
+
+    return {
+      rank,
+      score: playerScore,
+      totalPlayers,
+      percentile: Math.round(percentile * 10) / 10, // Round to 1 decimal place
+    };
+  }
+
   // ============================================================================
   // Private Helper Methods
   // ============================================================================

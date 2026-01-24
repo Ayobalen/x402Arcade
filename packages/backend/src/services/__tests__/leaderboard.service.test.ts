@@ -650,4 +650,292 @@ describe('LeaderboardService - Public Methods', () => {
       expect(results.every((entry) => entry.periodDate === 'alltime')).toBe(true);
     });
   });
+
+  // ============================================================================
+  // getPlayerRanking Tests
+  // ============================================================================
+
+  describe('getPlayerRanking', () => {
+    const player1 = '0x1111111111111111111111111111111111111111';
+    const player2 = '0x2222222222222222222222222222222222222222';
+    const player3 = '0x3333333333333333333333333333333333333333';
+    const player4 = '0x4444444444444444444444444444444444444444';
+    const player5 = '0x5555555555555555555555555555555555555555';
+
+    beforeEach(() => {
+      // Add entries with different scores (player1 = 5000, player2 = 4000, etc.)
+      leaderboardService.addEntry({
+        sessionId: 'session-1',
+        gameType: 'snake',
+        playerAddress: player1,
+        score: 5000, // Rank 1
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-2',
+        gameType: 'snake',
+        playerAddress: player2,
+        score: 4000, // Rank 2
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-3',
+        gameType: 'snake',
+        playerAddress: player3,
+        score: 3000, // Rank 3
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-4',
+        gameType: 'snake',
+        playerAddress: player4,
+        score: 2000, // Rank 4
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-5',
+        gameType: 'snake',
+        playerAddress: player5,
+        score: 1000, // Rank 5
+      });
+    });
+
+    it('should return null if player has no entry', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: '0x9999999999999999999999999999999999999999',
+        periodType: 'daily',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should return rank 1 for highest score', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player1,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.rank).toBe(1);
+    });
+
+    it('should return rank 2 for second highest score', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player2,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.rank).toBe(2);
+    });
+
+    it('should return rank 5 for lowest score', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player5,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.rank).toBe(5);
+    });
+
+    it('should return correct score', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player3,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.score).toBe(3000);
+    });
+
+    it('should return correct total players count', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player3,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.totalPlayers).toBe(5);
+    });
+
+    it('should calculate percentile correctly for rank 1', () => {
+      // Rank 1 out of 5 = top 20% = 100th percentile (better than 100% of players)
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player1,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      // percentile = (totalPlayers - rank + 1) / totalPlayers * 100
+      // percentile = (5 - 1 + 1) / 5 * 100 = 5/5 * 100 = 100
+      expect(result!.percentile).toBe(100);
+    });
+
+    it('should calculate percentile correctly for rank 3', () => {
+      // Rank 3 out of 5 = middle = 60th percentile
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player3,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      // percentile = (5 - 3 + 1) / 5 * 100 = 3/5 * 100 = 60
+      expect(result!.percentile).toBe(60);
+    });
+
+    it('should calculate percentile correctly for rank 5', () => {
+      // Rank 5 out of 5 = bottom = 20th percentile
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player5,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      // percentile = (5 - 5 + 1) / 5 * 100 = 1/5 * 100 = 20
+      expect(result!.percentile).toBe(20);
+    });
+
+    it('should filter by game type', () => {
+      // Add a tetris entry for player1
+      leaderboardService.addEntry({
+        sessionId: 'session-tetris-1',
+        gameType: 'tetris',
+        playerAddress: player1,
+        score: 100,
+      });
+
+      const snakeResult = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player1,
+        periodType: 'daily',
+      });
+
+      const tetrisResult = leaderboardService.getPlayerRanking({
+        gameType: 'tetris',
+        playerAddress: player1,
+        periodType: 'daily',
+      });
+
+      expect(snakeResult).not.toBeNull();
+      expect(snakeResult!.rank).toBe(1);
+      expect(snakeResult!.totalPlayers).toBe(5); // 5 snake players
+
+      expect(tetrisResult).not.toBeNull();
+      expect(tetrisResult!.rank).toBe(1);
+      expect(tetrisResult!.totalPlayers).toBe(1); // 1 tetris player
+    });
+
+    it('should filter by period type (daily)', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player1,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.rank).toBe(1);
+    });
+
+    it('should filter by period type (weekly)', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player1,
+        periodType: 'weekly',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.rank).toBe(1);
+    });
+
+    it('should filter by period type (alltime)', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player1,
+        periodType: 'alltime',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.rank).toBe(1);
+    });
+
+    it('should return all required fields in PlayerRanking', () => {
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player3,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty('rank');
+      expect(result).toHaveProperty('score');
+      expect(result).toHaveProperty('totalPlayers');
+      expect(result).toHaveProperty('percentile');
+      expect(typeof result!.rank).toBe('number');
+      expect(typeof result!.score).toBe('number');
+      expect(typeof result!.totalPlayers).toBe('number');
+      expect(typeof result!.percentile).toBe('number');
+    });
+
+    it('should round percentile to 1 decimal place', () => {
+      // Add 2 more players to create a non-round percentile
+      leaderboardService.addEntry({
+        sessionId: 'session-6',
+        gameType: 'snake',
+        playerAddress: '0x6666666666666666666666666666666666666666',
+        score: 500,
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-7',
+        gameType: 'snake',
+        playerAddress: '0x7777777777777777777777777777777777777777',
+        score: 250,
+      });
+
+      // Now we have 7 players total
+      // Player3 (rank 3) percentile = (7 - 3 + 1) / 7 * 100 = 5/7 * 100 = 71.428...
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'snake',
+        playerAddress: player3,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.percentile).toBe(71.4);
+      expect(result!.percentile.toString()).toMatch(/^\d+\.\d$/); // Format: X.X
+    });
+
+    it('should handle single player case', () => {
+      // Clear existing entries and add just one
+      db.exec('DELETE FROM leaderboard_entries');
+
+      leaderboardService.addEntry({
+        sessionId: 'session-solo',
+        gameType: 'pong',
+        playerAddress: player1,
+        score: 100,
+      });
+
+      const result = leaderboardService.getPlayerRanking({
+        gameType: 'pong',
+        playerAddress: player1,
+        periodType: 'daily',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.rank).toBe(1);
+      expect(result!.totalPlayers).toBe(1);
+      expect(result!.percentile).toBe(100); // (1 - 1 + 1) / 1 * 100 = 100
+    });
+  });
 });
