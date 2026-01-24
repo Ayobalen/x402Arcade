@@ -24,6 +24,381 @@ describe('GameService', () => {
     db.close();
   });
 
+  describe('createSession', () => {
+    it('should create a valid session', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+        amountPaidUsdc: 0.01,
+      };
+
+      const session = gameService.createSession(params);
+
+      // Verify session structure
+      expect(session).toBeDefined();
+      expect(session.id).toBeDefined();
+      expect(session.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      );
+      expect(session.gameType).toBe('snake');
+      expect(session.playerAddress).toBe(params.playerAddress);
+      expect(session.paymentTxHash).toBe(params.paymentTxHash);
+      expect(session.amountPaidUsdc).toBe(0.01);
+      expect(session.score).toBeNull();
+      expect(session.status).toBe('active');
+      expect(session.createdAt).toBeDefined();
+      expect(session.completedAt).toBeNull();
+      expect(session.gameDurationMs).toBeNull();
+    });
+
+    it('should reject duplicate payment hash', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xduplicate',
+        amountPaidUsdc: 0.01,
+      };
+
+      // Create first session
+      gameService.createSession(params);
+
+      // Try to create second session with same payment hash
+      expect(() => {
+        gameService.createSession(params);
+      }).toThrow(/Payment transaction hash already used/);
+    });
+
+    it('should persist session to database', () => {
+      const params = {
+        gameType: 'tetris' as const,
+        playerAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+        paymentTxHash: '0xpersisttest',
+        amountPaidUsdc: 0.02,
+      };
+
+      const session = gameService.createSession(params);
+
+      // Verify session exists in database
+      const retrieved = gameService.getSession(session.id);
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.id).toBe(session.id);
+      expect(retrieved?.gameType).toBe('tetris');
+      expect(retrieved?.playerAddress).toBe(params.playerAddress);
+    });
+  });
+
+  describe('getSession', () => {
+    it('should return null for missing ID', () => {
+      const session = gameService.getSession('non-existent-id');
+      expect(session).toBeNull();
+    });
+
+    it('should retrieve existing session', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xgettest',
+        amountPaidUsdc: 0.01,
+      };
+
+      const created = gameService.createSession(params);
+      const retrieved = gameService.getSession(created.id);
+
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.id).toBe(created.id);
+      expect(retrieved?.gameType).toBe(created.gameType);
+      expect(retrieved?.playerAddress).toBe(created.playerAddress);
+      expect(retrieved?.paymentTxHash).toBe(created.paymentTxHash);
+      expect(retrieved?.amountPaidUsdc).toBe(created.amountPaidUsdc);
+    });
+  });
+
+  describe('completeSession', () => {
+    it('should update score and status', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xcompletetest',
+        amountPaidUsdc: 0.01,
+      };
+
+      const session = gameService.createSession(params);
+      const score = 15000;
+
+      const completed = gameService.completeSession(session.id, score);
+
+      expect(completed.status).toBe('completed');
+      expect(completed.score).toBe(score);
+      expect(completed.completedAt).not.toBeNull();
+      expect(completed.gameDurationMs).not.toBeNull();
+      expect(completed.gameDurationMs).toBeGreaterThan(0);
+    });
+
+    it('should fail for non-active sessions', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xfailtest',
+        amountPaidUsdc: 0.01,
+      };
+
+      const session = gameService.createSession(params);
+
+      // Complete session once
+      gameService.completeSession(session.id, 10000);
+
+      // Try to complete again
+      expect(() => {
+        gameService.completeSession(session.id, 20000);
+      }).toThrow(/Cannot complete session with status: completed/);
+    });
+
+    it('should fail for non-existent session', () => {
+      expect(() => {
+        gameService.completeSession('non-existent-id', 10000);
+      }).toThrow(/Session not found/);
+    });
+
+    it('should calculate game duration correctly', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xdurationtest',
+        amountPaidUsdc: 0.01,
+      };
+
+      const session = gameService.createSession(params);
+
+      // Wait a tiny bit to ensure duration > 0
+      const start = Date.now();
+      while (Date.now() - start < 10) {
+        // busy wait 10ms
+      }
+
+      const completed = gameService.completeSession(session.id, 15000);
+
+      expect(completed.gameDurationMs).not.toBeNull();
+      expect(completed.gameDurationMs).toBeGreaterThanOrEqual(10);
+    });
+  });
+
+  describe('getActiveSession', () => {
+    it('should find active session for player', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xactivetest',
+        amountPaidUsdc: 0.01,
+      };
+
+      const created = gameService.createSession(params);
+      const active = gameService.getActiveSession(params.playerAddress, 'snake');
+
+      expect(active).not.toBeNull();
+      expect(active?.id).toBe(created.id);
+      expect(active?.status).toBe('active');
+    });
+
+    it('should return null when no active session exists', () => {
+      const active = gameService.getActiveSession(
+        '0x1234567890abcdef1234567890abcdef12345678',
+        'snake'
+      );
+
+      expect(active).toBeNull();
+    });
+
+    it('should not return completed sessions', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xcompletedtest',
+        amountPaidUsdc: 0.01,
+      };
+
+      const session = gameService.createSession(params);
+      gameService.completeSession(session.id, 10000);
+
+      const active = gameService.getActiveSession(params.playerAddress, 'snake');
+      expect(active).toBeNull();
+    });
+
+    it('should auto-expire stale sessions', () => {
+      // Create a session from 31 minutes ago
+      const oldTimestamp = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+      db.prepare(
+        `
+        INSERT INTO game_sessions (
+          id, game_type, player_address, payment_tx_hash,
+          amount_paid_usdc, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `
+      ).run(
+        'stale-session-id',
+        'snake',
+        '0x1234567890abcdef1234567890abcdef12345678',
+        '0xstaletest',
+        0.01,
+        'active',
+        oldTimestamp
+      );
+
+      const active = gameService.getActiveSession(
+        '0x1234567890abcdef1234567890abcdef12345678',
+        'snake'
+      );
+
+      // Should return null because session is stale
+      expect(active).toBeNull();
+
+      // Verify session was expired
+      const session = gameService.getSession('stale-session-id');
+      expect(session?.status).toBe('expired');
+    });
+  });
+
+  describe('expireSession', () => {
+    it('should expire an active session', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xexpiretest',
+        amountPaidUsdc: 0.01,
+      };
+
+      const session = gameService.createSession(params);
+      const result = gameService.expireSession(session.id);
+
+      expect(result).toBe(true);
+
+      const expired = gameService.getSession(session.id);
+      expect(expired?.status).toBe('expired');
+      expect(expired?.completedAt).not.toBeNull();
+    });
+
+    it('should return false for non-existent session', () => {
+      const result = gameService.expireSession('non-existent-id');
+      expect(result).toBe(false);
+    });
+
+    it('should return false for already completed session', () => {
+      const params = {
+        gameType: 'snake' as const,
+        playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        paymentTxHash: '0xalreadycompleted',
+        amountPaidUsdc: 0.01,
+      };
+
+      const session = gameService.createSession(params);
+      gameService.completeSession(session.id, 10000);
+
+      const result = gameService.expireSession(session.id);
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getPlayerSessions', () => {
+    beforeEach(() => {
+      // Create multiple sessions for testing
+      const player1 = '0x1111111111111111111111111111111111111111';
+      const player2 = '0x2222222222222222222222222222222222222222';
+
+      // Player 1: 2 snake games, 1 tetris game
+      gameService.createSession({
+        gameType: 'snake',
+        playerAddress: player1,
+        paymentTxHash: '0xp1s1',
+        amountPaidUsdc: 0.01,
+      });
+
+      gameService.createSession({
+        gameType: 'snake',
+        playerAddress: player1,
+        paymentTxHash: '0xp1s2',
+        amountPaidUsdc: 0.01,
+      });
+
+      const tetrisSession = gameService.createSession({
+        gameType: 'tetris',
+        playerAddress: player1,
+        paymentTxHash: '0xp1t1',
+        amountPaidUsdc: 0.02,
+      });
+
+      // Complete one session
+      gameService.completeSession(tetrisSession.id, 25000);
+
+      // Player 2: 1 snake game
+      gameService.createSession({
+        gameType: 'snake',
+        playerAddress: player2,
+        paymentTxHash: '0xp2s1',
+        amountPaidUsdc: 0.01,
+      });
+    });
+
+    it('should get all sessions for a player', () => {
+      const sessions = gameService.getPlayerSessions({
+        playerAddress: '0x1111111111111111111111111111111111111111',
+      });
+
+      expect(sessions).toHaveLength(3);
+    });
+
+    it('should filter by game type', () => {
+      const sessions = gameService.getPlayerSessions({
+        playerAddress: '0x1111111111111111111111111111111111111111',
+        gameType: 'snake',
+      });
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions.every((s) => s.gameType === 'snake')).toBe(true);
+    });
+
+    it('should filter by status', () => {
+      const sessions = gameService.getPlayerSessions({
+        playerAddress: '0x1111111111111111111111111111111111111111',
+        status: 'completed',
+      });
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].status).toBe('completed');
+    });
+
+    it('should support pagination', () => {
+      const page1 = gameService.getPlayerSessions({
+        playerAddress: '0x1111111111111111111111111111111111111111',
+        limit: 2,
+        offset: 0,
+      });
+
+      const page2 = gameService.getPlayerSessions({
+        playerAddress: '0x1111111111111111111111111111111111111111',
+        limit: 2,
+        offset: 2,
+      });
+
+      expect(page1).toHaveLength(2);
+      expect(page2).toHaveLength(1);
+    });
+
+    it('should return sessions in descending order by created_at', () => {
+      const sessions = gameService.getPlayerSessions({
+        playerAddress: '0x1111111111111111111111111111111111111111',
+      });
+
+      expect(sessions).toHaveLength(3);
+
+      // Verify descending order
+      for (let i = 0; i < sessions.length - 1; i++) {
+        const current = new Date(sessions[i].createdAt).getTime();
+        const next = new Date(sessions[i + 1].createdAt).getTime();
+        expect(current).toBeGreaterThanOrEqual(next);
+      }
+    });
+  });
+
   describe('expireOldSessions', () => {
     it('should expire sessions older than default 30 minutes', () => {
       // Create a session from 31 minutes ago (should be expired)
