@@ -878,3 +878,331 @@ describe('PrizePoolService - calculatePrizeAmount', () => {
     expect(amount).toBeCloseTo(0.7, 10);
   });
 });
+
+// ============================================================================
+// getTopContributor Method Tests
+// ============================================================================
+
+describe('PrizePoolService - getTopContributor', () => {
+  it('should return null when no players for the period', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const result = prizePoolService.getTopContributor({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: getTodayDate(),
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should return top contributor for daily period', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Insert game sessions for multiple players
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('session-1', 'snake', '0xplayer1', '0xtx1', 0.01, 'completed', ?, datetime('now')),
+         ('session-2', 'snake', '0xplayer2', '0xtx2', 0.02, 'completed', ?, datetime('now')),
+         ('session-3', 'snake', '0xplayer1', '0xtx3', 0.01, 'completed', ?, datetime('now'))`
+    ).run(today + 'T12:00:00', today + 'T12:05:00', today + 'T12:10:00');
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    // Player2 contributed $0.02, Player1 contributed $0.02 total (2 games * $0.01)
+    // It's a tie, but Player2 should win because they appear first in DESC order
+    expect(result).not.toBeNull();
+    expect(result?.totalContribution).toBeCloseTo(0.02, 10);
+    expect(['0xplayer1', '0xplayer2']).toContain(result?.playerAddress);
+  });
+
+  it('should aggregate multiple games from the same player', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Insert 5 games from one player
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('s1', 'tetris', '0xwhale', '0xt1', 0.02, 'completed', ?, datetime('now')),
+         ('s2', 'tetris', '0xwhale', '0xt2', 0.02, 'completed', ?, datetime('now')),
+         ('s3', 'tetris', '0xwhale', '0xt3', 0.02, 'completed', ?, datetime('now')),
+         ('s4', 'tetris', '0xwhale', '0xt4', 0.02, 'completed', ?, datetime('now')),
+         ('s5', 'tetris', '0xwhale', '0xt5', 0.02, 'completed', ?, datetime('now'))`
+    ).run(
+      today + 'T10:00:00',
+      today + 'T10:05:00',
+      today + 'T10:10:00',
+      today + 'T10:15:00',
+      today + 'T10:20:00'
+    );
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.playerAddress).toBe('0xwhale');
+    expect(result?.totalContribution).toBeCloseTo(0.1, 10); // 5 * $0.02
+    expect(result?.gamesPlayed).toBe(5);
+  });
+
+  it('should count games played correctly', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('g1', 'pong', '0xtopplayer', '0xa1', 0.015, 'completed', ?, datetime('now')),
+         ('g2', 'pong', '0xtopplayer', '0xa2', 0.015, 'completed', ?, datetime('now')),
+         ('g3', 'pong', '0xtopplayer', '0xa3', 0.015, 'completed', ?, datetime('now'))`
+    ).run(today + 'T14:00:00', today + 'T14:10:00', today + 'T14:20:00');
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'pong',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result?.gamesPlayed).toBe(3);
+  });
+
+  it('should only include completed sessions', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Mix of completed and active sessions
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('c1', 'snake', '0xuser1', '0xh1', 0.01, 'completed', ?, datetime('now')),
+         ('c2', 'snake', '0xuser1', '0xh2', 0.01, 'completed', ?, datetime('now')),
+         ('a1', 'snake', '0xuser1', '0xh3', 0.01, 'active', ?, NULL)`
+    ).run(today + 'T09:00:00', today + 'T09:05:00', today + 'T09:10:00');
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    // Should only count the 2 completed games
+    expect(result?.totalContribution).toBeCloseTo(0.02, 10);
+    expect(result?.gamesPlayed).toBe(2);
+  });
+
+  it('should filter by game type correctly', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Sessions for different game types
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('sn1', 'snake', '0xmixed', '0xm1', 0.01, 'completed', ?, datetime('now')),
+         ('te1', 'tetris', '0xmixed', '0xm2', 0.02, 'completed', ?, datetime('now')),
+         ('po1', 'pong', '0xmixed', '0xm3', 0.015, 'completed', ?, datetime('now'))`
+    ).run(today + 'T11:00:00', today + 'T11:05:00', today + 'T11:10:00');
+
+    const snakeResult = prizePoolService.getTopContributor({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const tetrisResult = prizePoolService.getTopContributor({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(snakeResult?.totalContribution).toBeCloseTo(0.01, 10);
+    expect(tetrisResult?.totalContribution).toBeCloseTo(0.02, 10);
+  });
+
+  it('should work with weekly periods', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    // Calculate a date within the week (e.g., Wednesday)
+    const wednesday = new Date(weekStart + 'T00:00:00Z');
+    wednesday.setUTCDate(wednesday.getUTCDate() + 2);
+    const wednesdayStr = wednesday.toISOString().split('T')[0];
+
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('w1', 'breakout', '0xweekly', '0xw1', 0.01, 'completed', ?, datetime('now')),
+         ('w2', 'breakout', '0xweekly', '0xw2', 0.01, 'completed', ?, datetime('now'))`
+    ).run(weekStart + 'T10:00:00', wednesdayStr + 'T15:00:00');
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'breakout',
+      periodType: 'weekly',
+      periodDate: weekStart,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.playerAddress).toBe('0xweekly');
+    expect(result?.totalContribution).toBeCloseTo(0.02, 10);
+    expect(result?.gamesPlayed).toBe(2);
+  });
+
+  it('should not include sessions from different periods', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Calculate yesterday
+    const yesterday = new Date(today + 'T00:00:00Z');
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // Sessions from today and yesterday
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('t1', 'snake', '0xtime', '0xt1', 0.01, 'completed', ?, datetime('now')),
+         ('y1', 'snake', '0xtime', '0xt2', 0.01, 'completed', ?, datetime('now'))`
+    ).run(today + 'T12:00:00', yesterdayStr + 'T12:00:00');
+
+    const todayResult = prizePoolService.getTopContributor({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    // Should only count today's session
+    expect(todayResult?.totalContribution).toBeCloseTo(0.01, 10);
+    expect(todayResult?.gamesPlayed).toBe(1);
+  });
+
+  it('should handle multiple players and return highest contributor', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('p1', 'space_invaders', '0xlow', '0xp1', 0.01, 'completed', ?, datetime('now')),
+         ('p2', 'space_invaders', '0xmed', '0xp2', 0.02, 'completed', ?, datetime('now')),
+         ('p3', 'space_invaders', '0xmed', '0xp3', 0.02, 'completed', ?, datetime('now')),
+         ('p4', 'space_invaders', '0xhigh', '0xp4', 0.03, 'completed', ?, datetime('now')),
+         ('p5', 'space_invaders', '0xhigh', '0xp5', 0.03, 'completed', ?, datetime('now')),
+         ('p6', 'space_invaders', '0xhigh', '0xp6', 0.03, 'completed', ?, datetime('now'))`
+    ).run(
+      today + 'T08:00:00',
+      today + 'T08:05:00',
+      today + 'T08:10:00',
+      today + 'T08:15:00',
+      today + 'T08:20:00',
+      today + 'T08:25:00'
+    );
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    // 0xhigh should win with 3 * $0.03 = $0.09
+    expect(result?.playerAddress).toBe('0xhigh');
+    expect(result?.totalContribution).toBeCloseTo(0.09, 10);
+    expect(result?.gamesPlayed).toBe(3);
+  });
+
+  it('should handle fractional USDC amounts correctly', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('f1', 'tetris', '0xfrac', '0xf1', 0.013, 'completed', ?, datetime('now')),
+         ('f2', 'tetris', '0xfrac', '0xf2', 0.017, 'completed', ?, datetime('now')),
+         ('f3', 'tetris', '0xfrac', '0xf3', 0.021, 'completed', ?, datetime('now'))`
+    ).run(today + 'T16:00:00', today + 'T16:05:00', today + 'T16:10:00');
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    // 0.013 + 0.017 + 0.021 = 0.051
+    expect(result?.totalContribution).toBeCloseTo(0.051, 10);
+  });
+
+  it('should handle large contribution amounts', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES
+         ('b1', 'pong', '0xbig', '0xb1', 10.0, 'completed', ?, datetime('now')),
+         ('b2', 'pong', '0xbig', '0xb2', 10.0, 'completed', ?, datetime('now'))`
+    ).run(today + 'T20:00:00', today + 'T20:05:00');
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'pong',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result?.totalContribution).toBe(20.0);
+  });
+
+  it('should return null for future dates with no data', () => {
+    // Use a future date
+    const futureDate = '2099-12-31';
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: futureDate,
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null for past dates with no data', () => {
+    const pastDate = '2020-01-01';
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: pastDate,
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should handle edge case of single game played', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    db.prepare(
+      `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status, created_at, completed_at)
+       VALUES ('solo', 'breakout', '0xsolo', '0xsolo1', 0.01, 'completed', ?, datetime('now'))`
+    ).run(today + 'T13:00:00');
+
+    const result = prizePoolService.getTopContributor({
+      gameType: 'breakout',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.playerAddress).toBe('0xsolo');
+    expect(result?.totalContribution).toBeCloseTo(0.01, 10);
+    expect(result?.gamesPlayed).toBe(1);
+  });
+});
