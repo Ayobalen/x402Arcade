@@ -96,6 +96,87 @@ CREATE INDEX IF NOT EXISTS idx_sessions_created ON game_sessions(created_at DESC
 `;
 
 /**
+ * Leaderboard Entries Table Schema
+ *
+ * Denormalized table for efficient leaderboard queries. This table stores
+ * high scores from completed game sessions, duplicating some data to avoid
+ * expensive joins when displaying leaderboards.
+ *
+ * Denormalization Strategy:
+ * - Data is written once per completed game session (insert-only, no updates)
+ * - Duplicates game_type, player_address, and score from game_sessions
+ * - Enables fast leaderboard queries without JOIN operations
+ * - Trade-off: slight storage increase for significant query performance gain
+ *
+ * Columns:
+ * - id: Auto-incrementing primary key
+ * - session_id: Reference to game_sessions.id (the source of this leaderboard entry)
+ *     - Foreign key constraint ensures referential integrity
+ *     - UNIQUE constraint with period_type prevents duplicate entries for same session/period
+ * - game_type: Denormalized from game_sessions (snake, tetris, pong, breakout, space-invaders)
+ *     - Allows filtering leaderboards by game without JOIN
+ * - player_address: Denormalized from game_sessions (42-char hex, lowercase)
+ *     - Allows player identification without JOIN
+ * - score: Denormalized from game_sessions (INTEGER NOT NULL)
+ *     - The score achieved in this game session
+ *     - Must be non-negative (validated at game_sessions level)
+ * - period_type: Leaderboard period ('daily', 'weekly', 'alltime')
+ *     - CHECK constraint enforces valid period types
+ *     - Same session can appear in multiple period types (daily, weekly, alltime)
+ * - period_date: Period identifier (TEXT NOT NULL)
+ *     - Format: 'YYYY-MM-DD' for daily (e.g., '2026-01-24')
+ *     - Format: 'YYYY-WXX' for weekly (e.g., '2026-W04' for week 4)
+ *     - Value: 'alltime' for all-time leaderboard
+ *     - Used with period_type to partition leaderboards by time
+ * - rank: Calculated rank within the period (INTEGER, nullable)
+ *     - NULL when entry is first created
+ *     - Updated by cron job that recalculates rankings periodically
+ *     - Lower number = higher rank (1 = first place)
+ * - created_at: Timestamp when entry was added (TEXT NOT NULL, auto-set)
+ *     - ISO 8601 format: 'YYYY-MM-DD HH:MM:SS'
+ *     - UTC timezone
+ *
+ * Constraints:
+ * - UNIQUE(session_id, period_type): Prevents duplicate entries for same session/period
+ *     - A session can appear once per period type (once in daily, once in weekly, once in alltime)
+ *
+ * Partitioning Strategy (for large datasets):
+ * - Current approach: Single table with period_type and period_date columns
+ * - For future scaling (millions of entries):
+ *     1. Partition by period_type (separate tables: leaderboard_daily, leaderboard_weekly, leaderboard_alltime)
+ *     2. Archive old periods (move completed daily/weekly periods to archive tables)
+ *     3. Use table partitioning features in production database (e.g., PostgreSQL PARTITION BY)
+ * - SQLite does not support native partitioning, so manual table splitting would be needed
+ * - For hackathon demo, single table is sufficient
+ */
+export const LEADERBOARD_ENTRIES_TABLE = `
+CREATE TABLE IF NOT EXISTS leaderboard_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL REFERENCES game_sessions(id),
+    game_type TEXT NOT NULL,
+    player_address TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    period_type TEXT NOT NULL CHECK (period_type IN ('daily', 'weekly', 'alltime')),
+    period_date TEXT NOT NULL,
+    rank INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(session_id, period_type)
+);
+`;
+
+/**
+ * Leaderboard Entries Indexes
+ *
+ * Optimizes leaderboard query patterns:
+ * - Game + period lookup: Find leaderboard for specific game and time period
+ * - Score ordering: Sort entries by score descending (highest scores first)
+ */
+export const LEADERBOARD_ENTRIES_INDEXES = `
+CREATE INDEX IF NOT EXISTS idx_leaderboard_game_period ON leaderboard_entries(game_type, period_type, period_date);
+CREATE INDEX IF NOT EXISTS idx_leaderboard_score ON leaderboard_entries(score DESC);
+`;
+
+/**
  * Initialize database schema
  *
  * Creates all tables and indexes if they don't exist.
@@ -109,4 +190,10 @@ export function initializeSchema(db: DatabaseType): void {
 
   // Create indexes for game_sessions
   db.exec(GAME_SESSIONS_INDEXES);
+
+  // Create leaderboard_entries table
+  db.exec(LEADERBOARD_ENTRIES_TABLE);
+
+  // Create indexes for leaderboard_entries
+  db.exec(LEADERBOARD_ENTRIES_INDEXES);
 }
