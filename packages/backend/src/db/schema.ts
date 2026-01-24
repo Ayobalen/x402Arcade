@@ -139,6 +139,20 @@ CREATE INDEX IF NOT EXISTS idx_sessions_created ON game_sessions(created_at DESC
  * Constraints:
  * - UNIQUE(session_id, period_type): Prevents duplicate entries for same session/period
  *     - A session can appear once per period type (once in daily, once in weekly, once in alltime)
+ * - UNIQUE(game_type, player_address, period_type, period_date): Ensures one entry per player per game per period
+ *     - Enables UPSERT pattern: when player plays multiple times, keep only their highest score
+ *     - Application should use INSERT OR REPLACE to update entries when new high score is achieved
+ *     - This constraint takes precedence: if player plays multiple sessions, only the best score remains
+ *
+ * UPSERT Pattern (Application Logic):
+ * When a player completes a game session:
+ * 1. Check if player already has an entry for this game/period
+ * 2. If yes and new score > existing score: UPDATE entry (or INSERT OR REPLACE)
+ * 3. If yes and new score <= existing score: Skip insertion
+ * 4. If no: INSERT new entry
+ *
+ * Note: With UNIQUE(game_type, player_address, period_type, period_date), attempting to insert
+ * a second entry for the same player/game/period will fail unless using INSERT OR REPLACE
  *
  * Partitioning Strategy (for large datasets):
  * - Current approach: Single table with period_type and period_date columns
@@ -160,7 +174,8 @@ CREATE TABLE IF NOT EXISTS leaderboard_entries (
     period_date TEXT NOT NULL,
     rank INTEGER,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE(session_id, period_type)
+    UNIQUE(session_id, period_type),
+    UNIQUE(game_type, player_address, period_type, period_date)
 );
 `;
 
