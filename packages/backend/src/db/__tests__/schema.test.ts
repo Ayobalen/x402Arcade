@@ -297,5 +297,84 @@ describe('Database Schema', () => {
         ).run();
       }).toThrow();
     });
+
+    it('should enforce score CHECK constraint (NULL or non-negative)', () => {
+      initializeSchema(db);
+
+      const validAddress = '0x1234567890123456789012345678901234567890';
+      const validTxHash = '0x' + 'a'.repeat(64);
+
+      // Valid: NULL score (game not completed yet)
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, score)
+           VALUES ('test-1', 'snake', '${validAddress}', '${validTxHash}1', 0.01, NULL)`
+        ).run();
+      }).not.toThrow();
+
+      // Valid: Omitting score defaults to NULL
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-2', 'snake', '${validAddress}', '${validTxHash}2', 0.01)`
+        ).run();
+      }).not.toThrow();
+
+      // Valid: zero score
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, score)
+           VALUES ('test-3', 'snake', '${validAddress}', '${validTxHash}3', 0.01, 0)`
+        ).run();
+      }).not.toThrow();
+
+      // Valid: positive scores
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, score)
+           VALUES ('test-4', 'snake', '${validAddress}', '${validTxHash}4', 0.01, 100)`
+        ).run();
+      }).not.toThrow();
+
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, score)
+           VALUES ('test-5', 'snake', '${validAddress}', '${validTxHash}5', 0.01, 999999)`
+        ).run();
+      }).not.toThrow();
+
+      // Invalid: negative score should fail
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, score)
+           VALUES ('test-6', 'snake', '${validAddress}', '${validTxHash}6', 0.01, -1)`
+        ).run();
+      }).toThrow();
+
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, score)
+           VALUES ('test-7', 'snake', '${validAddress}', '${validTxHash}7', 0.01, -100)`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should default score to NULL when not provided', () => {
+      initializeSchema(db);
+
+      const validAddress = '0x1234567890123456789012345678901234567890';
+      const validTxHash = '0x' + 'a'.repeat(64);
+
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('test-1', 'snake', '${validAddress}', '${validTxHash}', 0.01)`
+      ).run();
+
+      const row = db.prepare(`SELECT score FROM game_sessions WHERE id = 'test-1'`).get() as {
+        score: number | null;
+      };
+
+      expect(row.score).toBeNull();
+    });
   });
 });
