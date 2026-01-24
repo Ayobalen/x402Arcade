@@ -129,7 +129,11 @@ router.post('/submit', (req: Request, res: Response) => {
     return;
   }
 
-  // Add entry to leaderboard
+  // Add entry to leaderboard and get ranking
+  let dailyRanking = null;
+  let weeklyRanking = null;
+  let alltimeRanking = null;
+
   try {
     leaderboardService.addEntry({
       sessionId: session.id,
@@ -137,6 +141,40 @@ router.post('/submit', (req: Request, res: Response) => {
       playerAddress,
       score: session.score!,
     });
+
+    // Get player rankings for all periods
+    try {
+      dailyRanking = leaderboardService.getPlayerRanking({
+        gameType: session.gameType,
+        playerAddress,
+        periodType: 'daily',
+      });
+    } catch (rankError) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to get daily ranking:', rankError);
+    }
+
+    try {
+      weeklyRanking = leaderboardService.getPlayerRanking({
+        gameType: session.gameType,
+        playerAddress,
+        periodType: 'weekly',
+      });
+    } catch (rankError) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to get weekly ranking:', rankError);
+    }
+
+    try {
+      alltimeRanking = leaderboardService.getPlayerRanking({
+        gameType: session.gameType,
+        playerAddress,
+        periodType: 'alltime',
+      });
+    } catch (rankError) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to get alltime ranking:', rankError);
+    }
   } catch (error) {
     // Log error but don't fail the request
     // Score was already recorded in GameService
@@ -144,7 +182,7 @@ router.post('/submit', (req: Request, res: Response) => {
     console.error('Failed to add leaderboard entry:', error);
   }
 
-  // Return 200 with updated session
+  // Return 200 with updated session and rankings
   res.status(200).json({
     message: 'Score submitted successfully',
     session: {
@@ -154,6 +192,11 @@ router.post('/submit', (req: Request, res: Response) => {
       score: session.score,
       completedAt: session.completedAt,
       gameDurationMs: session.gameDurationMs,
+    },
+    rankings: {
+      daily: dailyRanking,
+      weekly: weeklyRanking,
+      alltime: alltimeRanking,
     },
   });
 });
