@@ -30,7 +30,16 @@ import type { Database as DatabaseType } from 'better-sqlite3';
  *     - Only set when player finishes the game and submits their score
  *     - CHECK constraint ensures non-negative scores (score >= 0 when not NULL)
  *     - Application layer performs additional game-specific validation (e.g., max scores per game type)
- * - status: Session status (active, completed, expired)
+ * - status: Session lifecycle status (TEXT NOT NULL DEFAULT 'active')
+ *     - CHECK constraint enforces one of: 'active', 'completed', 'expired'
+ *     - Status transitions:
+ *       1. 'active' (default): Game session created after payment, player is playing
+ *       2. 'completed': Player finished game and submitted score (score becomes non-NULL)
+ *       3. 'expired': Session timed out without score submission (SESSION_EXPIRY_MINUTES passed)
+ *     - State machine rules:
+ *       - active → completed (when score submitted)
+ *       - active → expired (when timeout occurs without completion)
+ *       - completed/expired are terminal states (no further transitions)
  * - created_at: ISO timestamp when session was created
  * - completed_at: ISO timestamp when game ended (NULL if active)
  * - game_duration_ms: Duration of game in milliseconds (NULL if not completed)
