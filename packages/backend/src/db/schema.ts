@@ -168,12 +168,23 @@ CREATE TABLE IF NOT EXISTS leaderboard_entries (
  * Leaderboard Entries Indexes
  *
  * Optimizes leaderboard query patterns:
- * - Game + period lookup: Find leaderboard for specific game and time period
- * - Score ordering: Sort entries by score descending (highest scores first)
+ * - Game + period lookup: Find leaderboard for specific game and time period (idx_leaderboard_game_period)
+ * - Score ordering: Sort entries by score descending (highest scores first) (idx_leaderboard_score)
+ * - Player lookup: Find all leaderboard entries for a specific player (idx_leaderboard_player)
+ *
+ * Composite Index Strategy:
+ * - idx_leaderboard_game_period is a composite index on (game_type, period_type, period_date)
+ * - This index can be used for queries filtering by:
+ *   1. game_type alone (leftmost prefix)
+ *   2. game_type + period_type (left prefix)
+ *   3. game_type + period_type + period_date (full index)
+ * - The primary query pattern (top N scores for game X in period Y) uses all three columns
+ * - Combined with idx_leaderboard_score, SQLite can efficiently: filter by game/period, then sort by score
  */
 export const LEADERBOARD_ENTRIES_INDEXES = `
 CREATE INDEX IF NOT EXISTS idx_leaderboard_game_period ON leaderboard_entries(game_type, period_type, period_date);
 CREATE INDEX IF NOT EXISTS idx_leaderboard_score ON leaderboard_entries(score DESC);
+CREATE INDEX IF NOT EXISTS idx_leaderboard_player ON leaderboard_entries(player_address);
 `;
 
 /**
