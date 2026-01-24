@@ -798,4 +798,73 @@ export class GameService {
       throw error;
     }
   }
+
+  /**
+   * Complete a game session with final score
+   *
+   * Updates the session status to 'completed', records the score,
+   * sets the completion timestamp, and calculates game duration.
+   *
+   * @param id - The session ID to complete
+   * @param score - The final score achieved by the player
+   * @returns The updated game session
+   * @throws Error if session not found, not active, or database update fails
+   *
+   * @example
+   * ```typescript
+   * const session = gameService.completeSession(
+   *   '550e8400-e29b-41d4-a716-446655440000',
+   *   15000
+   * );
+   * console.log('Game completed with score:', session.score);
+   * ```
+   */
+  completeSession(id: string, score: number): GameSession {
+    // Step 1: Verify session exists
+    const session = this.getSession(id);
+
+    if (!session) {
+      throw new Error(`Session not found: ${id}`);
+    }
+
+    // Step 2: Verify session status is active
+    if (session.status !== 'active') {
+      throw new Error(`Cannot complete session with status: ${session.status}`);
+    }
+
+    // Step 3: Calculate game duration
+    const completedAt = new Date().toISOString();
+    const startedAt = new Date(session.createdAt).getTime();
+    const completedAtMs = new Date(completedAt).getTime();
+    const gameDurationMs = completedAtMs - startedAt;
+
+    try {
+      // Step 4: Execute UPDATE query
+      const stmt = this.db.prepare(`
+        UPDATE game_sessions
+        SET
+          score = ?,
+          status = 'completed',
+          completed_at = ?,
+          game_duration_ms = ?
+        WHERE id = ?
+      `);
+
+      stmt.run(score, completedAt, gameDurationMs, id);
+
+      // Step 5: Return updated session
+      return {
+        ...session,
+        score,
+        status: 'completed',
+        completedAt,
+        gameDurationMs,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to complete game session: ${error.message}`);
+      }
+      throw error;
+    }
+  }
 }
