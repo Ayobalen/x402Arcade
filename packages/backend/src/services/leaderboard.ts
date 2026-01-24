@@ -110,6 +110,96 @@ export class LeaderboardService {
   }
 
   // ============================================================================
+  // Public Methods
+  // ============================================================================
+
+  /**
+   * Add a new score entry to the leaderboard.
+   *
+   * Records a score across all three leaderboard periods (daily, weekly, alltime).
+   * Only updates existing entries if the new score is higher (high score logic).
+   *
+   * Uses INSERT OR REPLACE to handle the UNIQUE constraint on
+   * (game_type, player_address, period_type, period_date).
+   *
+   * @param params - Entry parameters
+   * @param params.sessionId - Game session ID reference
+   * @param params.gameType - Type of game
+   * @param params.playerAddress - Player's wallet address
+   * @param params.score - Score achieved
+   *
+   * @example
+   * ```typescript
+   * leaderboardService.addEntry({
+   *   sessionId: 'uuid-123',
+   *   gameType: 'snake',
+   *   playerAddress: '0x1234...',
+   *   score: 15000
+   * });
+   * ```
+   */
+  addEntry(params: {
+    sessionId: string;
+    gameType: GameType;
+    playerAddress: string;
+    score: number;
+  }): void {
+    const { sessionId, gameType, playerAddress, score } = params;
+
+    // Get period identifiers
+    const todayDate = this.getTodayDate();
+    const weekStart = this.getWeekStart();
+
+    // Define periods to update
+    const periods: Array<{ periodType: PeriodType; periodDate: string }> = [
+      { periodType: 'daily', periodDate: todayDate },
+      { periodType: 'weekly', periodDate: weekStart },
+      { periodType: 'alltime', periodDate: 'alltime' },
+    ];
+
+    // Prepared statement for checking existing score
+    const checkStmt = this.db.prepare(`
+      SELECT score
+      FROM leaderboard_entries
+      WHERE game_type = ?
+        AND player_address = ?
+        AND period_type = ?
+        AND period_date = ?
+    `);
+
+    // Prepared statement for inserting/replacing entry
+    const insertStmt = this.db.prepare(`
+      INSERT OR REPLACE INTO leaderboard_entries (
+        session_id,
+        game_type,
+        player_address,
+        score,
+        period_type,
+        period_date,
+        rank
+      )
+      VALUES (?, ?, ?, ?, ?, ?, NULL)
+    `);
+
+    // Process each period
+    for (const period of periods) {
+      const { periodType, periodDate } = period;
+
+      // Check if entry exists and compare scores
+      const existing = checkStmt.get(gameType, playerAddress, periodType, periodDate) as
+        | { score: number }
+        | undefined;
+
+      // Only insert/update if:
+      // 1. No existing entry (first score)
+      // 2. New score is higher than existing score (high score logic)
+      if (!existing || score > existing.score) {
+        insertStmt.run(sessionId, gameType, playerAddress, score, periodType, periodDate);
+      }
+    }
+  }
+
+  // ============================================================================
   // Private Helper Methods
   // ============================================================================
 

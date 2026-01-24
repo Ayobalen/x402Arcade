@@ -183,3 +183,239 @@ describe('LeaderboardService - Helper Methods', () => {
     });
   });
 });
+
+// ============================================================================
+// Public Method Tests
+// ============================================================================
+
+describe('LeaderboardService - Public Methods', () => {
+  // Helper to create a game session for testing
+  const createGameSession = (sessionId: string, playerAddress: string): void => {
+    db.prepare(
+      `
+      INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+      VALUES (?, 'snake', ?, '0x123', 0.01)
+    `
+    ).run(sessionId, playerAddress);
+  };
+
+  // Helper to get entry from database
+  const getEntry = (
+    gameType: string,
+    playerAddress: string,
+    periodType: string,
+    periodDate: string
+  ): any => {
+    return db
+      .prepare(
+        `
+      SELECT * FROM leaderboard_entries
+      WHERE game_type = ?
+        AND player_address = ?
+        AND period_type = ?
+        AND period_date = ?
+    `
+      )
+      .get(gameType, playerAddress, periodType, periodDate);
+  };
+
+  describe('addEntry', () => {
+    const sessionId = 'test-session-1';
+    const playerAddress = '0x1234567890abcdef1234567890abcdef12345678';
+
+    beforeEach(() => {
+      // Create a game session before adding leaderboard entry
+      createGameSession(sessionId, playerAddress);
+    });
+
+    it('should add entry to all three periods (daily, weekly, alltime)', () => {
+      leaderboardService.addEntry({
+        sessionId,
+        gameType: 'snake',
+        playerAddress,
+        score: 1000,
+      });
+
+      // Get period dates
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const getWeekStart = (leaderboardService as any).getWeekStart.bind(leaderboardService);
+      const todayDate = getTodayDate();
+      const weekStart = getWeekStart();
+
+      // Check daily entry
+      const dailyEntry = getEntry('snake', playerAddress, 'daily', todayDate);
+      expect(dailyEntry).toBeDefined();
+      expect(dailyEntry.score).toBe(1000);
+
+      // Check weekly entry
+      const weeklyEntry = getEntry('snake', playerAddress, 'weekly', weekStart);
+      expect(weeklyEntry).toBeDefined();
+      expect(weeklyEntry.score).toBe(1000);
+
+      // Check alltime entry
+      const alltimeEntry = getEntry('snake', playerAddress, 'alltime', 'alltime');
+      expect(alltimeEntry).toBeDefined();
+      expect(alltimeEntry.score).toBe(1000);
+    });
+
+    it('should update entry when new score is higher', () => {
+      // Add initial score
+      leaderboardService.addEntry({
+        sessionId,
+        gameType: 'snake',
+        playerAddress,
+        score: 1000,
+      });
+
+      // Create new session for second score
+      const sessionId2 = 'test-session-2';
+      createGameSession(sessionId2, playerAddress);
+
+      // Add higher score
+      leaderboardService.addEntry({
+        sessionId: sessionId2,
+        gameType: 'snake',
+        playerAddress,
+        score: 2000,
+      });
+
+      // Check that score was updated
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const todayDate = getTodayDate();
+      const entry = getEntry('snake', playerAddress, 'daily', todayDate);
+
+      expect(entry.score).toBe(2000);
+      expect(entry.session_id).toBe(sessionId2);
+    });
+
+    it('should NOT update entry when new score is lower', () => {
+      // Add initial score
+      leaderboardService.addEntry({
+        sessionId,
+        gameType: 'snake',
+        playerAddress,
+        score: 2000,
+      });
+
+      // Create new session for second score
+      const sessionId2 = 'test-session-2';
+      createGameSession(sessionId2, playerAddress);
+
+      // Try to add lower score
+      leaderboardService.addEntry({
+        sessionId: sessionId2,
+        gameType: 'snake',
+        playerAddress,
+        score: 1000,
+      });
+
+      // Check that score was NOT updated (still 2000)
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const todayDate = getTodayDate();
+      const entry = getEntry('snake', playerAddress, 'daily', todayDate);
+
+      expect(entry.score).toBe(2000);
+      expect(entry.session_id).toBe(sessionId); // Original session
+    });
+
+    it('should NOT update entry when new score is equal', () => {
+      // Add initial score
+      leaderboardService.addEntry({
+        sessionId,
+        gameType: 'snake',
+        playerAddress,
+        score: 1500,
+      });
+
+      // Create new session for second score
+      const sessionId2 = 'test-session-2';
+      createGameSession(sessionId2, playerAddress);
+
+      // Try to add equal score
+      leaderboardService.addEntry({
+        sessionId: sessionId2,
+        gameType: 'snake',
+        playerAddress,
+        score: 1500,
+      });
+
+      // Check that entry was NOT updated (still original session)
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const todayDate = getTodayDate();
+      const entry = getEntry('snake', playerAddress, 'daily', todayDate);
+
+      expect(entry.score).toBe(1500);
+      expect(entry.session_id).toBe(sessionId); // Original session
+    });
+
+    it('should handle multiple players independently', () => {
+      const player1 = '0x1111111111111111111111111111111111111111';
+      const player2 = '0x2222222222222222222222222222222222222222';
+
+      const session1 = 'session-player1';
+      const session2 = 'session-player2';
+
+      createGameSession(session1, player1);
+      createGameSession(session2, player2);
+
+      // Add scores for both players
+      leaderboardService.addEntry({
+        sessionId: session1,
+        gameType: 'snake',
+        playerAddress: player1,
+        score: 1000,
+      });
+
+      leaderboardService.addEntry({
+        sessionId: session2,
+        gameType: 'snake',
+        playerAddress: player2,
+        score: 2000,
+      });
+
+      // Check both entries exist with correct scores
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const todayDate = getTodayDate();
+
+      const entry1 = getEntry('snake', player1, 'daily', todayDate);
+      const entry2 = getEntry('snake', player2, 'daily', todayDate);
+
+      expect(entry1.score).toBe(1000);
+      expect(entry2.score).toBe(2000);
+    });
+
+    it('should set rank to NULL for new entries', () => {
+      leaderboardService.addEntry({
+        sessionId,
+        gameType: 'snake',
+        playerAddress,
+        score: 1000,
+      });
+
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const todayDate = getTodayDate();
+      const entry = getEntry('snake', playerAddress, 'daily', todayDate);
+
+      // Rank should be NULL (will be calculated separately)
+      expect(entry.rank).toBeNull();
+    });
+
+    it('should store correct metadata (session_id, game_type, player_address)', () => {
+      leaderboardService.addEntry({
+        sessionId,
+        gameType: 'tetris',
+        playerAddress,
+        score: 5000,
+      });
+
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const todayDate = getTodayDate();
+      const entry = getEntry('tetris', playerAddress, 'daily', todayDate);
+
+      expect(entry.session_id).toBe(sessionId);
+      expect(entry.game_type).toBe('tetris');
+      expect(entry.player_address).toBe(playerAddress);
+      expect(entry.score).toBe(5000);
+    });
+  });
+});
