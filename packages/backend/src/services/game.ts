@@ -659,4 +659,89 @@ export class GameService {
   constructor(database: DatabaseType) {
     this.db = database;
   }
+
+  /**
+   * Create a new game session
+   *
+   * Inserts a new session record into the database with the provided parameters.
+   * Generates a UUID for the session ID and sets initial status to 'active'.
+   *
+   * @param params - Session creation parameters
+   * @returns The created game session
+   * @throws Error if database insert fails or constraint is violated
+   *
+   * @example
+   * ```typescript
+   * const session = gameService.createSession({
+   *   gameType: 'snake',
+   *   playerAddress: '0x1234...',
+   *   paymentTxHash: '0xabcd...',
+   *   amountPaidUsdc: 0.01
+   * });
+   * console.log('Session created:', session.id);
+   * ```
+   */
+  createSession(params: CreateSessionParams): GameSession {
+    const { gameType, playerAddress, paymentTxHash, amountPaidUsdc } = params;
+
+    // Generate a unique session ID
+    const sessionId = uuidv4();
+    const now = new Date().toISOString();
+
+    try {
+      // Insert the new session into the database
+      const stmt = this.db.prepare(`
+        INSERT INTO game_sessions (
+          id,
+          game_type,
+          player_address,
+          payment_tx_hash,
+          amount_paid_usdc,
+          score,
+          status,
+          created_at,
+          completed_at,
+          game_duration_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        sessionId,
+        gameType,
+        playerAddress,
+        paymentTxHash,
+        amountPaidUsdc,
+        null, // score (null until game is completed)
+        'active', // initial status
+        now, // created_at
+        null, // completed_at (null until game is completed)
+        null // game_duration_ms (null until game is completed)
+      );
+
+      // Return the created session
+      return {
+        id: sessionId,
+        gameType,
+        playerAddress,
+        paymentTxHash,
+        amountPaidUsdc,
+        score: null,
+        status: 'active',
+        createdAt: now,
+        completedAt: null,
+        gameDurationMs: null,
+      };
+    } catch (error) {
+      // Handle constraint violations and other database errors
+      if (error instanceof Error) {
+        // Check for UNIQUE constraint violation on payment_tx_hash
+        if (error.message.includes('UNIQUE constraint failed: game_sessions.payment_tx_hash')) {
+          throw new Error(`Payment transaction hash already used: ${paymentTxHash}`);
+        }
+        // Re-throw other errors
+        throw new Error(`Failed to create game session: ${error.message}`);
+      }
+      throw error;
+    }
+  }
 }
