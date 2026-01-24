@@ -137,6 +137,29 @@ export interface DailyStats {
   }>;
 }
 
+/**
+ * Weekly statistics data structure.
+ *
+ * Aggregate statistics for all game types during a specific week.
+ * Used for weekly reporting and trend analysis.
+ */
+export interface WeeklyStats {
+  /** Week start date (Monday) in YYYY-MM-DD format */
+  weekStart: string;
+  /** Total number of games played across all game types during the week */
+  totalGames: number;
+  /** Total USDC collected in prize pools across all games during the week */
+  totalPrizePoolUsdc: number;
+  /** Number of active game types (games with at least one pool) */
+  activeGames: number;
+  /** Per-game breakdown (optional) */
+  gameBreakdown?: Array<{
+    gameType: GameType;
+    totalGames: number;
+    totalPrizePoolUsdc: number;
+  }>;
+}
+
 // ============================================================================
 // PrizePoolService Class
 // ============================================================================
@@ -703,6 +726,86 @@ export class PrizePoolService {
     // Build result
     const result: DailyStats = {
       date,
+      totalGames,
+      totalPrizePoolUsdc,
+      activeGames,
+    };
+
+    // Add breakdown if requested
+    if (includeBreakdown) {
+      result.gameBreakdown = pools.map((pool) => ({
+        gameType: pool.gameType,
+        totalGames: pool.totalGames,
+        totalPrizePoolUsdc: pool.totalAmountUsdc,
+      }));
+    }
+
+    return result;
+  }
+
+  /**
+   * Get aggregate statistics for a specific week across all game types.
+   *
+   * Retrieves and aggregates data from all weekly prize pools for a given week.
+   * Useful for weekly reports, trend analysis, and performance monitoring.
+   *
+   * This method:
+   * 1. Queries all weekly prize pools for the specified week
+   * 2. Sums total games and prize pool amounts across all game types
+   * 3. Counts number of active game types
+   * 4. Optionally includes per-game breakdown
+   *
+   * @param params - Parameters for retrieving weekly stats
+   * @param params.weekStart - Week start date (Monday) in YYYY-MM-DD format (defaults to current week)
+   * @param params.includeBreakdown - Include per-game breakdown (default: false)
+   * @returns WeeklyStats object with aggregate data
+   *
+   * @example
+   * ```typescript
+   * // Get stats for current week
+   * const stats = service.getWeeklyStats();
+   * // Returns: { weekStart: '2026-01-20', totalGames: 156, totalPrizePoolUsdc: 1.092, activeGames: 4 }
+   *
+   * // Get stats for a specific week with breakdown
+   * const statsWithBreakdown = service.getWeeklyStats({
+   *   weekStart: '2026-01-13',
+   *   includeBreakdown: true
+   * });
+   * // Returns: { weekStart: '2026-01-13', ..., gameBreakdown: [{ gameType: 'snake', totalGames: 50, ... }, ...] }
+   * ```
+   */
+  getWeeklyStats(params?: { weekStart?: string; includeBreakdown?: boolean }): WeeklyStats {
+    const { weekStart = this.getWeekStart(), includeBreakdown = false } = params || {};
+
+    // Query all weekly pools for this week
+    const query = this.db.prepare(`
+      SELECT
+        game_type as gameType,
+        total_games as totalGames,
+        total_amount_usdc as totalAmountUsdc
+      FROM prize_pools
+      WHERE period_type = 'weekly' AND period_date = ?
+    `);
+
+    const pools = query.all(weekStart) as Array<{
+      gameType: GameType;
+      totalGames: number;
+      totalAmountUsdc: number;
+    }>;
+
+    // Aggregate the stats
+    let totalGames = 0;
+    let totalPrizePoolUsdc = 0;
+    const activeGames = pools.length;
+
+    for (const pool of pools) {
+      totalGames += pool.totalGames;
+      totalPrizePoolUsdc += pool.totalAmountUsdc;
+    }
+
+    // Build result
+    const result: WeeklyStats = {
+      weekStart,
       totalGames,
       totalPrizePoolUsdc,
       activeGames,

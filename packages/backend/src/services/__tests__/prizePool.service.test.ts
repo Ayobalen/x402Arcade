@@ -1449,3 +1449,233 @@ describe('PrizePoolService - getDailyStats', () => {
     expect(Array.isArray(result.gameBreakdown)).toBe(true);
   });
 });
+
+// ============================================================================
+// getWeeklyStats Method Tests
+// ============================================================================
+
+describe('PrizePoolService - getWeeklyStats', () => {
+  it('should return zero stats when no pools exist', () => {
+    const result = prizePoolService.getWeeklyStats();
+
+    expect(result.totalGames).toBe(0);
+    expect(result.totalPrizePoolUsdc).toBe(0);
+    expect(result.activeGames).toBe(0);
+    expect(result.weekStart).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('should default to current week if no weekStart provided', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const expectedWeekStart = getWeekStart();
+
+    const result = prizePoolService.getWeeklyStats();
+
+    expect(result.weekStart).toBe(expectedWeekStart);
+  });
+
+  it('should aggregate stats from a single game type', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    // Add games to snake pool (creates both daily and weekly pools)
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    const result = prizePoolService.getWeeklyStats({ weekStart });
+
+    expect(result.totalGames).toBe(3);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.021, 10); // 3 * (70% of $0.01)
+    expect(result.activeGames).toBe(1);
+  });
+
+  it('should aggregate stats from multiple game types', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    // Add games to different pools
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    const result = prizePoolService.getWeeklyStats({ weekStart });
+
+    expect(result.totalGames).toBe(4);
+    // (2 * 0.007) + 0.014 + 0.0105 = 0.0385
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.0385, 10);
+    expect(result.activeGames).toBe(3);
+  });
+
+  it('should not include gameBreakdown by default', () => {
+    prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+
+    const result = prizePoolService.getWeeklyStats();
+
+    expect(result.gameBreakdown).toBeUndefined();
+  });
+
+  it('should include gameBreakdown when requested', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    const result = prizePoolService.getWeeklyStats({ weekStart, includeBreakdown: true });
+
+    expect(result.gameBreakdown).toBeDefined();
+    expect(result.gameBreakdown).toHaveLength(2);
+  });
+
+  it('should have correct per-game breakdown values', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+
+    const result = prizePoolService.getWeeklyStats({ weekStart, includeBreakdown: true });
+
+    const pongBreakdown = result.gameBreakdown?.find((g) => g.gameType === 'pong');
+    const siBreakdown = result.gameBreakdown?.find((g) => g.gameType === 'space_invaders');
+
+    expect(pongBreakdown?.totalGames).toBe(2);
+    expect(pongBreakdown?.totalPrizePoolUsdc).toBeCloseTo(0.021, 10);
+    expect(siBreakdown?.totalGames).toBe(1);
+    expect(siBreakdown?.totalPrizePoolUsdc).toBeCloseTo(0.0175, 10);
+  });
+
+  it('should only include weekly pools, not daily', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    // Add games (creates both daily and weekly pools)
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    const result = prizePoolService.getWeeklyStats({ weekStart });
+
+    // Should only count the weekly pool
+    expect(result.totalGames).toBe(1);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.014, 10);
+  });
+
+  it('should work with a specific weekStart parameter', () => {
+    const specificWeek = '2026-01-13'; // A Monday
+
+    // Manually create a pool for a specific week
+    db.prepare(
+      `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+       VALUES ('breakout', 'weekly', ?, 0.35, 25, 'active')`
+    ).run(specificWeek);
+
+    const result = prizePoolService.getWeeklyStats({ weekStart: specificWeek });
+
+    expect(result.weekStart).toBe(specificWeek);
+    expect(result.totalGames).toBe(25);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.35, 10);
+  });
+
+  it('should handle multiple games of same type correctly', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    // Add 20 games to the same pool
+    for (let i = 0; i < 20; i++) {
+      prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    }
+
+    const result = prizePoolService.getWeeklyStats({ weekStart });
+
+    expect(result.totalGames).toBe(20);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.14, 10); // 20 * 0.007
+    expect(result.activeGames).toBe(1);
+  });
+
+  it('should handle all five game types', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    // Add one game for each type
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+    prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+
+    const result = prizePoolService.getWeeklyStats({ weekStart, includeBreakdown: true });
+
+    expect(result.activeGames).toBe(5);
+    expect(result.gameBreakdown).toHaveLength(5);
+    expect(result.totalGames).toBe(5);
+  });
+
+  it('should handle large numbers correctly', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    // Simulate a busy week
+    for (let i = 0; i < 500; i++) {
+      prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+    }
+
+    const result = prizePoolService.getWeeklyStats({ weekStart });
+
+    expect(result.totalGames).toBe(500);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(7.0, 10); // 500 * 0.014
+  });
+
+  it('should return zero stats for future weeks with no data', () => {
+    const futureWeek = '2099-12-27'; // A Monday in future
+
+    const result = prizePoolService.getWeeklyStats({ weekStart: futureWeek });
+
+    expect(result.weekStart).toBe(futureWeek);
+    expect(result.totalGames).toBe(0);
+    expect(result.totalPrizePoolUsdc).toBe(0);
+    expect(result.activeGames).toBe(0);
+  });
+
+  it('should return zero stats for past weeks with no data', () => {
+    const pastWeek = '2020-01-06'; // A Monday in 2020
+
+    const result = prizePoolService.getWeeklyStats({ weekStart: pastWeek });
+
+    expect(result.weekStart).toBe(pastWeek);
+    expect(result.totalGames).toBe(0);
+    expect(result.totalPrizePoolUsdc).toBe(0);
+    expect(result.activeGames).toBe(0);
+  });
+
+  it('should have correct structure with includeBreakdown=false', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    const result = prizePoolService.getWeeklyStats({ weekStart, includeBreakdown: false });
+
+    expect(result).toHaveProperty('weekStart');
+    expect(result).toHaveProperty('totalGames');
+    expect(result).toHaveProperty('totalPrizePoolUsdc');
+    expect(result).toHaveProperty('activeGames');
+    expect(result).not.toHaveProperty('gameBreakdown');
+  });
+
+  it('should have correct structure with includeBreakdown=true', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+
+    const result = prizePoolService.getWeeklyStats({ weekStart, includeBreakdown: true });
+
+    expect(result).toHaveProperty('weekStart');
+    expect(result).toHaveProperty('totalGames');
+    expect(result).toHaveProperty('totalPrizePoolUsdc');
+    expect(result).toHaveProperty('activeGames');
+    expect(result).toHaveProperty('gameBreakdown');
+    expect(Array.isArray(result.gameBreakdown)).toBe(true);
+  });
+});
