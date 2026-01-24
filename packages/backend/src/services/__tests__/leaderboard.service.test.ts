@@ -418,4 +418,236 @@ describe('LeaderboardService - Public Methods', () => {
       expect(entry.score).toBe(5000);
     });
   });
+
+  describe('getTopScores', () => {
+    beforeEach(() => {
+      // Create multiple game sessions and leaderboard entries for testing
+      const players = [
+        { address: '0x1111111111111111111111111111111111111111', score: 1000 },
+        { address: '0x2222222222222222222222222222222222222222', score: 2000 },
+        { address: '0x3333333333333333333333333333333333333333', score: 3000 },
+        { address: '0x4444444444444444444444444444444444444444', score: 1500 },
+        { address: '0x5555555555555555555555555555555555555555', score: 2500 },
+      ];
+
+      players.forEach((player, index) => {
+        const sessionId = `session-${index + 1}`;
+        createGameSession(sessionId, player.address);
+        leaderboardService.addEntry({
+          sessionId,
+          gameType: 'snake',
+          playerAddress: player.address,
+          score: player.score,
+        });
+      });
+    });
+
+    it('should return top scores ordered by score descending', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+        limit: 5,
+      });
+
+      // Scores should be in descending order: 3000, 2500, 2000, 1500, 1000
+      expect(results).toHaveLength(5);
+      expect(results[0].score).toBe(3000);
+      expect(results[1].score).toBe(2500);
+      expect(results[2].score).toBe(2000);
+      expect(results[3].score).toBe(1500);
+      expect(results[4].score).toBe(1000);
+    });
+
+    it('should compute rank using ROW_NUMBER()', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+        limit: 5,
+      });
+
+      // Ranks should be 1, 2, 3, 4, 5
+      expect(results[0].rank).toBe(1);
+      expect(results[1].rank).toBe(2);
+      expect(results[2].rank).toBe(3);
+      expect(results[3].rank).toBe(4);
+      expect(results[4].rank).toBe(5);
+    });
+
+    it('should respect limit parameter', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+        limit: 3,
+      });
+
+      expect(results).toHaveLength(3);
+      expect(results[0].score).toBe(3000);
+      expect(results[1].score).toBe(2500);
+      expect(results[2].score).toBe(2000);
+    });
+
+    it('should use default limit of 10 when not specified', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+      });
+
+      // We only have 5 entries, so should return all 5
+      expect(results).toHaveLength(5);
+    });
+
+    it('should filter by game type', () => {
+      // Add a tetris entry
+      const tetrisSession = 'tetris-session';
+      const tetrisPlayer = '0x9999999999999999999999999999999999999999';
+      createGameSession(tetrisSession, tetrisPlayer);
+      leaderboardService.addEntry({
+        sessionId: tetrisSession,
+        gameType: 'tetris',
+        playerAddress: tetrisPlayer,
+        score: 9999,
+      });
+
+      // Query for snake only
+      const snakeResults = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+      });
+
+      // Should only return snake entries (5 total)
+      expect(snakeResults).toHaveLength(5);
+      expect(snakeResults.every((entry) => entry.gameType === 'snake')).toBe(true);
+    });
+
+    it('should filter by period type (daily)', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+      });
+
+      expect(results.every((entry) => entry.periodType === 'daily')).toBe(true);
+    });
+
+    it('should filter by period type (weekly)', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'weekly',
+      });
+
+      // All entries should be weekly period
+      expect(results.every((entry) => entry.periodType === 'weekly')).toBe(true);
+      expect(results).toHaveLength(5); // Same 5 players should have weekly entries
+    });
+
+    it('should filter by period type (alltime)', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'alltime',
+      });
+
+      expect(results.every((entry) => entry.periodType === 'alltime')).toBe(true);
+      expect(results).toHaveLength(5);
+    });
+
+    it('should return empty array when no scores exist', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'pong',
+        periodType: 'daily',
+      });
+
+      expect(results).toEqual([]);
+    });
+
+    it('should return correct metadata for each entry', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+        limit: 1,
+      });
+
+      const topEntry = results[0];
+      expect(topEntry.id).toBeDefined();
+      expect(topEntry.sessionId).toBeDefined();
+      expect(topEntry.gameType).toBe('snake');
+      expect(topEntry.playerAddress).toBeDefined();
+      expect(topEntry.score).toBe(3000);
+      expect(topEntry.periodType).toBe('daily');
+      expect(topEntry.periodDate).toBeDefined();
+      expect(topEntry.rank).toBe(1);
+      expect(topEntry.createdAt).toBeDefined();
+    });
+
+    it('should handle tie scores with different ranks', () => {
+      // Add two players with same score
+      const player6 = '0x6666666666666666666666666666666666666666';
+      const player7 = '0x7777777777777777777777777777777777777777';
+
+      const session6 = 'session-6';
+      const session7 = 'session-7';
+
+      createGameSession(session6, player6);
+      createGameSession(session7, player7);
+
+      leaderboardService.addEntry({
+        sessionId: session6,
+        gameType: 'snake',
+        playerAddress: player6,
+        score: 2000,
+      });
+
+      leaderboardService.addEntry({
+        sessionId: session7,
+        gameType: 'snake',
+        playerAddress: player7,
+        score: 2000,
+      });
+
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+      });
+
+      // Find entries with score 2000
+      const tiedEntries = results.filter((entry) => entry.score === 2000);
+
+      // Both should be present with different ranks
+      expect(tiedEntries.length).toBeGreaterThanOrEqual(2);
+      // Ranks should be sequential (ROW_NUMBER assigns unique ranks even for ties)
+      const ranks = tiedEntries.map((e) => e.rank).sort((a, b) => a - b);
+      expect(ranks[1] - ranks[0]).toBe(1); // Consecutive ranks
+    });
+
+    it('should calculate correct period_date for daily', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'daily',
+      });
+
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const expectedDate = getTodayDate();
+
+      expect(results.every((entry) => entry.periodDate === expectedDate)).toBe(true);
+    });
+
+    it('should calculate correct period_date for weekly', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'weekly',
+      });
+
+      const getWeekStart = (leaderboardService as any).getWeekStart.bind(leaderboardService);
+      const expectedDate = getWeekStart();
+
+      expect(results.every((entry) => entry.periodDate === expectedDate)).toBe(true);
+    });
+
+    it('should use "alltime" as period_date for alltime', () => {
+      const results = leaderboardService.getTopScores({
+        gameType: 'snake',
+        periodType: 'alltime',
+      });
+
+      expect(results.every((entry) => entry.periodDate === 'alltime')).toBe(true);
+    });
+  });
 });
