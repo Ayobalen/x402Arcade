@@ -38,11 +38,11 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 
 };
 const APP_VERSION = packageJson.version;
 
-// Import route modules (will be added as routes are implemented)
-// import playRoutes from './routes/play.routes.js';
-// import scoreRoutes from './routes/score.routes.js';
-// import leaderboardRoutes from './routes/leaderboard.routes.js';
-// import prizeRoutes from './routes/prize.routes.js';
+// Import route modules
+import playRoutes from './routes/play.routes.js';
+import scoreRoutes from './routes/score.routes.js';
+import leaderboardRoutes from './routes/leaderboard.routes.js';
+import prizeRoutes from './routes/prize.routes.js';
 
 // Import middleware (will be added as needed)
 // import { errorHandler } from './middleware/errorHandler.js';
@@ -203,16 +203,25 @@ export function createApp(): Express {
   app.get('/api', (_req: Request, res: Response) => {
     res.json({
       name: 'x402Arcade API',
-      version: '0.1.0',
+      version: APP_VERSION,
       message: 'Insert a Penny, Play for Glory',
+      endpoints: {
+        health: 'GET /health',
+        play: 'POST /api/v1/play',
+        score: 'POST /api/v1/score',
+        leaderboard: 'GET /api/v1/leaderboard/:gameType/:periodType',
+        prize: 'GET /api/v1/prize/:gameType/:periodType',
+        prizeHistory: 'GET /api/v1/prize/history',
+      },
     });
   });
 
-  // API routes will be mounted here as they are implemented:
-  // app.use('/api/play', playRoutes);
-  // app.use('/api/score', scoreRoutes);
-  // app.use('/api/leaderboard', leaderboardRoutes);
-  // app.use('/api/prize', prizeRoutes);
+  // Mount API routes under /api/v1 prefix
+  // Organized by resource for clean API structure
+  app.use('/api/v1/play', playRoutes);
+  app.use('/api/v1/score', scoreRoutes);
+  app.use('/api/v1/leaderboard', leaderboardRoutes);
+  app.use('/api/v1/prize', prizeRoutes);
 
   // ============================================================================
   // Error Handlers
