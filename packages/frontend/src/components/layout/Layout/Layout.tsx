@@ -35,6 +35,7 @@
 
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
+import { BackgroundEffects } from '@/components/layout/BackgroundEffects';
 import type { LayoutProps } from './Layout.types';
 
 /**
@@ -62,6 +63,8 @@ export function Layout({
   customFooter,
   maxWidth = 'full',
   contentPadding = true,
+  showBackgroundEffects = true,
+  glowIntensity = 'medium',
 }: LayoutProps) {
   return (
     <div
@@ -71,9 +74,14 @@ export function Layout({
         'flex flex-col',
         // Retro arcade theme background
         'bg-[#0a0a0a]',
-        'text-white'
+        'text-white',
+        // Ensure content is above background effects
+        'relative'
       )}
     >
+      {/* Background Effects - positioned behind all content */}
+      {showBackgroundEffects && <BackgroundEffects glowIntensity={glowIntensity} />}
+
       {/* Header */}
       {showHeader && (customHeader || <Header showBalance={showBalance} />)}
 
@@ -88,6 +96,8 @@ export function Layout({
           'mx-auto',
           // Content padding
           contentPadding && 'px-4 py-8',
+          // Ensure content is above background effects
+          'relative z-10',
           // Custom classes
           className
         )}
