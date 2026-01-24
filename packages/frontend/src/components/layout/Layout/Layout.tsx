@@ -36,7 +36,7 @@
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { BackgroundEffects } from '@/components/layout/BackgroundEffects';
+import { BackgroundEffects, NoiseOverlay } from '@/components/layout/BackgroundEffects';
 import type { LayoutProps } from './Layout.types';
 
 /**
@@ -66,6 +66,8 @@ export function Layout({
   contentPadding = true,
   showBackgroundEffects = true,
   glowIntensity = 'medium',
+  showNoiseOverlay = true,
+  noiseIntensity = 0.08,
 }: LayoutProps) {
   return (
     <div
@@ -82,6 +84,9 @@ export function Layout({
     >
       {/* Background Effects - positioned behind all content */}
       {showBackgroundEffects && <BackgroundEffects glowIntensity={glowIntensity} />}
+
+      {/* Noise/Grain Overlay */}
+      {showNoiseOverlay && <NoiseOverlay intensity={noiseIntensity} />}
 
       {/* Header */}
       {showHeader && (customHeader || <Header showBalance={showBalance} />)}
