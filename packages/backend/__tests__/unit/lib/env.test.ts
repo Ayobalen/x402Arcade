@@ -629,6 +629,155 @@ describe('Environment Validation Schema', () => {
     });
   });
 
+  describe('ARCADE_WALLET_ADDRESS Validation', () => {
+    it('should accept valid Ethereum wallet address', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ARCADE_WALLET_ADDRESS).toBe(
+          '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+        );
+      }
+    });
+
+    it('should accept wallet address with all lowercase hex', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '0xabcdef1234567890abcdef1234567890abcdef12',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept wallet address with all uppercase hex', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '0xABCDEF1234567890ABCDEF1234567890ABCDEF12',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept wallet address with mixed case (checksum)', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject wallet address without 0x prefix', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '742d35Cc6634C0532925a3b844Bc454e4438f44e',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const walletError = result.error.issues.find((issue) =>
+          issue.path.includes('ARCADE_WALLET_ADDRESS')
+        );
+        expect(walletError).toBeDefined();
+        expect(walletError?.message).toContain('Invalid Ethereum address');
+      }
+    });
+
+    it('should reject wallet address that is too short', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '0x742d35Cc6634C0532925a3b844Bc454e4438f4',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject wallet address that is too long', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e00',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject wallet address with invalid characters', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '0x742d35Cc6634C0532925a3b844Bc454e4438g44e',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject wallet address with special characters', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '0x742d35Cc6634C0532925a3b844Bc454e4438f@4e',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject empty wallet address', () => {
+      const testEnv = {
+        ...process.env,
+        ARCADE_WALLET_ADDRESS: '',
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept missing wallet address (optional)', () => {
+      const testEnv = {
+        ...process.env,
+        JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+      };
+      delete testEnv.ARCADE_WALLET_ADDRESS;
+
+      const result = envSchema.safeParse(testEnv);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ARCADE_WALLET_ADDRESS).toBeUndefined();
+      }
+    });
+  });
+
   describe('RPC_URL Validation', () => {
     it('should accept valid HTTPS RPC URL', () => {
       const testEnv = {
