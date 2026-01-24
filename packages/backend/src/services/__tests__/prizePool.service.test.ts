@@ -615,3 +615,266 @@ describe('PrizePoolService - getCurrentPool', () => {
     expect(result).toHaveProperty('finalizedAt');
   });
 });
+
+// ============================================================================
+// calculatePrizeAmount Method Tests
+// ============================================================================
+
+describe('PrizePoolService - calculatePrizeAmount', () => {
+  it('should throw error if neither poolId nor pool is provided', () => {
+    expect(() => {
+      prizePoolService.calculatePrizeAmount({});
+    }).toThrow('Either poolId or pool must be provided');
+  });
+
+  it('should throw error if pool does not exist', () => {
+    expect(() => {
+      prizePoolService.calculatePrizeAmount({ poolId: 999 });
+    }).toThrow('Prize pool not found: 999');
+  });
+
+  it('should calculate payout amount using poolId', () => {
+    // Create a pool with known amount
+    prizePoolService.addToPrizePool({
+      gameType: 'snake',
+      amountUsdc: 0.01,
+    });
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ poolId: pool!.id });
+
+    // Should return full pool amount (70% of $0.01 = $0.007)
+    expect(amount).toBeCloseTo(0.007, 10);
+  });
+
+  it('should calculate payout amount using pool object', () => {
+    // Create a pool
+    prizePoolService.addToPrizePool({
+      gameType: 'tetris',
+      amountUsdc: 0.02,
+    });
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'tetris',
+      periodType: 'daily',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ pool: pool! });
+
+    // Should return full pool amount (70% of $0.02 = $0.014)
+    expect(amount).toBeCloseTo(0.014, 10);
+  });
+
+  it('should return full pool amount with no additional fees', () => {
+    // Add multiple payments to accumulate a larger pool
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'pong',
+      periodType: 'daily',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ poolId: pool!.id });
+
+    // Should return full pool amount (5 * 70% of $0.01 = $0.035)
+    expect(amount).toBeCloseTo(0.035, 10);
+  });
+
+  it('should handle pools with zero amount', () => {
+    // Manually create a pool with zero amount (edge case)
+    db.prepare(
+      `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+       VALUES ('snake', 'daily', '2026-01-01', 0, 0, 'active')`
+    ).run();
+
+    const pool = db
+      .prepare(
+        `SELECT id, game_type as gameType, period_type as periodType, period_date as periodDate,
+                total_amount_usdc as totalAmountUsdc, total_games as totalGames, status,
+                winner_address as winnerAddress, payout_tx_hash as payoutTxHash,
+                created_at as createdAt, finalized_at as finalizedAt
+         FROM prize_pools WHERE game_type = 'snake' AND period_date = '2026-01-01'`
+      )
+      .get() as PrizePool;
+
+    const amount = prizePoolService.calculatePrizeAmount({ pool });
+
+    expect(amount).toBe(0);
+  });
+
+  it('should handle pools with large amounts', () => {
+    // Create a pool with a large payment
+    prizePoolService.addToPrizePool({
+      gameType: 'breakout',
+      amountUsdc: 100.0,
+    });
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'breakout',
+      periodType: 'daily',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ poolId: pool!.id });
+
+    // Should return full pool amount (70% of $100 = $70)
+    expect(amount).toBe(70.0);
+  });
+
+  it('should work with finalized pools', () => {
+    // Create a pool
+    prizePoolService.addToPrizePool({
+      gameType: 'space_invaders',
+      amountUsdc: 0.015,
+    });
+
+    // Add a leaderboard entry so we can finalize
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('session-1', 'space_invaders', '0xPlayer1', 100, 'daily', ?)`
+    ).run(getTodayDate());
+
+    // Finalize the pool
+    const finalizedPool = prizePoolService.finalizePool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      periodDate: getTodayDate(),
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ pool: finalizedPool! });
+
+    // Should still return full pool amount
+    expect(amount).toBeCloseTo(0.0105, 10);
+  });
+
+  it('should work with paid pools', () => {
+    // Create and finalize a pool
+    prizePoolService.addToPrizePool({
+      gameType: 'tetris',
+      amountUsdc: 0.02,
+    });
+
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('session-2', 'tetris', '0xWinner', 200, 'daily', ?)`
+    ).run(getTodayDate());
+
+    const finalizedPool = prizePoolService.finalizePool({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: getTodayDate(),
+    });
+
+    // Record payout
+    const paidPool = prizePoolService.recordPayout({
+      poolId: finalizedPool!.id,
+      payoutTxHash: '0xabcdef123456',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ pool: paidPool! });
+
+    // Should still return full pool amount even after payout
+    expect(amount).toBeCloseTo(0.014, 10);
+  });
+
+  it('should handle weekly pools', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'pong',
+      amountUsdc: 0.05,
+    });
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'pong',
+      periodType: 'weekly',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ poolId: pool!.id });
+
+    // Should return full pool amount (70% of $0.05 = $0.035)
+    expect(amount).toBeCloseTo(0.035, 10);
+  });
+
+  it('should handle pools with fractional cents', () => {
+    // Test floating point precision
+    prizePoolService.addToPrizePool({
+      gameType: 'snake',
+      amountUsdc: 0.013, // Results in 0.0091 in pool
+    });
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ pool: pool! });
+
+    expect(amount).toBeCloseTo(0.0091, 10);
+  });
+
+  it('should prefer provided pool object over poolId', () => {
+    // Create two pools
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    const snakePool = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+    const tetrisPool = prizePoolService.getCurrentPool({
+      gameType: 'tetris',
+      periodType: 'daily',
+    });
+
+    // Provide both poolId and pool, should use pool object
+    const amount = prizePoolService.calculatePrizeAmount({
+      poolId: snakePool!.id,
+      pool: tetrisPool!,
+    });
+
+    // Should use tetris pool amount (70% of $0.02 = $0.014)
+    expect(amount).toBeCloseTo(0.014, 10);
+  });
+
+  it('should return exact pool total for integer USDC amounts', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'breakout',
+      amountUsdc: 10.0,
+    });
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'breakout',
+      periodType: 'daily',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ poolId: pool!.id });
+
+    // Should return exactly 70% of $10 = $7.00
+    expect(amount).toBe(7.0);
+  });
+
+  it('should handle accumulated pools correctly', () => {
+    // Simulate a busy day with many players
+    for (let i = 0; i < 100; i++) {
+      prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    }
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    const amount = prizePoolService.calculatePrizeAmount({ pool: pool! });
+
+    // Should return 100 * (70% of $0.01) = $0.70
+    expect(amount).toBeCloseTo(0.7, 10);
+  });
+});

@@ -433,6 +433,98 @@ export class PrizePoolService {
   }
 
   /**
+   * Calculate the actual payout amount for a prize pool.
+   *
+   * Determines the final USDC amount to be paid to the winner after applying
+   * any platform fees and minimum payout thresholds. Currently, the full pool
+   * amount is paid out (100% of accumulated funds) with no additional fees,
+   * as the platform fee was already taken during game payment processing.
+   *
+   * Future enhancements could include:
+   * - Additional platform fee on payouts (e.g., 5%)
+   * - Minimum payout thresholds (e.g., $1.00)
+   * - Maximum payout caps
+   * - Tax withholding for certain jurisdictions
+   *
+   * @param params - Parameters for calculating payout
+   * @param params.poolId - ID of the prize pool (optional if pool provided)
+   * @param params.pool - PrizePool object (optional if poolId provided)
+   * @returns Final payout amount in USDC
+   *
+   * @throws Error if neither poolId nor pool is provided
+   * @throws Error if pool doesn't exist
+   *
+   * @example
+   * ```typescript
+   * // Calculate payout by pool ID
+   * const amount = service.calculatePrizeAmount({ poolId: 42 });
+   * // Returns: 0.21 (full pool amount)
+   *
+   * // Calculate payout with pool object
+   * const pool = service.getCurrentPool({ gameType: 'snake', periodType: 'daily' });
+   * const amount = service.calculatePrizeAmount({ pool });
+   * // Returns: 0.21 (full pool amount)
+   * ```
+   */
+  calculatePrizeAmount(params: { poolId?: number; pool?: PrizePool }): number {
+    const { poolId, pool } = params;
+
+    // Validate input
+    if (!poolId && !pool) {
+      throw new Error('Either poolId or pool must be provided');
+    }
+
+    // Get the pool if only poolId was provided
+    let prizePool: PrizePool | null = pool ?? null;
+
+    if (!prizePool && poolId) {
+      const getPoolStmt = this.db.prepare(`
+        SELECT
+          id,
+          game_type as gameType,
+          period_type as periodType,
+          period_date as periodDate,
+          total_amount_usdc as totalAmountUsdc,
+          total_games as totalGames,
+          status,
+          winner_address as winnerAddress,
+          payout_tx_hash as payoutTxHash,
+          created_at as createdAt,
+          finalized_at as finalizedAt
+        FROM prize_pools
+        WHERE id = ?
+      `);
+
+      prizePool = (getPoolStmt.get(poolId) as PrizePool | undefined) ?? null;
+    }
+
+    // Verify pool exists
+    if (!prizePool) {
+      throw new Error(`Prize pool not found: ${poolId}`);
+    }
+
+    // Get the total pool amount
+    const poolTotal = prizePool.totalAmountUsdc;
+
+    // Currently, we pay out the full amount (no additional platform fee)
+    // The 30% platform fee was already taken during game payment processing
+    // (only 70% of each payment went to the prize pool)
+    const payoutAmount = poolTotal;
+
+    // Future enhancement: Apply platform fee on payout if configured
+    // const PAYOUT_PLATFORM_FEE = 0.05; // 5% example
+    // payoutAmount = poolTotal * (1 - PAYOUT_PLATFORM_FEE);
+
+    // Future enhancement: Enforce minimum payout threshold
+    // const MINIMUM_PAYOUT = 1.00; // $1.00 minimum example
+    // if (payoutAmount < MINIMUM_PAYOUT) {
+    //   return 0; // Don't pay out if below minimum
+    // }
+
+    return payoutAmount;
+  }
+
+  /**
    * Record a successful prize payout transaction.
    *
    * Updates the pool status from 'finalized' to 'paid' and stores the blockchain
