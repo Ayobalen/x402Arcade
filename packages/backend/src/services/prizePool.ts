@@ -432,6 +432,85 @@ export class PrizePoolService {
     return updatedPool;
   }
 
+  /**
+   * Record a successful prize payout transaction.
+   *
+   * Updates the pool status from 'finalized' to 'paid' and stores the blockchain
+   * transaction hash. Called after the prize has been successfully transferred
+   * to the winner on-chain.
+   *
+   * @param params - Parameters for recording payout
+   * @param params.poolId - ID of the prize pool
+   * @param params.payoutTxHash - Blockchain transaction hash of the payout
+   * @returns Updated PrizePool with payout info, or null if pool doesn't exist
+   *
+   * @throws Error if pool is not in 'finalized' status
+   *
+   * @example
+   * ```typescript
+   * // Record payout for pool ID 42
+   * const paidPool = service.recordPayout({
+   *   poolId: 42,
+   *   payoutTxHash: '0xabcdef1234567890...'
+   * });
+   * // Returns: { ..., status: 'paid', payoutTxHash: '0xabcdef...' }
+   * ```
+   */
+  recordPayout(params: { poolId: number; payoutTxHash: string }): PrizePool | null {
+    const { poolId, payoutTxHash } = params;
+
+    // Get the pool to verify it exists and is finalized
+    const getPoolStmt = this.db.prepare(`
+      SELECT
+        id,
+        game_type as gameType,
+        period_type as periodType,
+        period_date as periodDate,
+        total_amount_usdc as totalAmountUsdc,
+        total_games as totalGames,
+        status,
+        winner_address as winnerAddress,
+        payout_tx_hash as payoutTxHash,
+        created_at as createdAt,
+        finalized_at as finalizedAt
+      FROM prize_pools
+      WHERE id = ?
+    `);
+
+    const pool = getPoolStmt.get(poolId) as PrizePool | undefined;
+
+    // Return null if pool doesn't exist
+    if (!pool) {
+      return null;
+    }
+
+    // Throw error if pool is not finalized (must be finalized before payout)
+    if (pool.status !== 'finalized') {
+      throw new Error(
+        `Pool ID ${poolId} is not finalized (status: ${pool.status}). Must finalize before recording payout.`
+      );
+    }
+
+    // Update pool to paid status with transaction hash
+    const updateStmt = this.db.prepare(`
+      UPDATE prize_pools
+      SET
+        status = 'paid',
+        payout_tx_hash = ?
+      WHERE id = ?
+    `);
+
+    updateStmt.run(payoutTxHash, poolId);
+
+    // Return the updated pool
+    const updatedPool = getPoolStmt.get(poolId) as PrizePool;
+
+    // Audit trail is maintained in the database via payout_tx_hash field
+    // External logging service can be integrated here if needed
+
+    return updatedPool;
+  }
+
   // ============================================================================
   // Private Helper Methods
   // ============================================================================
