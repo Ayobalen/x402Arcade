@@ -1,7 +1,18 @@
-import express, { type Express } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
+/**
+ * x402Arcade Server Entry Point
+ *
+ * This file is responsible for:
+ * 1. Loading environment variables
+ * 2. Validating environment configuration
+ * 3. Importing the configured Express app
+ * 4. Starting the HTTP server
+ *
+ * The Express app configuration is in app.ts for better separation of concerns
+ * and testability.
+ *
+ * @module index
+ */
+
 import dotenv from 'dotenv';
 
 // Load environment variables first
@@ -33,40 +44,12 @@ if (!validationResult.success) {
 // Get validated environment (will use defaults for optional fields)
 const env = getEnv();
 
-const app: Express = express();
+// Import the configured Express app
+import { app } from './app.js';
+
 const PORT = env.PORT;
 
-// Middleware
-app.use(helmet());
-app.use(
-  cors({
-    origin: env.CORS_ORIGIN,
-    credentials: true,
-  })
-);
-app.use(morgan('combined'));
-app.use(express.json());
-
-// Health check endpoint
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// API routes will be added here
-app.get('/api', (_req, res) => {
-  res.json({
-    name: 'x402Arcade API',
-    version: '0.1.0',
-    message: 'Insert a Penny, Play for Glory',
-  });
-});
-
-// 404 handler
-app.use((_req, res) => {
-  res.status(404).json({ error: 'Not Found' });
-});
-
-// Start server
+// Start server (skip in test environment)
 if (env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     /* eslint-disable no-console */
@@ -77,4 +60,5 @@ if (env.NODE_ENV !== 'test') {
   });
 }
 
+// Re-export app for testing purposes
 export { app };
