@@ -177,22 +177,34 @@ export const envSchema = z.object({
     .describe('Silence all logging output (useful for testing)'),
 
   // Rate Limiting Configuration
+  // IP-based rate limiting to prevent abuse while allowing legitimate gameplay
+  // Default: 100 requests per 15 minutes (900000ms) = ~6.7 req/min
+  // This accommodates typical gaming patterns:
+  // - Multiple games per session (~10-20 games)
+  // - Score submissions (~10-20 requests)
+  // - Leaderboard checks (~20-30 requests)
+  // - Prize pool queries (~10-20 requests)
+  // Total: ~50-90 requests in a 15-minute active gaming session
   RATE_LIMIT_ENABLED: z.coerce
     .boolean()
     .default(true)
-    .describe('Enable rate limiting middleware for API endpoints'),
+    .describe('Enable IP-based rate limiting middleware for API endpoints'),
   RATE_LIMIT_MAX_REQUESTS: z.coerce
     .number()
     .int()
     .positive()
     .default(100)
-    .describe('Maximum requests per window (default: 100 requests)'),
+    .describe(
+      'Maximum requests per window (default: 100 requests per 15 minutes for typical gameplay)'
+    ),
   RATE_LIMIT_WINDOW_MS: z.coerce
     .number()
     .int()
     .positive()
-    .default(60000)
-    .describe('Rate limit time window in milliseconds (default: 60000 = 1 minute)'),
+    .default(900000)
+    .describe(
+      'Rate limit time window in milliseconds (default: 900000 = 15 minutes for arcade gaming)'
+    ),
 });
 
 /**
