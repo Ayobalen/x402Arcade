@@ -23,6 +23,71 @@
 
 ## Session Log - January 24, 2026
 
+### Session: Backend Environment Validation Enhancement (Features #223-227)
+**Completed:**
+- Feature #223: Define Zod schema for CHAIN_ID with transform ✅
+  - Verified existing implementation with .coerce.number() and .refine()
+  - Validates chain ID 25 (mainnet) and 338 (testnet)
+  - Added comprehensive documentation
+  - All 9 CHAIN_ID tests already passing
+  - Git Commit: (already committed in previous session)
+
+- Feature #224: Define Zod schema for RPC_URL with URL validation ✅
+  - Enhanced RPC_URL with .refine() for protocol validation
+  - Custom error message: "RPC_URL must be a valid HTTP or HTTPS URL"
+  - Validates URLs start with http:// or https://
+  - Added 10 comprehensive tests for RPC_URL validation
+  - Tests cover HTTPS, HTTP, ports, paths, invalid protocols (ftp, ws)
+  - Git Commit: db3e45a4
+
+- Feature #225: Define Zod schema for wallet address with regex ✅
+  - Verified existing ARCADE_WALLET_ADDRESS implementation
+  - Regex validation: /^0x[a-fA-F0-9]{40}$/
+  - Custom error message: "Invalid Ethereum address"
+  - Added 11 comprehensive tests for wallet address validation
+  - Tests cover lowercase, uppercase, mixed case (checksum), invalid formats
+  - Git Commit: a080aef5
+
+- Feature #226: Define Zod schema for private key with regex ✅
+  - Enhanced ARCADE_PRIVATE_KEY to accept optional 0x prefix
+  - Updated regex: /^(0x)?[a-fA-F0-9]{64}$/
+  - Added .transform() to strip 0x prefix for consistency
+  - Improved error message for security (doesn't leak values)
+  - Added 12 comprehensive tests for private key validation
+  - Tests verify transform behavior and various hex formats
+  - Git Commit: 1aed0635
+
+- Feature #227: Define Zod schema for game prices with transform ✅
+  - Enhanced SNAKE_PRICE_USDC and TETRIS_PRICE_USDC schemas
+  - Added custom error messages: "price must be a positive number"
+  - Improved documentation to clarify string/number coercion
+  - Added 15 comprehensive tests for game price validation
+  - Tests cover decimals, integers, coercion, edge cases (0.0001, 100)
+  - Defaults: Snake 0.01 USDC, Tetris 0.02 USDC (per app_spec.txt)
+  - Git Commit: 2789322f
+
+**Test Summary:**
+- Total env validation tests: 103 (all passing)
+- New tests added this session: 48 tests
+  - RPC_URL: 10 tests
+  - ARCADE_WALLET_ADDRESS: 11 tests
+  - ARCADE_PRIVATE_KEY: 12 tests
+  - Game prices: 15 tests
+
+**Regression Tests:** 2 features verified passing
+- Feature #384: Create Storybook decorators ✅
+- Feature #75: Implement 402 response detection ✅
+
+**Status:** 376/1215 features passing (30.9%)
+
+**Git Commits:**
+1. db3e45a4 - RPC_URL validation with protocol checking
+2. a080aef5 - ARCADE_WALLET_ADDRESS comprehensive tests
+3. 1aed0635 - ARCADE_PRIVATE_KEY validation enhancement
+4. 2789322f - Game price validation with tests
+
+---
+
 ### Session: Environment Schema Validation & Documentation (Features #222, #223 + extras)
 **Completed:**
 - Feature #222: Define Zod schema for DATABASE_PATH ✅
