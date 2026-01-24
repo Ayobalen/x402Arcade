@@ -146,7 +146,13 @@ export function createApp(): Express {
   );
 
   // Body parsing: Parse JSON request bodies
-  app.use(express.json());
+  // Set 10kb limit to prevent large payload attacks
+  // Arcade API only needs small payloads (scores, wallet addresses, etc.)
+  app.use(
+    express.json({
+      limit: '10kb',
+    })
+  );
 
   // ============================================================================
   // Routes
