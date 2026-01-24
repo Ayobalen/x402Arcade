@@ -18,7 +18,7 @@ import type { Database as DatabaseType } from 'better-sqlite3';
  * Columns:
  * - id: Unique session identifier (UUID)
  * - game_type: Type of game played (snake, tetris, pong, breakout, space-invaders)
- * - player_address: Ethereum address of the player
+ * - player_address: Ethereum address of the player (42-char hex: 0x + 40 hex digits, lowercase for consistency)
  * - payment_tx_hash: On-chain transaction hash for payment verification
  * - amount_paid_usdc: Amount paid in USDC (decimal, e.g., 0.01)
  * - score: Final score achieved (NULL if game not completed)
@@ -26,12 +26,21 @@ import type { Database as DatabaseType } from 'better-sqlite3';
  * - created_at: ISO timestamp when session was created
  * - completed_at: ISO timestamp when game ended (NULL if active)
  * - game_duration_ms: Duration of game in milliseconds (NULL if not completed)
+ *
+ * Address Format Notes:
+ * - All addresses should be stored in lowercase for consistent querying
+ * - Application code should normalize addresses to lowercase before insertion
+ * - Queries can use case-insensitive LIKE or direct equality since all are lowercase
  */
 export const GAME_SESSIONS_TABLE = `
 CREATE TABLE IF NOT EXISTS game_sessions (
     id TEXT PRIMARY KEY,
     game_type TEXT NOT NULL CHECK (game_type IN ('snake', 'tetris', 'pong', 'breakout', 'space-invaders')),
-    player_address TEXT NOT NULL,
+    player_address TEXT NOT NULL CHECK (
+        length(player_address) = 42 AND
+        player_address LIKE '0x%' AND
+        player_address = lower(player_address)
+    ),
     payment_tx_hash TEXT NOT NULL UNIQUE,
     amount_paid_usdc REAL NOT NULL,
     score INTEGER,
