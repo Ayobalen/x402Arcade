@@ -1,7 +1,8 @@
 /**
  * Leaderboard Routes
  *
- * Handles leaderboard queries for daily, weekly, and all-time rankings.
+ * Handles leaderboard queries for different game types and time periods.
+ * Provides endpoints for retrieving top scores and player rankings.
  *
  * @module routes/leaderboard
  */
@@ -29,6 +30,7 @@ const router: RouterType = Router();
  * - 200: Leaderboard entries
  */
 router.get('/:gameType/:periodType', (_req: Request, res: Response) => {
+  // TODO: Initialize LeaderboardService with getDatabase()
   // TODO: Validate path parameters
   // TODO: Validate query parameters
   // TODO: Query leaderboard via LeaderboardService
