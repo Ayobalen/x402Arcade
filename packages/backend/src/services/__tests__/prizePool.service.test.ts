@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { PrizePoolService, PRIZE_POOL_PERCENTAGE } from '../prizePool';
+import { PrizePoolService, PRIZE_POOL_PERCENTAGE, type PrizePool } from '../prizePool';
 import { createTables } from '../../db/schema';
 
 // ============================================================================
@@ -1677,5 +1677,889 @@ describe('PrizePoolService - getWeeklyStats', () => {
     expect(result).toHaveProperty('activeGames');
     expect(result).toHaveProperty('gameBreakdown');
     expect(Array.isArray(result.gameBreakdown)).toBe(true);
+  });
+});
+
+// ============================================================================
+// getPoolHistory Method Tests
+// ============================================================================
+
+describe('PrizePoolService - getPoolHistory', () => {
+  it('should return empty array when no pools exist', () => {
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it('should return pools for the specified game type', () => {
+    // Create pools for different dates
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    // Create a pool for yesterday
+    const yesterday = new Date(today + 'T00:00:00Z');
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    db.prepare(
+      `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+       VALUES ('snake', 'daily', ?, 0.05, 5, 'active')`
+    ).run(yesterdayStr);
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result.length).toBe(2);
+    expect(result.every((p) => p.gameType === 'snake')).toBe(true);
+  });
+
+  it('should return pools ordered by most recent first', () => {
+    // Create pools for three different dates
+    db.prepare(
+      `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+       VALUES
+         ('tetris', 'daily', '2026-01-20', 0.1, 10, 'finalized'),
+         ('tetris', 'daily', '2026-01-21', 0.2, 20, 'finalized'),
+         ('tetris', 'daily', '2026-01-22', 0.3, 30, 'active')`
+    ).run();
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'tetris',
+      periodType: 'daily',
+    });
+
+    expect(result.length).toBe(3);
+    expect(result[0].periodDate).toBe('2026-01-22');
+    expect(result[1].periodDate).toBe('2026-01-21');
+    expect(result[2].periodDate).toBe('2026-01-20');
+  });
+
+  it('should filter by period type correctly', () => {
+    // Add to both daily and weekly pools
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    const dailyHistory = prizePoolService.getPoolHistory({
+      gameType: 'pong',
+      periodType: 'daily',
+    });
+
+    const weeklyHistory = prizePoolService.getPoolHistory({
+      gameType: 'pong',
+      periodType: 'weekly',
+    });
+
+    expect(dailyHistory.length).toBe(1);
+    expect(dailyHistory[0].periodType).toBe('daily');
+    expect(weeklyHistory.length).toBe(1);
+    expect(weeklyHistory[0].periodType).toBe('weekly');
+  });
+
+  it('should respect limit parameter', () => {
+    // Create 5 pools
+    for (let i = 0; i < 5; i++) {
+      const date = `2026-01-${20 + i}`;
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+         VALUES ('breakout', 'daily', ?, 0.1, 10, 'active')`
+      ).run(date);
+    }
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'breakout',
+      periodType: 'daily',
+      limit: 3,
+    });
+
+    expect(result.length).toBe(3);
+  });
+
+  it('should default limit to 10', () => {
+    // Create 15 pools
+    for (let i = 0; i < 15; i++) {
+      const date = `2026-01-${10 + i}`;
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+         VALUES ('space_invaders', 'weekly', ?, 0.1, 10, 'active')`
+      ).run(date);
+    }
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'space_invaders',
+      periodType: 'weekly',
+    });
+
+    expect(result.length).toBe(10);
+  });
+
+  it('should respect offset parameter', () => {
+    // Create 5 pools
+    for (let i = 0; i < 5; i++) {
+      const date = `2026-01-${20 + i}`;
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+         VALUES ('snake', 'daily', ?, 0.1, 10, 'active')`
+      ).run(date);
+    }
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'snake',
+      periodType: 'daily',
+      offset: 2,
+      limit: 10,
+    });
+
+    expect(result.length).toBe(3);
+    expect(result[0].periodDate).toBe('2026-01-22');
+  });
+
+  it('should default offset to 0', () => {
+    // Create 3 pools
+    db.prepare(
+      `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+       VALUES
+         ('tetris', 'daily', '2026-01-20', 0.1, 10, 'active'),
+         ('tetris', 'daily', '2026-01-21', 0.2, 20, 'active'),
+         ('tetris', 'daily', '2026-01-22', 0.3, 30, 'active')`
+    ).run();
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'tetris',
+      periodType: 'daily',
+      limit: 2,
+    });
+
+    expect(result.length).toBe(2);
+    expect(result[0].periodDate).toBe('2026-01-22');
+    expect(result[1].periodDate).toBe('2026-01-21');
+  });
+
+  it('should include all pool fields', () => {
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'pong',
+      periodType: 'daily',
+    });
+
+    expect(result[0]).toHaveProperty('id');
+    expect(result[0]).toHaveProperty('gameType');
+    expect(result[0]).toHaveProperty('periodType');
+    expect(result[0]).toHaveProperty('periodDate');
+    expect(result[0]).toHaveProperty('totalAmountUsdc');
+    expect(result[0]).toHaveProperty('totalGames');
+    expect(result[0]).toHaveProperty('status');
+    expect(result[0]).toHaveProperty('winnerAddress');
+    expect(result[0]).toHaveProperty('payoutTxHash');
+    expect(result[0]).toHaveProperty('createdAt');
+    expect(result[0]).toHaveProperty('finalizedAt');
+  });
+
+  it('should include pools with all statuses', () => {
+    // Create pools with different statuses
+    db.prepare(
+      `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+       VALUES
+         ('breakout', 'daily', '2026-01-20', 0.1, 10, 'active'),
+         ('breakout', 'daily', '2026-01-21', 0.2, 20, 'finalized'),
+         ('breakout', 'daily', '2026-01-22', 0.3, 30, 'paid')`
+    ).run();
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'breakout',
+      periodType: 'daily',
+    });
+
+    expect(result.length).toBe(3);
+    expect(result.some((p) => p.status === 'active')).toBe(true);
+    expect(result.some((p) => p.status === 'finalized')).toBe(true);
+    expect(result.some((p) => p.status === 'paid')).toBe(true);
+  });
+
+  it('should not include pools from different game types', () => {
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    const result = prizePoolService.getPoolHistory({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result.every((p) => p.gameType === 'snake')).toBe(true);
+  });
+
+  it('should handle pagination correctly', () => {
+    // Create 20 pools
+    for (let i = 0; i < 20; i++) {
+      const date = `2026-01-${10 + i}`;
+      db.prepare(
+        `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+         VALUES ('space_invaders', 'daily', ?, 0.1, 10, 'active')`
+      ).run(date);
+    }
+
+    // Page 1 (first 5)
+    const page1 = prizePoolService.getPoolHistory({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      limit: 5,
+      offset: 0,
+    });
+
+    // Page 2 (next 5)
+    const page2 = prizePoolService.getPoolHistory({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      limit: 5,
+      offset: 5,
+    });
+
+    expect(page1.length).toBe(5);
+    expect(page2.length).toBe(5);
+    expect(page1[0].periodDate).not.toBe(page2[0].periodDate);
+  });
+});
+
+// ============================================================================
+// finalizePool Method Tests
+// ============================================================================
+
+describe('PrizePoolService - finalizePool', () => {
+  it('should return null when pool does not exist', () => {
+    const result = prizePoolService.finalizePool({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: '2026-01-01',
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null when no players have scores for the period', () => {
+    // Create a pool but no leaderboard entries
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const result = prizePoolService.finalizePool({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: getTodayDate(),
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should set winner to player with highest score', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Create pool
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    // Add leaderboard entries with different scores
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES
+         ('s1', 'snake', '0xplayer1', 100, 'daily', ?),
+         ('s2', 'snake', '0xplayer2', 200, 'daily', ?),
+         ('s3', 'snake', '0xplayer3', 150, 'daily', ?)`
+    ).run(today, today, today);
+
+    const result = prizePoolService.finalizePool({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.winnerAddress).toBe('0xplayer2');
+  });
+
+  it('should update status to finalized', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('p1', 'pong', '0xwinner', 500, 'daily', ?)`
+    ).run(today);
+
+    const result = prizePoolService.finalizePool({
+      gameType: 'pong',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result?.status).toBe('finalized');
+  });
+
+  it('should set finalizedAt timestamp', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('b1', 'breakout', '0xchampion', 999, 'daily', ?)`
+    ).run(today);
+
+    const result = prizePoolService.finalizePool({
+      gameType: 'breakout',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result?.finalizedAt).not.toBeNull();
+    expect(typeof result?.finalizedAt).toBe('string');
+  });
+
+  it('should be idempotent when pool already finalized', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('si1', 'space_invaders', '0xplayer1', 800, 'daily', ?)`
+    ).run(today);
+
+    // Finalize once
+    const firstResult = prizePoolService.finalizePool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    // Finalize again
+    const secondResult = prizePoolService.finalizePool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(firstResult?.id).toBe(secondResult?.id);
+    expect(firstResult?.status).toBe('finalized');
+    expect(secondResult?.status).toBe('finalized');
+    expect(firstResult?.winnerAddress).toBe(secondResult?.winnerAddress);
+  });
+
+  it('should throw error when pool is already paid', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('t1', 'tetris', '0xwinner', 300, 'daily', ?)`
+    ).run(today);
+
+    // Finalize
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    // Record payout
+    prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: '0xabcdef123',
+    });
+
+    // Try to finalize again
+    expect(() => {
+      prizePoolService.finalizePool({
+        gameType: 'tetris',
+        periodType: 'daily',
+        periodDate: today,
+      });
+    }).toThrow('is already paid out');
+  });
+
+  it('should work with weekly periods', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('w1', 'pong', '0xweeklywinner', 1000, 'weekly', ?)`
+    ).run(weekStart);
+
+    const result = prizePoolService.finalizePool({
+      gameType: 'pong',
+      periodType: 'weekly',
+      periodDate: weekStart,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.winnerAddress).toBe('0xweeklywinner');
+    expect(result?.periodType).toBe('weekly');
+  });
+
+  it('should preserve pool amount and games count', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Add multiple games
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    const beforeFinalize = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('final', 'snake', '0xplayer', 500, 'daily', ?)`
+    ).run(today);
+
+    const afterFinalize = prizePoolService.finalizePool({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(afterFinalize?.totalAmountUsdc).toBe(beforeFinalize?.totalAmountUsdc);
+    expect(afterFinalize?.totalGames).toBe(beforeFinalize?.totalGames);
+  });
+
+  it('should handle tie scores by returning first player', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+
+    // Two players with same score
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES
+         ('tie1', 'breakout', '0xplayer1', 500, 'daily', ?),
+         ('tie2', 'breakout', '0xplayer2', 500, 'daily', ?)`
+    ).run(today, today);
+
+    const result = prizePoolService.finalizePool({
+      gameType: 'breakout',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result).not.toBeNull();
+    expect(['0xplayer1', '0xplayer2']).toContain(result?.winnerAddress);
+  });
+
+  it('should only finalize specific game type', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Create pools for two games
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    // Add leaderboard entries for both
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES
+         ('s1', 'snake', '0xsnake', 100, 'daily', ?),
+         ('t1', 'tetris', '0xtetris', 200, 'daily', ?)`
+    ).run(today, today);
+
+    // Finalize only snake
+    prizePoolService.finalizePool({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const snakePool = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    const tetrisPool = prizePoolService.getCurrentPool({
+      gameType: 'tetris',
+      periodType: 'daily',
+    });
+
+    expect(snakePool?.status).toBe('finalized');
+    expect(tetrisPool?.status).toBe('active');
+  });
+
+  it('should include all pool fields in returned object', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('si', 'space_invaders', '0xplayer', 750, 'daily', ?)`
+    ).run(today);
+
+    const result = prizePoolService.finalizePool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    expect(result).toHaveProperty('id');
+    expect(result).toHaveProperty('gameType');
+    expect(result).toHaveProperty('periodType');
+    expect(result).toHaveProperty('periodDate');
+    expect(result).toHaveProperty('totalAmountUsdc');
+    expect(result).toHaveProperty('totalGames');
+    expect(result).toHaveProperty('status');
+    expect(result).toHaveProperty('winnerAddress');
+    expect(result).toHaveProperty('payoutTxHash');
+    expect(result).toHaveProperty('createdAt');
+    expect(result).toHaveProperty('finalizedAt');
+  });
+});
+
+// ============================================================================
+// recordPayout Method Tests
+// ============================================================================
+
+describe('PrizePoolService - recordPayout', () => {
+  it('should return null when pool does not exist', () => {
+    const result = prizePoolService.recordPayout({
+      poolId: 999,
+      payoutTxHash: '0xabcdef',
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should throw error when pool is not finalized', () => {
+    // Create active pool
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    const pool = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(() => {
+      prizePoolService.recordPayout({
+        poolId: pool!.id,
+        payoutTxHash: '0x123',
+      });
+    }).toThrow('is not finalized');
+  });
+
+  it('should update status to paid', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('t1', 'tetris', '0xwinner', 300, 'daily', ?)`
+    ).run(today);
+
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: '0xabc123',
+    });
+
+    expect(paid?.status).toBe('paid');
+  });
+
+  it('should set payout transaction hash', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('p1', 'pong', '0xchamp', 400, 'daily', ?)`
+    ).run(today);
+
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'pong',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const txHash = '0xdef456789';
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: txHash,
+    });
+
+    expect(paid?.payoutTxHash).toBe(txHash);
+  });
+
+  it('should preserve winner address', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('b1', 'breakout', '0xwinner123', 550, 'daily', ?)`
+    ).run(today);
+
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'breakout',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: '0xtxhash',
+    });
+
+    expect(paid?.winnerAddress).toBe('0xwinner123');
+  });
+
+  it('should preserve pool amount and games count', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('si1', 'space_invaders', '0xplayer', 800, 'daily', ?)`
+    ).run(today);
+
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: '0xpayout',
+    });
+
+    expect(paid?.totalAmountUsdc).toBe(finalized?.totalAmountUsdc);
+    expect(paid?.totalGames).toBe(finalized?.totalGames);
+  });
+
+  it('should preserve finalizedAt timestamp', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('s1', 'snake', '0xsnake', 200, 'daily', ?)`
+    ).run(today);
+
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: '0xpayment',
+    });
+
+    expect(paid?.finalizedAt).toBe(finalized?.finalizedAt);
+  });
+
+  it('should handle Cronos transaction hash format', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('t1', 'tetris', '0xuser', 350, 'daily', ?)`
+    ).run(today);
+
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const cronosTxHash = '0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890';
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: cronosTxHash,
+    });
+
+    expect(paid?.payoutTxHash).toBe(cronosTxHash);
+    expect(paid?.payoutTxHash?.length).toBe(66); // 0x + 64 hex chars
+  });
+
+  it('should work with weekly pools', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const weekStart = getWeekStart();
+
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('w1', 'pong', '0xweekly', 900, 'weekly', ?)`
+    ).run(weekStart);
+
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'pong',
+      periodType: 'weekly',
+      periodDate: weekStart,
+    });
+
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: '0xweeklypayout',
+    });
+
+    expect(paid?.status).toBe('paid');
+    expect(paid?.periodType).toBe('weekly');
+  });
+
+  it('should include all pool fields in returned object', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('b1', 'breakout', '0xplayer', 600, 'daily', ?)`
+    ).run(today);
+
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'breakout',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: '0xfinal',
+    });
+
+    expect(paid).toHaveProperty('id');
+    expect(paid).toHaveProperty('gameType');
+    expect(paid).toHaveProperty('periodType');
+    expect(paid).toHaveProperty('periodDate');
+    expect(paid).toHaveProperty('totalAmountUsdc');
+    expect(paid).toHaveProperty('totalGames');
+    expect(paid).toHaveProperty('status');
+    expect(paid).toHaveProperty('winnerAddress');
+    expect(paid).toHaveProperty('payoutTxHash');
+    expect(paid).toHaveProperty('createdAt');
+    expect(paid).toHaveProperty('finalizedAt');
+  });
+
+  it('should handle multiple payouts for different pools', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Create two pools
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES
+         ('s1', 'snake', '0xsnake', 100, 'daily', ?),
+         ('t1', 'tetris', '0xtetris', 200, 'daily', ?)`
+    ).run(today, today);
+
+    const finalizedSnake = prizePoolService.finalizePool({
+      gameType: 'snake',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const finalizedTetris = prizePoolService.finalizePool({
+      gameType: 'tetris',
+      periodType: 'daily',
+      periodDate: today,
+    });
+
+    const paidSnake = prizePoolService.recordPayout({
+      poolId: finalizedSnake!.id,
+      payoutTxHash: '0xsnakepayout',
+    });
+
+    const paidTetris = prizePoolService.recordPayout({
+      poolId: finalizedTetris!.id,
+      payoutTxHash: '0xtetrispayout',
+    });
+
+    expect(paidSnake?.status).toBe('paid');
+    expect(paidTetris?.status).toBe('paid');
+    expect(paidSnake?.payoutTxHash).toBe('0xsnakepayout');
+    expect(paidTetris?.payoutTxHash).toBe('0xtetrispayout');
+  });
+
+  it('should verify complete pool lifecycle', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // 1. Create pool (active)
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+    const activePool = prizePoolService.getCurrentPool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+    });
+    expect(activePool?.status).toBe('active');
+    expect(activePool?.winnerAddress).toBeNull();
+    expect(activePool?.payoutTxHash).toBeNull();
+    expect(activePool?.finalizedAt).toBeNull();
+
+    // 2. Add leaderboard entry
+    db.prepare(
+      `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+       VALUES ('si1', 'space_invaders', '0xchampion', 1000, 'daily', ?)`
+    ).run(today);
+
+    // 3. Finalize pool
+    const finalized = prizePoolService.finalizePool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+      periodDate: today,
+    });
+    expect(finalized?.status).toBe('finalized');
+    expect(finalized?.winnerAddress).toBe('0xchampion');
+    expect(finalized?.payoutTxHash).toBeNull();
+    expect(finalized?.finalizedAt).not.toBeNull();
+
+    // 4. Record payout
+    const paid = prizePoolService.recordPayout({
+      poolId: finalized!.id,
+      payoutTxHash: '0xfullcycle',
+    });
+    expect(paid?.status).toBe('paid');
+    expect(paid?.winnerAddress).toBe('0xchampion');
+    expect(paid?.payoutTxHash).toBe('0xfullcycle');
+    expect(paid?.finalizedAt).not.toBeNull();
   });
 });
