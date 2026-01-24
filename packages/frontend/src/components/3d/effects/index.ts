@@ -18,7 +18,7 @@ export {
   type UseStarfieldOptions,
   type UseStarfieldResult,
   default as StarfieldDefault,
-} from './Starfield'
+} from './Starfield';
 
 // Nebula fog effect
 export {
@@ -33,7 +33,7 @@ export {
   type UseNebulaOptions,
   type UseNebulaResult,
   default as NebulaDefault,
-} from './Nebula'
+} from './Nebula';
 
 // Grid floor perspective effect
 export {
@@ -47,7 +47,7 @@ export {
   type UseGridFloorOptions,
   type UseGridFloorResult,
   default as GridFloorDefault,
-} from './GridFloor'
+} from './GridFloor';
 
 // Floating geometric shapes
 export {
@@ -63,4 +63,20 @@ export {
   type UseFloatingShapesOptions,
   type UseFloatingShapesResult,
   default as FloatingShapesDefault,
-} from './FloatingShapes'
+} from './FloatingShapes';
+
+// Neon line decorations
+export {
+  NeonLines,
+  useNeonLines,
+  getNeonLinesPreset,
+  NEON_LINES_PRESETS,
+  type NeonLinesProps,
+  type NeonLinesHandle,
+  type NeonLinesPreset,
+  type LinePattern,
+  type LineSegment,
+  type UseNeonLinesOptions,
+  type UseNeonLinesResult,
+  default as NeonLinesDefault,
+} from './NeonLines';
