@@ -114,6 +114,29 @@ export interface TopContributor {
   gamesPlayed: number;
 }
 
+/**
+ * Daily statistics data structure.
+ *
+ * Aggregate statistics for all game types on a specific day.
+ * Used for analytics dashboards and reporting.
+ */
+export interface DailyStats {
+  /** Date in YYYY-MM-DD format */
+  date: string;
+  /** Total number of games played across all game types */
+  totalGames: number;
+  /** Total USDC collected in prize pools across all games */
+  totalPrizePoolUsdc: number;
+  /** Number of active game types (games with at least one pool) */
+  activeGames: number;
+  /** Per-game breakdown (optional) */
+  gameBreakdown?: Array<{
+    gameType: GameType;
+    totalGames: number;
+    totalPrizePoolUsdc: number;
+  }>;
+}
+
 // ============================================================================
 // PrizePoolService Class
 // ============================================================================
@@ -615,6 +638,86 @@ export class PrizePoolService {
     // External logging service can be integrated here if needed
 
     return updatedPool;
+  }
+
+  /**
+   * Get aggregate statistics for a specific day across all game types.
+   *
+   * Retrieves and aggregates data from all daily prize pools for a given date.
+   * Useful for analytics dashboards, daily reports, and platform monitoring.
+   *
+   * This method:
+   * 1. Queries all daily prize pools for the specified date
+   * 2. Sums total games and prize pool amounts across all game types
+   * 3. Counts number of active game types
+   * 4. Optionally includes per-game breakdown
+   *
+   * @param params - Parameters for retrieving daily stats
+   * @param params.date - Date in YYYY-MM-DD format (defaults to today)
+   * @param params.includeBreakdown - Include per-game breakdown (default: false)
+   * @returns DailyStats object with aggregate data
+   *
+   * @example
+   * ```typescript
+   * // Get stats for today
+   * const stats = service.getDailyStats();
+   * // Returns: { date: '2026-01-24', totalGames: 42, totalPrizePoolUsdc: 0.294, activeGames: 3 }
+   *
+   * // Get stats for a specific date with breakdown
+   * const statsWithBreakdown = service.getDailyStats({
+   *   date: '2026-01-23',
+   *   includeBreakdown: true
+   * });
+   * // Returns: { date: '2026-01-23', ..., gameBreakdown: [{ gameType: 'snake', totalGames: 20, ... }, ...] }
+   * ```
+   */
+  getDailyStats(params?: { date?: string; includeBreakdown?: boolean }): DailyStats {
+    const { date = this.getTodayDate(), includeBreakdown = false } = params || {};
+
+    // Query all daily pools for this date
+    const query = this.db.prepare(`
+      SELECT
+        game_type as gameType,
+        total_games as totalGames,
+        total_amount_usdc as totalAmountUsdc
+      FROM prize_pools
+      WHERE period_type = 'daily' AND period_date = ?
+    `);
+
+    const pools = query.all(date) as Array<{
+      gameType: GameType;
+      totalGames: number;
+      totalAmountUsdc: number;
+    }>;
+
+    // Aggregate the stats
+    let totalGames = 0;
+    let totalPrizePoolUsdc = 0;
+    const activeGames = pools.length;
+
+    for (const pool of pools) {
+      totalGames += pool.totalGames;
+      totalPrizePoolUsdc += pool.totalAmountUsdc;
+    }
+
+    // Build result
+    const result: DailyStats = {
+      date,
+      totalGames,
+      totalPrizePoolUsdc,
+      activeGames,
+    };
+
+    // Add breakdown if requested
+    if (includeBreakdown) {
+      result.gameBreakdown = pools.map((pool) => ({
+        gameType: pool.gameType,
+        totalGames: pool.totalGames,
+        totalPrizePoolUsdc: pool.totalAmountUsdc,
+      }));
+    }
+
+    return result;
   }
 
   /**

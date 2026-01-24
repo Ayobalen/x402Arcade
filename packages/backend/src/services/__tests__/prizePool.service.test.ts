@@ -1206,3 +1206,246 @@ describe('PrizePoolService - getTopContributor', () => {
     expect(result?.gamesPlayed).toBe(1);
   });
 });
+
+// ============================================================================
+// getDailyStats Method Tests
+// ============================================================================
+
+describe('PrizePoolService - getDailyStats', () => {
+  it('should return zero stats when no pools exist', () => {
+    const result = prizePoolService.getDailyStats();
+
+    expect(result.totalGames).toBe(0);
+    expect(result.totalPrizePoolUsdc).toBe(0);
+    expect(result.activeGames).toBe(0);
+    expect(result.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('should default to today if no date provided', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const expectedDate = getTodayDate();
+
+    const result = prizePoolService.getDailyStats();
+
+    expect(result.date).toBe(expectedDate);
+  });
+
+  it('should aggregate stats from a single game type', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Add games to snake pool
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    const result = prizePoolService.getDailyStats({ date: today });
+
+    expect(result.totalGames).toBe(3);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.021, 10); // 3 * (70% of $0.01)
+    expect(result.activeGames).toBe(1);
+  });
+
+  it('should aggregate stats from multiple game types', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Add games to different pools
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    const result = prizePoolService.getDailyStats({ date: today });
+
+    expect(result.totalGames).toBe(4);
+    // (2 * 0.007) + 0.014 + 0.0105 = 0.0385
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.0385, 10);
+    expect(result.activeGames).toBe(3);
+  });
+
+  it('should not include gameBreakdown by default', () => {
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    const result = prizePoolService.getDailyStats();
+
+    expect(result.gameBreakdown).toBeUndefined();
+  });
+
+  it('should include gameBreakdown when requested', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    const result = prizePoolService.getDailyStats({ date: today, includeBreakdown: true });
+
+    expect(result.gameBreakdown).toBeDefined();
+    expect(result.gameBreakdown).toHaveLength(2);
+  });
+
+  it('should have correct per-game breakdown values', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+
+    const result = prizePoolService.getDailyStats({ date: today, includeBreakdown: true });
+
+    const snakeBreakdown = result.gameBreakdown?.find((g) => g.gameType === 'snake');
+    const tetrisBreakdown = result.gameBreakdown?.find((g) => g.gameType === 'tetris');
+
+    expect(snakeBreakdown?.totalGames).toBe(2);
+    expect(snakeBreakdown?.totalPrizePoolUsdc).toBeCloseTo(0.014, 10);
+    expect(tetrisBreakdown?.totalGames).toBe(1);
+    expect(tetrisBreakdown?.totalPrizePoolUsdc).toBeCloseTo(0.014, 10);
+  });
+
+  it('should only include daily pools, not weekly', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Add games (creates both daily and weekly pools)
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    const result = prizePoolService.getDailyStats({ date: today });
+
+    // Should only count the daily pool, not weekly
+    expect(result.totalGames).toBe(1);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.0105, 10);
+  });
+
+  it('should work with a specific date parameter', () => {
+    const specificDate = '2026-01-20';
+
+    // Manually create a pool for a specific date
+    db.prepare(
+      `INSERT INTO prize_pools (game_type, period_type, period_date, total_amount_usdc, total_games, status)
+       VALUES ('snake', 'daily', ?, 0.05, 5, 'active')`
+    ).run(specificDate);
+
+    const result = prizePoolService.getDailyStats({ date: specificDate });
+
+    expect(result.date).toBe(specificDate);
+    expect(result.totalGames).toBe(5);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.05, 10);
+  });
+
+  it('should handle multiple games of same type correctly', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Add 10 games to the same pool
+    for (let i = 0; i < 10; i++) {
+      prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+    }
+
+    const result = prizePoolService.getDailyStats({ date: today });
+
+    expect(result.totalGames).toBe(10);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.07, 10); // 10 * 0.007
+    expect(result.activeGames).toBe(1);
+  });
+
+  it('should handle all five game types', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Add one game for each type
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.02 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+    prizePoolService.addToPrizePool({ gameType: 'breakout', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+
+    const result = prizePoolService.getDailyStats({ date: today, includeBreakdown: true });
+
+    expect(result.activeGames).toBe(5);
+    expect(result.gameBreakdown).toHaveLength(5);
+    expect(result.totalGames).toBe(5);
+  });
+
+  it('should handle large numbers correctly', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    // Simulate a busy day
+    for (let i = 0; i < 100; i++) {
+      prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    }
+
+    const result = prizePoolService.getDailyStats({ date: today });
+
+    expect(result.totalGames).toBe(100);
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.7, 10); // 100 * 0.007
+  });
+
+  it('should handle fractional USDC amounts correctly', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.013 });
+    prizePoolService.addToPrizePool({ gameType: 'tetris', amountUsdc: 0.017 });
+
+    const result = prizePoolService.getDailyStats({ date: today });
+
+    // (0.013 + 0.017) * 0.7 = 0.021
+    expect(result.totalPrizePoolUsdc).toBeCloseTo(0.021, 10);
+  });
+
+  it('should return zero stats for future dates', () => {
+    const futureDate = '2099-12-31';
+
+    const result = prizePoolService.getDailyStats({ date: futureDate });
+
+    expect(result.date).toBe(futureDate);
+    expect(result.totalGames).toBe(0);
+    expect(result.totalPrizePoolUsdc).toBe(0);
+    expect(result.activeGames).toBe(0);
+  });
+
+  it('should return zero stats for past dates with no data', () => {
+    const pastDate = '2020-01-01';
+
+    const result = prizePoolService.getDailyStats({ date: pastDate });
+
+    expect(result.date).toBe(pastDate);
+    expect(result.totalGames).toBe(0);
+    expect(result.totalPrizePoolUsdc).toBe(0);
+    expect(result.activeGames).toBe(0);
+  });
+
+  it('should have correct structure with includeBreakdown=false', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.015 });
+
+    const result = prizePoolService.getDailyStats({ date: today, includeBreakdown: false });
+
+    expect(result).toHaveProperty('date');
+    expect(result).toHaveProperty('totalGames');
+    expect(result).toHaveProperty('totalPrizePoolUsdc');
+    expect(result).toHaveProperty('activeGames');
+    expect(result).not.toHaveProperty('gameBreakdown');
+  });
+
+  it('should have correct structure with includeBreakdown=true', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const today = getTodayDate();
+
+    prizePoolService.addToPrizePool({ gameType: 'space_invaders', amountUsdc: 0.025 });
+
+    const result = prizePoolService.getDailyStats({ date: today, includeBreakdown: true });
+
+    expect(result).toHaveProperty('date');
+    expect(result).toHaveProperty('totalGames');
+    expect(result).toHaveProperty('totalPrizePoolUsdc');
+    expect(result).toHaveProperty('activeGames');
+    expect(result).toHaveProperty('gameBreakdown');
+    expect(Array.isArray(result.gameBreakdown)).toBe(true);
+  });
+});
