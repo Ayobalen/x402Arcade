@@ -128,7 +128,22 @@ export function createApp(): Express {
   }
 
   // Logging: HTTP request logging
-  app.use(morgan('combined'));
+  // Use 'combined' format in production for detailed logs
+  // Use 'dev' format in development for concise, colorized output
+  // Skip logging for health check endpoint to reduce noise
+  app.use(
+    morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev', {
+      skip: (req: Request) => req.path === '/health',
+      stream: {
+        write: (message: string) => {
+          // Strip trailing newline from morgan output
+          // In the future, integrate with structured logging (pino/winston)
+          // eslint-disable-next-line no-console
+          console.log(message.trim());
+        },
+      },
+    })
+  );
 
   // Body parsing: Parse JSON request bodies
   app.use(express.json());
