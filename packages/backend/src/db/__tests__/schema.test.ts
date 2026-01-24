@@ -1534,6 +1534,7 @@ describe('Database Schema', () => {
 
       expect(indexNames).toContain('idx_payments_tx_hash');
       expect(indexNames).toContain('idx_payments_from_address');
+      expect(indexNames).toContain('idx_payments_to_address');
       expect(indexNames).toContain('idx_payments_purpose_status');
       expect(indexNames).toContain('idx_payments_created_at');
     });

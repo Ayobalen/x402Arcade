@@ -394,12 +394,14 @@ CREATE TABLE IF NOT EXISTS payments (
  * Optimizes payment audit query patterns:
  * - Transaction lookup: Find payment by blockchain tx hash (idx_payments_tx_hash)
  * - Player history: Find all payments from a specific address (idx_payments_from_address)
+ * - Recipient queries: Find all payments to a specific address (idx_payments_to_address)
  * - Revenue analysis: Filter by purpose and status (idx_payments_purpose_status)
  * - Time-based queries: Sort by creation time (idx_payments_created_at)
  */
 export const PAYMENTS_INDEXES = `
 CREATE INDEX IF NOT EXISTS idx_payments_tx_hash ON payments(tx_hash);
 CREATE INDEX IF NOT EXISTS idx_payments_from_address ON payments(from_address);
+CREATE INDEX IF NOT EXISTS idx_payments_to_address ON payments(to_address);
 CREATE INDEX IF NOT EXISTS idx_payments_purpose_status ON payments(purpose, status);
 CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at DESC);
 `;
