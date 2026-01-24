@@ -94,3 +94,17 @@ export {
   type UseScanlinesResult,
   default as ScanlinesDefault,
 } from './Scanlines';
+
+// Bloom post-processing effect
+export {
+  BloomEffect,
+  useBloomEffect,
+  getBloomEffectPreset,
+  BLOOM_EFFECT_PRESETS,
+  type BloomEffectProps,
+  type BloomEffectHandle,
+  type BloomEffectPreset,
+  type UseBloomEffectOptions,
+  type UseBloomEffectResult,
+  default as BloomEffectDefault,
+} from './BloomEffect';
