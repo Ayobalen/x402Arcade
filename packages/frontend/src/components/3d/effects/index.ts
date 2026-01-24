@@ -108,3 +108,17 @@ export {
   type UseBloomEffectResult,
   default as BloomEffectDefault,
 } from './BloomEffect';
+
+// Chromatic aberration post-processing effect
+export {
+  ChromaticAberrationEffect,
+  useChromaticAberrationEffect,
+  getChromaticAberrationEffectPreset,
+  CHROMATIC_ABERRATION_EFFECT_PRESETS,
+  type ChromaticAberrationEffectProps,
+  type ChromaticAberrationEffectHandle,
+  type ChromaticAberrationEffectPreset,
+  type UseChromaticAberrationEffectOptions,
+  type UseChromaticAberrationEffectResult,
+  default as ChromaticAberrationEffectDefault,
+} from './ChromaticAberrationEffect';
