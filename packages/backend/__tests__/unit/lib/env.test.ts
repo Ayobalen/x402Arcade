@@ -1105,4 +1105,235 @@ describe('Environment Validation Schema', () => {
       }
     });
   });
+
+  describe('Game Price Validation', () => {
+    describe('SNAKE_PRICE_USDC', () => {
+      it('should accept valid price as string', () => {
+        const testEnv = {
+          ...process.env,
+          SNAKE_PRICE_USDC: '0.05',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.SNAKE_PRICE_USDC).toBe(0.05);
+          expect(typeof result.data.SNAKE_PRICE_USDC).toBe('number');
+        }
+      });
+
+      it('should accept valid price as number', () => {
+        const testEnv = {
+          ...process.env,
+          SNAKE_PRICE_USDC: 0.25,
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.SNAKE_PRICE_USDC).toBe(0.25);
+        }
+      });
+
+      it('should accept integer price', () => {
+        const testEnv = {
+          ...process.env,
+          SNAKE_PRICE_USDC: '1',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.SNAKE_PRICE_USDC).toBe(1);
+        }
+      });
+
+      it('should accept very small price (0.0001)', () => {
+        const testEnv = {
+          ...process.env,
+          SNAKE_PRICE_USDC: '0.0001',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.SNAKE_PRICE_USDC).toBe(0.0001);
+        }
+      });
+
+      it('should reject zero price', () => {
+        const testEnv = {
+          ...process.env,
+          SNAKE_PRICE_USDC: '0',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const priceError = result.error.issues.find((issue) =>
+            issue.path.includes('SNAKE_PRICE_USDC')
+          );
+          expect(priceError).toBeDefined();
+          expect(priceError?.message).toContain('positive');
+        }
+      });
+
+      it('should reject negative price', () => {
+        const testEnv = {
+          ...process.env,
+          SNAKE_PRICE_USDC: '-0.5',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(false);
+      });
+
+      it('should reject non-numeric price', () => {
+        const testEnv = {
+          ...process.env,
+          SNAKE_PRICE_USDC: 'free',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(false);
+      });
+
+      it('should use default price when not provided', () => {
+        const testEnv = {
+          ...process.env,
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+        delete testEnv.SNAKE_PRICE_USDC;
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.SNAKE_PRICE_USDC).toBe(0.01);
+        }
+      });
+    });
+
+    describe('TETRIS_PRICE_USDC', () => {
+      it('should accept valid price as string', () => {
+        const testEnv = {
+          ...process.env,
+          TETRIS_PRICE_USDC: '0.10',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.TETRIS_PRICE_USDC).toBe(0.1);
+          expect(typeof result.data.TETRIS_PRICE_USDC).toBe('number');
+        }
+      });
+
+      it('should accept valid price as number', () => {
+        const testEnv = {
+          ...process.env,
+          TETRIS_PRICE_USDC: 0.5,
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.TETRIS_PRICE_USDC).toBe(0.5);
+        }
+      });
+
+      it('should accept large price', () => {
+        const testEnv = {
+          ...process.env,
+          TETRIS_PRICE_USDC: '100',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.TETRIS_PRICE_USDC).toBe(100);
+        }
+      });
+
+      it('should reject zero price', () => {
+        const testEnv = {
+          ...process.env,
+          TETRIS_PRICE_USDC: '0',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(false);
+      });
+
+      it('should reject negative price', () => {
+        const testEnv = {
+          ...process.env,
+          TETRIS_PRICE_USDC: '-1',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(false);
+      });
+
+      it('should use default price when not provided', () => {
+        const testEnv = {
+          ...process.env,
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+        delete testEnv.TETRIS_PRICE_USDC;
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.TETRIS_PRICE_USDC).toBe(0.02);
+        }
+      });
+    });
+
+    describe('Price Coercion', () => {
+      it('should coerce string prices to numbers for both games', () => {
+        const testEnv = {
+          ...process.env,
+          SNAKE_PRICE_USDC: '0.03',
+          TETRIS_PRICE_USDC: '0.04',
+          JWT_SECRET: 'test_secret_key_at_least_32_characters_long',
+        };
+
+        const result = envSchema.safeParse(testEnv);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.SNAKE_PRICE_USDC).toBe(0.03);
+          expect(result.data.TETRIS_PRICE_USDC).toBe(0.04);
+          expect(typeof result.data.SNAKE_PRICE_USDC).toBe('number');
+          expect(typeof result.data.TETRIS_PRICE_USDC).toBe('number');
+        }
+      });
+    });
+  });
 });
