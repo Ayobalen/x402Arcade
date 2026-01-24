@@ -40,8 +40,15 @@ import type { Database as DatabaseType } from 'better-sqlite3';
  *       - active → completed (when score submitted)
  *       - active → expired (when timeout occurs without completion)
  *       - completed/expired are terminal states (no further transitions)
- * - created_at: ISO timestamp when session was created
- * - completed_at: ISO timestamp when game ended (NULL if active)
+ * - created_at: Session creation timestamp (TEXT NOT NULL DEFAULT datetime('now'))
+ *     - ISO 8601 format: 'YYYY-MM-DD HH:MM:SS' (e.g., '2026-01-24 14:30:45')
+ *     - SQLite datetime('now') generates UTC timestamps
+ *     - Automatically set when row is inserted
+ * - completed_at: Session completion timestamp (TEXT, NULL if not completed)
+ *     - NULL when status is 'active' (game still in progress)
+ *     - Set when status transitions to 'completed' or 'expired'
+ *     - ISO 8601 format, same as created_at
+ *     - Application layer should set this when finalizing the session
  * - game_duration_ms: Duration of game in milliseconds (NULL if not completed)
  *
  * Address Format Notes:

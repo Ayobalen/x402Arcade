@@ -402,5 +402,78 @@ describe('Database Schema', () => {
 
       expect(row.score).toBeNull();
     });
+
+    it('should auto-set created_at timestamp when row inserted', () => {
+      initializeSchema(db);
+
+      const validAddress = '0x1234567890123456789012345678901234567890';
+      const validTxHash = '0x' + 'a'.repeat(64);
+
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('test-1', 'snake', '${validAddress}', '${validTxHash}', 0.01)`
+      ).run();
+
+      const row = db.prepare(`SELECT created_at FROM game_sessions WHERE id = 'test-1'`).get() as {
+        created_at: string;
+      };
+
+      // Verify created_at is set
+      expect(row.created_at).toBeDefined();
+      expect(row.created_at).not.toBeNull();
+
+      // Verify ISO 8601 format: 'YYYY-MM-DD HH:MM:SS'
+      expect(row.created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+      // Verify timestamp is recent (within last 5 seconds)
+      const createdDate = new Date(row.created_at + 'Z'); // Add Z for UTC
+      const now = new Date();
+      const diffMs = now.getTime() - createdDate.getTime();
+      expect(diffMs).toBeLessThan(5000); // Less than 5 seconds ago
+      expect(diffMs).toBeGreaterThanOrEqual(0); // Not in future
+    });
+
+    it('should default completed_at to NULL', () => {
+      initializeSchema(db);
+
+      const validAddress = '0x1234567890123456789012345678901234567890';
+      const validTxHash = '0x' + 'a'.repeat(64);
+
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('test-1', 'snake', '${validAddress}', '${validTxHash}', 0.01)`
+      ).run();
+
+      const row = db
+        .prepare(`SELECT completed_at FROM game_sessions WHERE id = 'test-1'`)
+        .get() as {
+        completed_at: string | null;
+      };
+
+      expect(row.completed_at).toBeNull();
+    });
+
+    it('should accept ISO 8601 timestamps for completed_at', () => {
+      initializeSchema(db);
+
+      const validAddress = '0x1234567890123456789012345678901234567890';
+      const validTxHash = '0x' + 'a'.repeat(64);
+      const completedTimestamp = '2026-01-24 14:30:45';
+
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, completed_at)
+           VALUES ('test-1', 'snake', '${validAddress}', '${validTxHash}', 0.01, '${completedTimestamp}')`
+        ).run();
+      }).not.toThrow();
+
+      const row = db
+        .prepare(`SELECT completed_at FROM game_sessions WHERE id = 'test-1'`)
+        .get() as {
+        completed_at: string;
+      };
+
+      expect(row.completed_at).toBe(completedTimestamp);
+    });
   });
 });
