@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AnimatePresence } from 'framer-motion';
 import { Layout } from '@/components/layout/Layout';
 import { PageTransition } from '@/components/transitions';
+import { ProtectedRoute } from '@/components/guards';
 import { Home } from '@/pages/Home';
 import { Play } from '@/pages/Play';
 import { Game } from '@/pages/Game';
@@ -39,9 +40,11 @@ function AnimatedRoutes() {
         <Route
           path="/play/:gameId"
           element={
-            <PageTransition>
-              <Game />
-            </PageTransition>
+            <ProtectedRoute>
+              <PageTransition>
+                <Game />
+              </PageTransition>
+            </ProtectedRoute>
           }
         />
         <Route
