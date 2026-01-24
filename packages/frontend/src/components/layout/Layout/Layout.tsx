@@ -35,6 +35,7 @@
 
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { BackgroundEffects } from '@/components/layout/BackgroundEffects';
 import type { LayoutProps } from './Layout.types';
 
@@ -106,7 +107,7 @@ export function Layout({
       </main>
 
       {/* Footer */}
-      {showFooter && customFooter}
+      {showFooter && (customFooter || <Footer />)}
     </div>
   );
 }
