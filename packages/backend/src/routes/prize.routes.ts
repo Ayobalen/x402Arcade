@@ -8,8 +8,21 @@
 
 import { Router, type Request, type Response } from 'express';
 import type { Router as RouterType } from 'express';
+import { PrizePoolService } from '../services/prizePool.js';
+import { getDatabase } from '../db/index.js';
 
 const router: RouterType = Router();
+
+// Lazy initialization - get service only when routes are called
+let prizePoolService: PrizePoolService | null = null;
+
+function _getPrizePoolService(): PrizePoolService {
+  if (!prizePoolService) {
+    const db = getDatabase();
+    prizePoolService = new PrizePoolService(db);
+  }
+  return prizePoolService;
+}
 
 /**
  * GET /api/v1/prize/:gameType/:periodType
@@ -28,6 +41,9 @@ const router: RouterType = Router();
  * - 200: Prize pool information
  */
 router.get('/:gameType/:periodType', (_req: Request, res: Response) => {
+  // Initialize service for future use
+  _getPrizePoolService();
+
   // TODO: Validate path parameters
   // TODO: Query prize pool via PrizePoolService
   // TODO: Return pool information
