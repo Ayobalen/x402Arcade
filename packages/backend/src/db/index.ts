@@ -12,6 +12,7 @@ import type { Database as DatabaseType } from 'better-sqlite3';
 import { mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { env } from '../config/env.js';
+import { initializeSchema } from './schema.js';
 
 /**
  * SQLite database instance
@@ -56,6 +57,9 @@ export function initDatabase(): DatabaseType {
 
   // Set busy timeout for write conflicts (5 seconds)
   db.pragma('busy_timeout = 5000');
+
+  // Initialize database schema (creates tables and indexes)
+  initializeSchema(db);
 
   return db;
 }
