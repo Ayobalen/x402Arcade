@@ -7,10 +7,9 @@
  * @module services/__tests__/leaderboard.service.test
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { LeaderboardService } from '../leaderboard';
-import { createTables } from '../../db/schema';
+import { initializeSchema } from '../../db/schema';
 
 // ============================================================================
 // Test Setup
@@ -22,7 +21,7 @@ let leaderboardService: LeaderboardService;
 beforeEach(() => {
   // Create in-memory database for testing
   db = new Database(':memory:');
-  createTables(db);
+  initializeSchema(db);
   leaderboardService = new LeaderboardService(db);
 });
 
