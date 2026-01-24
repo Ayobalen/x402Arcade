@@ -228,9 +228,7 @@ describe('X402Error', () => {
   describe('static amountMismatch', () => {
     it('should create amount mismatch error', () => {
       const error = X402Error.amountMismatch('10000', '5000');
-      expect(error.message).toBe(
-        'Payment amount mismatch: expected 10000, received 5000',
-      );
+      expect(error.message).toBe('Payment amount mismatch: expected 10000, received 5000');
       expect(error.errorCode).toBe('AMOUNT_MISMATCH');
       expect(error.details).toEqual({
         expectedAmount: '10000',
@@ -241,10 +239,7 @@ describe('X402Error', () => {
 
   describe('static recipientMismatch', () => {
     it('should create recipient mismatch error', () => {
-      const error = X402Error.recipientMismatch(
-        TEST_ARCADE_ADDRESS,
-        TEST_PLAYER_ADDRESS,
-      );
+      const error = X402Error.recipientMismatch(TEST_ARCADE_ADDRESS, TEST_PLAYER_ADDRESS);
       expect(error.message).toBe('Payment recipient mismatch');
       expect(error.errorCode).toBe('RECIPIENT_MISMATCH');
       expect(error.details).toEqual({
@@ -472,11 +467,7 @@ describe('X402ValidationError', () => {
         actual: '5000',
         context: { currency: 'USDC' },
       };
-      const error = new X402ValidationError(
-        'Amount mismatch',
-        'AMOUNT_MISMATCH',
-        details,
-      );
+      const error = new X402ValidationError('Amount mismatch', 'AMOUNT_MISMATCH', details);
 
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(X402Error);
@@ -593,10 +584,7 @@ describe('X402ValidationError', () => {
 
   describe('static networkMismatch', () => {
     it('should create network mismatch error', () => {
-      const error = X402ValidationError.networkMismatch(
-        'ethereum',
-        'cronos-testnet',
-      );
+      const error = X402ValidationError.networkMismatch('ethereum', 'cronos-testnet');
       expect(error.errorCode).toBe('INVALID_NETWORK');
       expect(error.expected).toBe('cronos-testnet');
       expect(error.actual).toBe('ethereum');
@@ -613,10 +601,7 @@ describe('X402ValidationError', () => {
 
   describe('static recipientMismatch', () => {
     it('should create recipient mismatch error', () => {
-      const error = X402ValidationError.recipientMismatch(
-        TEST_ARCADE_ADDRESS,
-        TEST_PLAYER_ADDRESS,
-      );
+      const error = X402ValidationError.recipientMismatch(TEST_ARCADE_ADDRESS, TEST_PLAYER_ADDRESS);
       expect(error.errorCode).toBe('RECIPIENT_MISMATCH');
       expect(error.field).toBe('to');
     });
@@ -645,7 +630,7 @@ describe('X402ValidationError', () => {
     it('should create invalid v component error', () => {
       const error = X402ValidationError.invalidSignatureComponent('v', 30);
       expect(error.field).toBe('v');
-      expect(error.expected).toBe('27 or 28');
+      expect(error.expected).toBe('27, 28, or valid EIP-155 value (chainId * 2 + 35/36)');
     });
 
     it('should create invalid r component error', () => {
@@ -668,7 +653,7 @@ describe('X402ValidationError', () => {
       const pastTime = Math.floor(Date.now() / 1000) - 3600;
       const error = X402ValidationError.authorizationExpired(
         pastTime.toString(),
-        Math.floor(Date.now() / 1000),
+        Math.floor(Date.now() / 1000)
       );
       expect(error.errorCode).toBe('AUTHORIZATION_EXPIRED');
       expect(error.context?.expiredAgo).toBeDefined();
@@ -678,9 +663,7 @@ describe('X402ValidationError', () => {
   describe('static authorizationNotYetValid', () => {
     it('should create authorization not yet valid error', () => {
       const futureTime = Math.floor(Date.now() / 1000) + 3600;
-      const error = X402ValidationError.authorizationNotYetValid(
-        futureTime.toString(),
-      );
+      const error = X402ValidationError.authorizationNotYetValid(futureTime.toString());
       expect(error.errorCode).toBe('AUTHORIZATION_NOT_YET_VALID');
       expect(error.context?.validIn).toBeDefined();
     });
@@ -721,10 +704,7 @@ describe('X402ValidationError', () => {
     };
 
     it('should create error with missing field list', () => {
-      const error = X402ValidationError.missingRequiredFields(
-        ['from', 'to'],
-        testSchema,
-      );
+      const error = X402ValidationError.missingRequiredFields(['from', 'to'], testSchema);
 
       expect(error.message).toBe('Missing required fields: from, to');
       expect(error.errorCode).toBe('INVALID_PAYLOAD');
@@ -732,10 +712,7 @@ describe('X402ValidationError', () => {
     });
 
     it('should include missing fields in context', () => {
-      const error = X402ValidationError.missingRequiredFields(
-        ['from', 'value'],
-        testSchema,
-      );
+      const error = X402ValidationError.missingRequiredFields(['from', 'value'], testSchema);
 
       const context = error.context as Record<string, unknown>;
       expect(context.missingFields).toEqual(['from', 'value']);
@@ -743,10 +720,7 @@ describe('X402ValidationError', () => {
     });
 
     it('should include schema information in context', () => {
-      const error = X402ValidationError.missingRequiredFields(
-        ['from'],
-        testSchema,
-      );
+      const error = X402ValidationError.missingRequiredFields(['from'], testSchema);
 
       const context = error.context as Record<string, unknown>;
       const schema = context.schema as Record<string, unknown>;
@@ -760,19 +734,13 @@ describe('X402ValidationError', () => {
     });
 
     it('should set field property to comma-separated missing fields', () => {
-      const error = X402ValidationError.missingRequiredFields(
-        ['from', 'to', 'value'],
-        testSchema,
-      );
+      const error = X402ValidationError.missingRequiredFields(['from', 'to', 'value'], testSchema);
 
       expect(error.field).toBe('from, to, value');
     });
 
     it('should serialize correctly to JSON', () => {
-      const error = X402ValidationError.missingRequiredFields(
-        ['from'],
-        testSchema,
-      );
+      const error = X402ValidationError.missingRequiredFields(['from'], testSchema);
       const json = error.toJSON();
 
       expect(json.error.code).toBe('INVALID_PAYLOAD');
@@ -1001,9 +969,7 @@ describe('Types Helper Functions', () => {
         from: 'invalid',
       });
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes("Invalid 'from' address"))).toBe(
-        true,
-      );
+      expect(result.errors.some((e) => e.includes("Invalid 'from' address"))).toBe(true);
     });
 
     it('should reject invalid to address', () => {
@@ -1012,9 +978,7 @@ describe('Types Helper Functions', () => {
         to: 'invalid',
       });
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes("Invalid 'to' address"))).toBe(
-        true,
-      );
+      expect(result.errors.some((e) => e.includes("Invalid 'to' address"))).toBe(true);
     });
 
     it('should reject non-numeric value', () => {
@@ -1041,9 +1005,7 @@ describe('Types Helper Functions', () => {
         nonce: '0x123',
       });
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('Invalid nonce format'))).toBe(
-        true,
-      );
+      expect(result.errors.some((e) => e.includes('Invalid nonce format'))).toBe(true);
     });
 
     it('should reject invalid v value', () => {
@@ -1061,9 +1023,7 @@ describe('Types Helper Functions', () => {
         r: '0x123',
       });
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('Invalid r value format'))).toBe(
-        true,
-      );
+      expect(result.errors.some((e) => e.includes('Invalid r value format'))).toBe(true);
     });
 
     it('should reject invalid s format', () => {
@@ -1072,9 +1032,7 @@ describe('Types Helper Functions', () => {
         s: 'invalid',
       });
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('Invalid s value format'))).toBe(
-        true,
-      );
+      expect(result.errors.some((e) => e.includes('Invalid s value format'))).toBe(true);
     });
 
     it('should collect multiple errors', () => {
@@ -1152,15 +1110,15 @@ describe('Types Helper Functions', () => {
       const result = checkMissingPayloadFields({});
       expect(result.schema).toBeDefined();
       expect(result.schema.requiredFields).toHaveLength(12);
-      expect(result.schema.requiredFields.map(f => f.name)).toContain('from');
-      expect(result.schema.requiredFields.map(f => f.name)).toContain('to');
-      expect(result.schema.requiredFields.map(f => f.name)).toContain('value');
+      expect(result.schema.requiredFields.map((f) => f.name)).toContain('from');
+      expect(result.schema.requiredFields.map((f) => f.name)).toContain('to');
+      expect(result.schema.requiredFields.map((f) => f.name)).toContain('value');
     });
   });
 
   describe('PAYMENT_PAYLOAD_SCHEMA', () => {
     it('should define all required fields', () => {
-      const fieldNames = PAYMENT_PAYLOAD_SCHEMA.requiredFields.map(f => f.name);
+      const fieldNames = PAYMENT_PAYLOAD_SCHEMA.requiredFields.map((f) => f.name);
       expect(fieldNames).toContain('version');
       expect(fieldNames).toContain('scheme');
       expect(fieldNames).toContain('network');
@@ -1240,7 +1198,7 @@ describe('Types Helper Functions', () => {
 
     it('should accept x402Version as alias for version', () => {
       const json = JSON.stringify({
-        x402Version: '1',  // aliased field
+        x402Version: '1', // aliased field
         scheme: 'exact',
         network: 'cronos-testnet',
         from: TEST_PLAYER_ADDRESS,
@@ -1378,9 +1336,7 @@ describe('Types Helper Functions', () => {
         authorization: { ...validRequest.authorization, from: 'invalid' },
       });
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes("Invalid 'from' address"))).toBe(
-        true,
-      );
+      expect(result.errors.some((e) => e.includes("Invalid 'from' address"))).toBe(true);
     });
 
     it('should reject invalid token address', () => {
@@ -1389,9 +1345,7 @@ describe('Types Helper Functions', () => {
         tokenAddress: 'invalid',
       });
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('Invalid token address'))).toBe(
-        true,
-      );
+      expect(result.errors.some((e) => e.includes('Invalid token address'))).toBe(true);
     });
 
     it('should reject invalid chainId', () => {
@@ -1475,10 +1429,7 @@ describe('Types Helper Functions', () => {
 
   describe('createFailedSettlementResponse', () => {
     it('should create failed response', () => {
-      const result = createFailedSettlementResponse(
-        'INSUFFICIENT_BALANCE',
-        'Not enough tokens',
-      );
+      const result = createFailedSettlementResponse('INSUFFICIENT_BALANCE', 'Not enough tokens');
 
       expect(result.success).toBe(false);
       expect(result.errorCode).toBe('INSUFFICIENT_BALANCE');
@@ -1646,56 +1597,56 @@ describe('Types Helper Functions', () => {
     });
 
     it('should throw for invalid payTo', () => {
-      expect(() =>
-        validateX402Config({ ...validConfig, payTo: 'invalid' }),
-      ).toThrow('Invalid payTo address');
+      expect(() => validateX402Config({ ...validConfig, payTo: 'invalid' })).toThrow(
+        'Invalid payTo address'
+      );
     });
 
     it('should throw for invalid tokenAddress', () => {
-      expect(() =>
-        validateX402Config({ ...validConfig, tokenAddress: 'invalid' }),
-      ).toThrow('Invalid tokenAddress');
+      expect(() => validateX402Config({ ...validConfig, tokenAddress: 'invalid' })).toThrow(
+        'Invalid tokenAddress'
+      );
     });
 
     it('should throw for missing paymentAmount', () => {
-      expect(() =>
-        validateX402Config({ ...validConfig, paymentAmount: '' }),
-      ).toThrow('paymentAmount is required');
+      expect(() => validateX402Config({ ...validConfig, paymentAmount: '' })).toThrow(
+        'paymentAmount is required'
+      );
     });
 
     it('should throw for non-positive paymentAmount', () => {
-      expect(() =>
-        validateX402Config({ ...validConfig, paymentAmount: '0' }),
-      ).toThrow('paymentAmount must be positive');
+      expect(() => validateX402Config({ ...validConfig, paymentAmount: '0' })).toThrow(
+        'paymentAmount must be positive'
+      );
     });
 
     it('should throw for missing tokenName', () => {
       expect(() => validateX402Config({ ...validConfig, tokenName: '' })).toThrow(
-        'tokenName is required',
+        'tokenName is required'
       );
     });
 
     it('should throw for negative tokenDecimals', () => {
-      expect(() =>
-        validateX402Config({ ...validConfig, tokenDecimals: -1 }),
-      ).toThrow('tokenDecimals must be a non-negative number');
+      expect(() => validateX402Config({ ...validConfig, tokenDecimals: -1 })).toThrow(
+        'tokenDecimals must be a non-negative number'
+      );
     });
 
     it('should throw for missing facilitatorUrl', () => {
-      expect(() =>
-        validateX402Config({ ...validConfig, facilitatorUrl: '' }),
-      ).toThrow('facilitatorUrl is required');
+      expect(() => validateX402Config({ ...validConfig, facilitatorUrl: '' })).toThrow(
+        'facilitatorUrl is required'
+      );
     });
 
     it('should throw for invalid facilitatorUrl', () => {
-      expect(() =>
-        validateX402Config({ ...validConfig, facilitatorUrl: 'not-a-url' }),
-      ).toThrow('Invalid facilitatorUrl');
+      expect(() => validateX402Config({ ...validConfig, facilitatorUrl: 'not-a-url' })).toThrow(
+        'Invalid facilitatorUrl'
+      );
     });
 
     it('should throw for invalid chainId', () => {
       expect(() => validateX402Config({ ...validConfig, chainId: 0 })).toThrow(
-        'chainId must be a positive number',
+        'chainId must be a positive number'
       );
     });
   });
@@ -1715,7 +1666,7 @@ describe('Types Helper Functions', () => {
       const response = createPaymentRequiredResponse(
         config,
         '/api/play/snake',
-        'Pay $0.01 to play Snake',
+        'Pay $0.01 to play Snake'
       );
 
       expect(response.x402Version).toBe('1');

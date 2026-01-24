@@ -25,6 +25,7 @@ import {
   getUsdcContractAddress,
   getFacilitatorBaseUrl,
 } from '../../lib/chain/constants.js';
+import { X402ValidationError } from './errors.js';
 
 /**
  * x402 Middleware Configuration
@@ -325,7 +326,7 @@ export interface PaymentRequiredResponse {
 export function createPaymentRequiredResponse(
   config: X402Config,
   resource: string,
-  description?: string,
+  description?: string
 ): PaymentRequiredResponse {
   const amount =
     typeof config.paymentAmount === 'bigint'
@@ -680,16 +681,12 @@ export interface CreatePaymentPayloadOptions {
  * const encoded = Buffer.from(JSON.stringify(header)).toString('base64');
  * ```
  */
-export function createPaymentPayload(
-  options: CreatePaymentPayloadOptions,
-): PaymentPayload {
+export function createPaymentPayload(options: CreatePaymentPayloadOptions): PaymentPayload {
   const { message, signature, network = 'cronos-testnet' } = options;
 
   // Convert value to string (handles bigint, number, string)
   const valueString =
-    typeof message.value === 'bigint'
-      ? message.value.toString()
-      : String(message.value);
+    typeof message.value === 'bigint' ? message.value.toString() : String(message.value);
 
   // Convert timestamps to strings
   const validAfterString =
@@ -774,14 +771,34 @@ export const PAYMENT_PAYLOAD_SCHEMA = {
   requiredFields: [
     { name: 'version', type: 'string', description: "Protocol version (must be '1')" },
     { name: 'scheme', type: 'string', description: "Payment scheme (must be 'exact')" },
-    { name: 'network', type: 'string', description: 'Network/chain identifier (e.g., cronos-testnet)' },
+    {
+      name: 'network',
+      type: 'string',
+      description: 'Network/chain identifier (e.g., cronos-testnet)',
+    },
     { name: 'from', type: 'string', description: 'Sender address (0x + 40 hex chars)' },
     { name: 'to', type: 'string', description: 'Recipient address (0x + 40 hex chars)' },
-    { name: 'value', type: 'string', description: 'Payment amount in smallest units (positive integer string)' },
-    { name: 'validAfter', type: 'string', description: 'Unix timestamp (seconds) after which authorization is valid' },
-    { name: 'validBefore', type: 'string', description: 'Unix timestamp (seconds) before which authorization is valid' },
+    {
+      name: 'value',
+      type: 'string',
+      description: 'Payment amount in smallest units (positive integer string)',
+    },
+    {
+      name: 'validAfter',
+      type: 'string',
+      description: 'Unix timestamp (seconds) after which authorization is valid',
+    },
+    {
+      name: 'validBefore',
+      type: 'string',
+      description: 'Unix timestamp (seconds) before which authorization is valid',
+    },
     { name: 'nonce', type: 'string', description: 'Unique 32-byte nonce (0x + 64 hex chars)' },
-    { name: 'v', type: 'number', description: 'ECDSA signature recovery id (27, 28, or EIP-155 value)' },
+    {
+      name: 'v',
+      type: 'number',
+      description: 'ECDSA signature recovery id (27, 28, or EIP-155 value)',
+    },
     { name: 'r', type: 'string', description: 'ECDSA signature r component (0x + 64 hex chars)' },
     { name: 's', type: 'string', description: 'ECDSA signature s component (0x + 64 hex chars)' },
   ] as const,
@@ -997,11 +1014,15 @@ export function validatePaymentPayload(payload: PaymentPayload): {
 
   // r and s must be exactly 32 bytes (64 hex chars) with 0x prefix
   if (!/^0x[a-fA-F0-9]{64}$/.test(payload.r)) {
-    errors.push(`Invalid r value format: ${payload.r}, expected 0x-prefixed 64 hex characters (32 bytes)`);
+    errors.push(
+      `Invalid r value format: ${payload.r}, expected 0x-prefixed 64 hex characters (32 bytes)`
+    );
   }
 
   if (!/^0x[a-fA-F0-9]{64}$/.test(payload.s)) {
-    errors.push(`Invalid s value format: ${payload.s}, expected 0x-prefixed 64 hex characters (32 bytes)`);
+    errors.push(
+      `Invalid s value format: ${payload.s}, expected 0x-prefixed 64 hex characters (32 bytes)`
+    );
   }
 
   return {
@@ -1039,17 +1060,13 @@ export function validatePaymentPayload(payload: PaymentPayload): {
  * ```
  */
 export function parsePaymentPayload(jsonString: string): PaymentPayload {
-  // Import X402ValidationError lazily to avoid circular dependency
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { X402ValidationError } = require('./errors.js') as typeof import('./errors.js');
-
   // Step 1: Parse JSON string to object
   let parsed: unknown;
   try {
     parsed = JSON.parse(jsonString);
   } catch (error) {
     throw X402ValidationError.invalidJson(
-      error instanceof Error ? error.message : 'Invalid JSON format',
+      error instanceof Error ? error.message : 'Invalid JSON format'
     );
   }
 
@@ -1070,7 +1087,7 @@ export function parsePaymentPayload(jsonString: string): PaymentPayload {
   if (!missingCheck.valid) {
     throw X402ValidationError.missingRequiredFields(
       missingCheck.missingFields,
-      missingCheck.schema,
+      missingCheck.schema
     );
   }
 
@@ -1100,7 +1117,7 @@ export function parsePaymentPayload(jsonString: string): PaymentPayload {
         const fieldMatch = err.match(/Invalid '?(\w+)'?/);
         const field = fieldMatch ? fieldMatch[1] : 'unknown';
         return { field, expected: 'valid value', actual: 'invalid' };
-      }),
+      })
     );
   }
 
@@ -1131,10 +1148,6 @@ export function parsePaymentPayload(jsonString: string): PaymentPayload {
  * ```
  */
 export function parseX402Header(base64Header: string): X402PaymentHeader {
-  // Import X402ValidationError lazily to avoid circular dependency
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { X402ValidationError } = require('./errors.js') as typeof import('./errors.js');
-
   // Step 1: Base64 decode
   let jsonString: string;
   try {
@@ -1149,7 +1162,7 @@ export function parseX402Header(base64Header: string): X402PaymentHeader {
     parsed = JSON.parse(jsonString);
   } catch (error) {
     throw X402ValidationError.invalidJson(
-      error instanceof Error ? error.message : 'Invalid JSON format',
+      error instanceof Error ? error.message : 'Invalid JSON format'
     );
   }
 
@@ -1371,9 +1384,7 @@ export interface SettlementRequest {
  * });
  * ```
  */
-export function createSettlementRequest(
-  request: X402SettlementRequest,
-): SettlementRequest {
+export function createSettlementRequest(request: X402SettlementRequest): SettlementRequest {
   return {
     authorization: {
       from: request.authorization.from,
@@ -1418,7 +1429,7 @@ export function createSettlementRequest(
  */
 export function createSettlementRequestFromPayload(
   payload: PaymentPayload,
-  config: X402Config,
+  config: X402Config
 ): SettlementRequest {
   return {
     authorization: {
@@ -1677,7 +1688,7 @@ export interface SettlementResponse {
  */
 export function parseSettlementResponse(
   response: SettlementResponse,
-  settledAt?: Date,
+  settledAt?: Date
 ): X402SettlementResponse {
   const timestamp = (settledAt ?? new Date()).toISOString();
 
@@ -1719,7 +1730,7 @@ export function parseSettlementResponse(
 export function createSuccessSettlementResponse(
   transactionHash: string,
   blockNumber: number,
-  settledAt?: Date,
+  settledAt?: Date
 ): X402SettlementResponse {
   return {
     success: true,
@@ -1750,7 +1761,7 @@ export function createSuccessSettlementResponse(
 export function createFailedSettlementResponse(
   errorCode: string,
   errorMessage: string,
-  settledAt?: Date,
+  settledAt?: Date
 ): X402SettlementResponse {
   return {
     success: false,
@@ -1769,7 +1780,7 @@ export function createFailedSettlementResponse(
  * @returns True if settlement was successful
  */
 export function isSuccessfulSettlement(
-  response: X402SettlementResponse,
+  response: X402SettlementResponse
 ): response is X402SettlementResponse & {
   success: true;
   transactionHash: string;
@@ -1994,7 +2005,7 @@ export function createPaymentInfo(options: PaymentInfoOptions): PaymentInfo {
  */
 export function createPendingPaymentInfo(
   payload: PaymentPayload,
-  config: X402Config,
+  config: X402Config
 ): Omit<PaymentInfo, 'transactionHash' | 'blockNumber' | 'settledAt'> {
   const amount = BigInt(payload.value);
 
@@ -2050,7 +2061,7 @@ export interface X402Request extends Request {
 export type X402Middleware = (
   req: X402Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => void | Promise<void>;
 
 /**
@@ -2083,10 +2094,7 @@ export interface X402HandlerOptions {
   /**
    * Callback after successful settlement
    */
-  onSettlement?: (
-    settlement: X402SettlementResponse,
-    req: X402Request,
-  ) => void | Promise<void>;
+  onSettlement?: (settlement: X402SettlementResponse, req: X402Request) => void | Promise<void>;
 
   /**
    * Skip settlement and accept payment header only (for testing)
@@ -2113,10 +2121,7 @@ export interface X402HandlerOptions {
  * );
  * ```
  */
-export function createDefaultX402Config(
-  payTo: string,
-  paymentAmount: bigint | string,
-): X402Config {
+export function createDefaultX402Config(payTo: string, paymentAmount: bigint | string): X402Config {
   return {
     payTo,
     paymentAmount,
@@ -2154,9 +2159,7 @@ export function validateX402Config(config: X402Config): boolean {
   }
 
   const amount =
-    typeof config.paymentAmount === 'bigint'
-      ? config.paymentAmount
-      : BigInt(config.paymentAmount);
+    typeof config.paymentAmount === 'bigint' ? config.paymentAmount : BigInt(config.paymentAmount);
 
   if (amount <= 0n) {
     throw new Error('paymentAmount must be positive');
@@ -2287,11 +2290,12 @@ export interface PaymentResponsePayload {
  */
 export function createPaymentResponsePayload(
   settlement: X402SettlementResponse,
-  config: X402Config,
+  config: X402Config
 ): PaymentResponsePayload {
   // Import getTxUrl lazily to avoid circular dependency
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getTxUrl } = require('../../lib/chain/constants.js') as typeof import('../../lib/chain/constants.js');
+  const { getTxUrl } =
+    require('../../lib/chain/constants.js') as typeof import('../../lib/chain/constants.js');
 
   const network = `cronos-${config.chainId === 338 ? 'testnet' : 'mainnet'}`;
 
@@ -2321,9 +2325,7 @@ export function createPaymentResponsePayload(
  * res.setHeader('X-Payment-Response', header);
  * ```
  */
-export function encodePaymentResponseHeader(
-  payload: PaymentResponsePayload,
-): string {
+export function encodePaymentResponseHeader(payload: PaymentResponsePayload): string {
   const json = JSON.stringify(payload);
   return Buffer.from(json).toString('base64');
 }
@@ -2346,9 +2348,7 @@ export function encodePaymentResponseHeader(
  * console.log(`Explorer: ${payload.explorerUrl}`);
  * ```
  */
-export function decodePaymentResponseHeader(
-  base64Header: string,
-): PaymentResponsePayload {
+export function decodePaymentResponseHeader(base64Header: string): PaymentResponsePayload {
   try {
     const json = Buffer.from(base64Header, 'base64').toString('utf-8');
     return JSON.parse(json) as PaymentResponsePayload;
@@ -2356,7 +2356,7 @@ export function decodePaymentResponseHeader(
     throw new Error(
       `Failed to decode X-Payment-Response header: ${
         error instanceof Error ? error.message : 'Invalid format'
-      }`,
+      }`
     );
   }
 }
@@ -2382,7 +2382,7 @@ export function decodePaymentResponseHeader(
 export function setPaymentResponseHeader(
   res: { setHeader: (name: string, value: string) => void },
   settlement: X402SettlementResponse,
-  config: X402Config,
+  config: X402Config
 ): string {
   const payload = createPaymentResponsePayload(settlement, config);
   const encodedHeader = encodePaymentResponseHeader(payload);
@@ -2391,8 +2391,4 @@ export function setPaymentResponseHeader(
 }
 
 // Export all types for external use
-export type {
-  EIP712Domain,
-  TransferWithAuthorizationMessage,
-  SignedTransferWithAuthorization,
-};
+export type { EIP712Domain, TransferWithAuthorizationMessage, SignedTransferWithAuthorization };
