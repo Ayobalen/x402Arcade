@@ -376,3 +376,242 @@ describe('PrizePoolService - addToPrizePool', () => {
     expect(pools.find((p) => p.game_type === 'pong')?.total_amount_usdc).toBeCloseTo(0.0105, 10);
   });
 });
+
+// ============================================================================
+// getCurrentPool Method Tests
+// ============================================================================
+
+describe('PrizePoolService - getCurrentPool', () => {
+  it('should return null when no pool exists for the period', () => {
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should return daily pool after it is created', () => {
+    // Create a pool
+    prizePoolService.addToPrizePool({
+      gameType: 'snake',
+      amountUsdc: 0.01,
+    });
+
+    // Retrieve it
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.gameType).toBe('snake');
+    expect(result?.periodType).toBe('daily');
+  });
+
+  it('should return weekly pool after it is created', () => {
+    // Create a pool
+    prizePoolService.addToPrizePool({
+      gameType: 'tetris',
+      amountUsdc: 0.02,
+    });
+
+    // Retrieve it
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'tetris',
+      periodType: 'weekly',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.gameType).toBe('tetris');
+    expect(result?.periodType).toBe('weekly');
+  });
+
+  it('should return correct total amount', () => {
+    // Add $0.01 * 3 = $0.03, so prize pool gets $0.021
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'snake', amountUsdc: 0.01 });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result?.totalAmountUsdc).toBeCloseTo(0.021, 10);
+  });
+
+  it('should return correct total games count', () => {
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+    prizePoolService.addToPrizePool({ gameType: 'pong', amountUsdc: 0.01 });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'pong',
+      periodType: 'daily',
+    });
+
+    expect(result?.totalGames).toBe(4);
+  });
+
+  it('should return status as "active" for new pools', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'snake',
+      amountUsdc: 0.01,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result?.status).toBe('active');
+  });
+
+  it('should return null winner_address for active pools', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'breakout',
+      amountUsdc: 0.01,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'breakout',
+      periodType: 'daily',
+    });
+
+    expect(result?.winnerAddress).toBeNull();
+  });
+
+  it('should return null payout_tx_hash for active pools', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'space_invaders',
+      amountUsdc: 0.01,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+    });
+
+    expect(result?.payoutTxHash).toBeNull();
+  });
+
+  it('should use getTodayDate for daily period calculation', () => {
+    const getTodayDate = (prizePoolService as any).getTodayDate.bind(prizePoolService);
+    const expectedDate = getTodayDate();
+
+    prizePoolService.addToPrizePool({
+      gameType: 'snake',
+      amountUsdc: 0.01,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result?.periodDate).toBe(expectedDate);
+  });
+
+  it('should use getWeekStart for weekly period calculation', () => {
+    const getWeekStart = (prizePoolService as any).getWeekStart.bind(prizePoolService);
+    const expectedDate = getWeekStart();
+
+    prizePoolService.addToPrizePool({
+      gameType: 'tetris',
+      amountUsdc: 0.02,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'tetris',
+      periodType: 'weekly',
+    });
+
+    expect(result?.periodDate).toBe(expectedDate);
+  });
+
+  it('should not return pools from different game types', () => {
+    // Create snake pool
+    prizePoolService.addToPrizePool({
+      gameType: 'snake',
+      amountUsdc: 0.01,
+    });
+
+    // Try to get tetris pool
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'tetris',
+      periodType: 'daily',
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should return pool with auto-generated id', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'pong',
+      amountUsdc: 0.015,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'pong',
+      periodType: 'daily',
+    });
+
+    expect(result?.id).toBeGreaterThan(0);
+  });
+
+  it('should return pool with createdAt timestamp', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'snake',
+      amountUsdc: 0.01,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'snake',
+      periodType: 'daily',
+    });
+
+    expect(result?.createdAt).toBeTruthy();
+    expect(typeof result?.createdAt).toBe('string');
+  });
+
+  it('should return null finalizedAt for active pools', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'breakout',
+      amountUsdc: 0.01,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'breakout',
+      periodType: 'weekly',
+    });
+
+    expect(result?.finalizedAt).toBeNull();
+  });
+
+  it('should map all database columns to PrizePool interface', () => {
+    prizePoolService.addToPrizePool({
+      gameType: 'space_invaders',
+      amountUsdc: 0.025,
+    });
+
+    const result = prizePoolService.getCurrentPool({
+      gameType: 'space_invaders',
+      periodType: 'daily',
+    });
+
+    // Verify all PrizePool interface fields are present
+    expect(result).toHaveProperty('id');
+    expect(result).toHaveProperty('gameType');
+    expect(result).toHaveProperty('periodType');
+    expect(result).toHaveProperty('periodDate');
+    expect(result).toHaveProperty('totalAmountUsdc');
+    expect(result).toHaveProperty('totalGames');
+    expect(result).toHaveProperty('status');
+    expect(result).toHaveProperty('winnerAddress');
+    expect(result).toHaveProperty('payoutTxHash');
+    expect(result).toHaveProperty('createdAt');
+    expect(result).toHaveProperty('finalizedAt');
+  });
+});

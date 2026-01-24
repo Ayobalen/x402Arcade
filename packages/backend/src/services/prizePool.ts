@@ -219,6 +219,56 @@ export class PrizePoolService {
     };
   }
 
+  /**
+   * Get the current active prize pool for a specific game and period.
+   *
+   * Retrieves the active pool for the current period (today for daily, this week for weekly).
+   * Returns null if no pool exists yet for the current period.
+   *
+   * @param params - Parameters for retrieving pool
+   * @param params.gameType - Type of game (snake, tetris, etc.)
+   * @param params.periodType - Period type (daily or weekly)
+   * @returns PrizePool object or null if no pool exists
+   *
+   * @example
+   * ```typescript
+   * // Get today's snake daily pool
+   * const pool = service.getCurrentPool({
+   *   gameType: 'snake',
+   *   periodType: 'daily'
+   * });
+   * // Returns: { id: 1, gameType: 'snake', periodType: 'daily', totalAmountUsdc: 0.07, ... } or null
+   * ```
+   */
+  getCurrentPool(params: { gameType: GameType; periodType: PeriodType }): PrizePool | null {
+    const { gameType, periodType } = params;
+
+    // Calculate current period date
+    const periodDate = periodType === 'daily' ? this.getTodayDate() : this.getWeekStart();
+
+    // Query for the current pool
+    const query = this.db.prepare(`
+      SELECT
+        id,
+        game_type as gameType,
+        period_type as periodType,
+        period_date as periodDate,
+        total_amount_usdc as totalAmountUsdc,
+        total_games as totalGames,
+        status,
+        winner_address as winnerAddress,
+        payout_tx_hash as payoutTxHash,
+        created_at as createdAt,
+        finalized_at as finalizedAt
+      FROM prize_pools
+      WHERE game_type = ? AND period_type = ? AND period_date = ?
+    `);
+
+    const result = query.get(gameType, periodType, periodDate) as PrizePool | undefined;
+
+    return result ?? null;
+  }
+
   // ============================================================================
   // Private Helper Methods
   // ============================================================================
