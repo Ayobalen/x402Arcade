@@ -766,54 +766,31 @@ export class GameService {
    */
   getSession(id: string): GameSession | null {
     try {
+      // Use SQL aliases to map snake_case columns to camelCase directly
       const stmt = this.db.prepare(`
         SELECT
           id,
-          game_type,
-          player_address,
-          payment_tx_hash,
-          amount_paid_usdc,
+          game_type AS gameType,
+          player_address AS playerAddress,
+          payment_tx_hash AS paymentTxHash,
+          amount_paid_usdc AS amountPaidUsdc,
           score,
           status,
-          created_at,
-          completed_at,
-          game_duration_ms
+          created_at AS createdAt,
+          completed_at AS completedAt,
+          game_duration_ms AS gameDurationMs
         FROM game_sessions
         WHERE id = ?
       `);
 
-      const row = stmt.get(id) as
-        | {
-            id: string;
-            game_type: string;
-            player_address: string;
-            payment_tx_hash: string;
-            amount_paid_usdc: number;
-            score: number | null;
-            status: string;
-            created_at: string;
-            completed_at: string | null;
-            game_duration_ms: number | null;
-          }
-        | undefined;
+      const row = stmt.get(id) as GameSession | undefined;
 
       if (!row) {
         return null;
       }
 
-      // Map database columns to camelCase properties
-      return {
-        id: row.id,
-        gameType: row.game_type as 'snake' | 'tetris',
-        playerAddress: row.player_address,
-        paymentTxHash: row.payment_tx_hash,
-        amountPaidUsdc: row.amount_paid_usdc,
-        score: row.score,
-        status: row.status as 'active' | 'completed' | 'expired',
-        createdAt: row.created_at,
-        completedAt: row.completed_at,
-        gameDurationMs: row.game_duration_ms,
-      };
+      // Row is already in camelCase format from SQL aliases
+      return row;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to get game session: ${error.message}`);
