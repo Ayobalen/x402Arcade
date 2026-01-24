@@ -652,6 +652,170 @@ describe('LeaderboardService - Public Methods', () => {
   });
 
   // ============================================================================
+  // getDailyLeaderboard Tests
+  // ============================================================================
+
+  describe('getDailyLeaderboard', () => {
+    const player1 = '0x1111111111111111111111111111111111111111';
+    const player2 = '0x2222222222222222222222222222222222222222';
+
+    beforeEach(() => {
+      leaderboardService.addEntry({
+        sessionId: 'session-1',
+        gameType: 'snake',
+        playerAddress: player1,
+        score: 5000,
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-2',
+        gameType: 'snake',
+        playerAddress: player2,
+        score: 3000,
+      });
+    });
+
+    it('should return daily leaderboard entries', () => {
+      const results = leaderboardService.getDailyLeaderboard({
+        gameType: 'snake',
+      });
+
+      expect(results).toBeInstanceOf(Array);
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it('should call getTopScores with daily periodType', () => {
+      const results = leaderboardService.getDailyLeaderboard({
+        gameType: 'snake',
+      });
+
+      expect(results.every((entry) => entry.periodType === 'daily')).toBe(true);
+    });
+
+    it("should use today's date as period_date", () => {
+      const results = leaderboardService.getDailyLeaderboard({
+        gameType: 'snake',
+      });
+
+      const getTodayDate = (leaderboardService as any).getTodayDate.bind(leaderboardService);
+      const expectedDate = getTodayDate();
+
+      expect(results.every((entry) => entry.periodDate === expectedDate)).toBe(true);
+    });
+
+    it('should filter by game type', () => {
+      leaderboardService.addEntry({
+        sessionId: 'session-tetris',
+        gameType: 'tetris',
+        playerAddress: player1,
+        score: 10000,
+      });
+
+      const snakeResults = leaderboardService.getDailyLeaderboard({
+        gameType: 'snake',
+      });
+
+      const tetrisResults = leaderboardService.getDailyLeaderboard({
+        gameType: 'tetris',
+      });
+
+      expect(snakeResults.length).toBe(2);
+      expect(tetrisResults.length).toBe(1);
+    });
+
+    it('should respect limit parameter', () => {
+      const results = leaderboardService.getDailyLeaderboard({
+        gameType: 'snake',
+        limit: 1,
+      });
+
+      expect(results.length).toBe(1);
+    });
+  });
+
+  // ============================================================================
+  // getWeeklyLeaderboard Tests
+  // ============================================================================
+
+  describe('getWeeklyLeaderboard', () => {
+    const player1 = '0x1111111111111111111111111111111111111111';
+    const player2 = '0x2222222222222222222222222222222222222222';
+
+    beforeEach(() => {
+      leaderboardService.addEntry({
+        sessionId: 'session-1',
+        gameType: 'snake',
+        playerAddress: player1,
+        score: 5000,
+      });
+
+      leaderboardService.addEntry({
+        sessionId: 'session-2',
+        gameType: 'snake',
+        playerAddress: player2,
+        score: 3000,
+      });
+    });
+
+    it('should return weekly leaderboard entries', () => {
+      const results = leaderboardService.getWeeklyLeaderboard({
+        gameType: 'snake',
+      });
+
+      expect(results).toBeInstanceOf(Array);
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it('should call getTopScores with weekly periodType', () => {
+      const results = leaderboardService.getWeeklyLeaderboard({
+        gameType: 'snake',
+      });
+
+      expect(results.every((entry) => entry.periodType === 'weekly')).toBe(true);
+    });
+
+    it('should use week start (Monday) as period_date', () => {
+      const results = leaderboardService.getWeeklyLeaderboard({
+        gameType: 'snake',
+      });
+
+      const getWeekStart = (leaderboardService as any).getWeekStart.bind(leaderboardService);
+      const expectedDate = getWeekStart();
+
+      expect(results.every((entry) => entry.periodDate === expectedDate)).toBe(true);
+    });
+
+    it('should filter by game type', () => {
+      leaderboardService.addEntry({
+        sessionId: 'session-tetris',
+        gameType: 'tetris',
+        playerAddress: player1,
+        score: 10000,
+      });
+
+      const snakeResults = leaderboardService.getWeeklyLeaderboard({
+        gameType: 'snake',
+      });
+
+      const tetrisResults = leaderboardService.getWeeklyLeaderboard({
+        gameType: 'tetris',
+      });
+
+      expect(snakeResults.length).toBe(2);
+      expect(tetrisResults.length).toBe(1);
+    });
+
+    it('should respect limit parameter', () => {
+      const results = leaderboardService.getWeeklyLeaderboard({
+        gameType: 'snake',
+        limit: 1,
+      });
+
+      expect(results.length).toBe(1);
+    });
+  });
+
+  // ============================================================================
   // getAllTimeLeaderboard Tests
   // ============================================================================
 

@@ -290,6 +290,65 @@ export class LeaderboardService {
   }
 
   /**
+   * Get today's leaderboard for a specific game.
+   *
+   * Convenience method that retrieves the highest scores from today for a game.
+   * This is equivalent to calling getTopScores with periodType='daily'.
+   *
+   * @param params - Query parameters
+   * @param params.gameType - Type of game to query
+   * @param params.limit - Maximum number of entries to return (default: 10)
+   *
+   * @returns Array of daily leaderboard entries with computed ranks
+   *
+   * @example
+   * ```typescript
+   * const todayScores = leaderboardService.getDailyLeaderboard({
+   *   gameType: 'snake',
+   *   limit: 20
+   * });
+   * // Returns top 20 snake scores from today
+   * ```
+   */
+  getDailyLeaderboard(params: { gameType: GameType; limit?: number }): LeaderboardEntry[] {
+    return this.getTopScores({
+      gameType: params.gameType,
+      periodType: 'daily',
+      limit: params.limit,
+    });
+  }
+
+  /**
+   * Get this week's leaderboard for a specific game.
+   *
+   * Convenience method that retrieves the highest scores from this week for a game.
+   * This is equivalent to calling getTopScores with periodType='weekly'.
+   * The week starts on Monday (ISO week standard).
+   *
+   * @param params - Query parameters
+   * @param params.gameType - Type of game to query
+   * @param params.limit - Maximum number of entries to return (default: 10)
+   *
+   * @returns Array of weekly leaderboard entries with computed ranks
+   *
+   * @example
+   * ```typescript
+   * const weeklyScores = leaderboardService.getWeeklyLeaderboard({
+   *   gameType: 'snake',
+   *   limit: 30
+   * });
+   * // Returns top 30 snake scores from this week
+   * ```
+   */
+  getWeeklyLeaderboard(params: { gameType: GameType; limit?: number }): LeaderboardEntry[] {
+    return this.getTopScores({
+      gameType: params.gameType,
+      periodType: 'weekly',
+      limit: params.limit,
+    });
+  }
+
+  /**
    * Get the all-time leaderboard for a specific game.
    *
    * Convenience method that retrieves the highest scores of all time for a game.
