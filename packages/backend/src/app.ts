@@ -228,11 +228,24 @@ export function createApp(): Express {
   // ============================================================================
 
   // 404 handler - must be after all other routes
-  app.use((_req: Request, res: Response) => {
+  // Catches any requests that don't match defined routes
+  app.use((req: Request, res: Response) => {
+    // Log 404s for API monitoring
+    // In production, integrate with monitoring service (e.g., Sentry, Datadog)
+    // eslint-disable-next-line no-console
+    console.warn('404 Not Found:', {
+      method: req.method,
+      path: req.path,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+      timestamp: new Date().toISOString(),
+    });
+
     res.status(404).json({
       error: {
         message: 'Not Found',
-        path: _req.path,
+        path: req.path,
+        method: req.method,
         timestamp: new Date().toISOString(),
       },
     });
