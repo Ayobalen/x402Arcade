@@ -16,6 +16,7 @@ import {
   extractSettlementError,
   type SettlementRawResponse,
 } from '../server/x402/settlement.js';
+import { assertValidScore } from '../lib/score-validation.js';
 
 // ============================================================================
 // Types
@@ -360,6 +361,7 @@ export async function startGame(options: StartGameOptions): Promise<StartGameRes
  * @param sessionId - The session ID
  * @param score - The final score
  * @returns Updated session or error
+ * @throws {ScoreValidationError} If the score is invalid
  */
 export function completeGame(
   sessionId: string,
@@ -375,13 +377,17 @@ export function completeGame(
     return { success: false, error: `Cannot complete session with status: ${session.status}` };
   }
 
+  // Validate score before accepting it
+  // This will throw ScoreValidationError if invalid
+  const validatedScore = assertValidScore(score, session.gameType);
+
   const startedAt = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
   const durationMs = Date.now() - startedAt;
 
   const updatedSession: GameSession = {
     ...session,
     status: 'completed',
-    score,
+    score: validatedScore,
     completedAt: new Date().toISOString(),
     durationMs,
   };
@@ -433,4 +439,162 @@ export function expireOldSessions(): number {
   }
 
   return expiredCount;
+}
+
+// ============================================================================
+// Session ID Extraction and Validation
+// ============================================================================
+
+/**
+ * Session ID format regex.
+ * Valid session IDs are UUIDs (v4 format).
+ */
+const SESSION_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Validate a session ID format.
+ *
+ * @param sessionId - The session ID to validate
+ * @returns Whether the session ID is a valid UUID v4
+ *
+ * @example
+ * ```typescript
+ * if (isValidSessionId(sessionId)) {
+ *   const session = getSession(sessionId);
+ * }
+ * ```
+ */
+export function isValidSessionId(sessionId: string): boolean {
+  if (!sessionId || typeof sessionId !== 'string') {
+    return false;
+  }
+  return SESSION_ID_REGEX.test(sessionId);
+}
+
+/**
+ * Result of extracting a session ID from a response.
+ */
+export interface ExtractSessionResult {
+  /** Whether extraction was successful */
+  success: boolean;
+  /** The extracted session ID (if successful) */
+  sessionId?: string;
+  /** Error message (if failed) */
+  error?: string;
+}
+
+/**
+ * Extract and validate session ID from a game start response.
+ *
+ * This function parses the response body from the startGame API
+ * and extracts the session ID if the payment was successful.
+ *
+ * @param responseBody - The response body from the game start endpoint
+ * @returns Extraction result with session ID or error
+ *
+ * @example
+ * ```typescript
+ * const response = await fetch('/api/play/snake', {
+ *   method: 'POST',
+ *   headers: { 'X-Payment': encodedPayment },
+ * });
+ * const body = await response.json();
+ * const result = extractSessionId(body);
+ *
+ * if (result.success) {
+ *   console.log('Session ID:', result.sessionId);
+ *   // Store in state and start game
+ * }
+ * ```
+ */
+export function extractSessionId(responseBody: unknown): ExtractSessionResult {
+  // Validate response body is an object
+  if (!responseBody || typeof responseBody !== 'object') {
+    return {
+      success: false,
+      error: 'Invalid response body: expected object',
+    };
+  }
+
+  const body = responseBody as Record<string, unknown>;
+
+  // Check if this was a successful response
+  if (body.success === false) {
+    return {
+      success: false,
+      error: (body.error as string) || 'Request failed',
+    };
+  }
+
+  // Extract session from various possible response structures
+  let sessionId: string | undefined;
+
+  // Direct sessionId field
+  if (typeof body.sessionId === 'string') {
+    sessionId = body.sessionId;
+  }
+  // Nested in session object
+  else if (body.session && typeof (body.session as Record<string, unknown>).id === 'string') {
+    sessionId = (body.session as Record<string, unknown>).id as string;
+  }
+  // Nested in data object
+  else if (body.data && typeof (body.data as Record<string, unknown>).sessionId === 'string') {
+    sessionId = (body.data as Record<string, unknown>).sessionId as string;
+  }
+  // Nested in data.session
+  else if (
+    body.data &&
+    (body.data as Record<string, unknown>).session &&
+    typeof ((body.data as Record<string, unknown>).session as Record<string, unknown>).id === 'string'
+  ) {
+    sessionId = ((body.data as Record<string, unknown>).session as Record<string, unknown>).id as string;
+  }
+
+  // Validate session ID was found
+  if (!sessionId) {
+    return {
+      success: false,
+      error: 'No session ID found in response',
+    };
+  }
+
+  // Validate session ID format
+  if (!isValidSessionId(sessionId)) {
+    return {
+      success: false,
+      error: `Invalid session ID format: ${sessionId}`,
+    };
+  }
+
+  return {
+    success: true,
+    sessionId,
+  };
+}
+
+/**
+ * Parse a successful game start response and return the session.
+ *
+ * This is a convenience function that extracts the session ID and
+ * retrieves the full session object from the store.
+ *
+ * @param responseBody - The response body from the game start endpoint
+ * @returns The game session or null if extraction/lookup failed
+ *
+ * @example
+ * ```typescript
+ * const session = parseGameStartResponse(responseBody);
+ * if (session) {
+ *   console.log('Playing:', session.gameType);
+ * }
+ * ```
+ */
+export function parseGameStartResponse(responseBody: unknown): GameSession | null {
+  const result = extractSessionId(responseBody);
+
+  if (!result.success || !result.sessionId) {
+    return null;
+  }
+
+  return getSession(result.sessionId) || null;
 }
