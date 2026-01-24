@@ -110,7 +110,7 @@ describe('Database Schema', () => {
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-           VALUES ('test-1', 'snake', '0x123', 'tx1', 0.01)`
+           VALUES ('test-1', 'snake', '0x1234567890123456789012345678901234567890', 'tx1', 0.01)`
         ).run();
       }).not.toThrow();
 
@@ -118,7 +118,7 @@ describe('Database Schema', () => {
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-           VALUES ('test-2', 'invalid', '0x456', 'tx2', 0.01)`
+           VALUES ('test-2', 'invalid', '0xabcdef1234567890123456789012345678901234', 'tx2', 0.01)`
         ).run();
       }).toThrow();
     });
@@ -130,7 +130,7 @@ describe('Database Schema', () => {
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status)
-           VALUES ('test-1', 'snake', '0x123', 'tx1', 0.01, 'active')`
+           VALUES ('test-1', 'snake', '0x1234567890123456789012345678901234567890', 'tx1', 0.01, 'active')`
         ).run();
       }).not.toThrow();
 
@@ -138,7 +138,7 @@ describe('Database Schema', () => {
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc, status)
-           VALUES ('test-2', 'snake', '0x456', 'tx2', 0.01, 'invalid')`
+           VALUES ('test-2', 'snake', '0xabcdef1234567890123456789012345678901234', 'tx2', 0.01, 'invalid')`
         ).run();
       }).toThrow();
     });
@@ -148,7 +148,7 @@ describe('Database Schema', () => {
 
       db.prepare(
         `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-         VALUES ('test-1', 'snake', '0x123', 'tx1', 0.01)`
+         VALUES ('test-1', 'snake', '0x1234567890123456789012345678901234567890', 'tx1', 0.01)`
       ).run();
 
       const row = db.prepare(`SELECT status FROM game_sessions WHERE id = 'test-1'`).get() as {
@@ -161,17 +161,53 @@ describe('Database Schema', () => {
     it('should enforce payment_tx_hash uniqueness', () => {
       initializeSchema(db);
 
-      // First insert should work
+      // First insert should work (using valid lowercase address)
       db.prepare(
         `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-         VALUES ('test-1', 'snake', '0x123', 'tx-unique', 0.01)`
+         VALUES ('test-1', 'snake', '0x1234567890123456789012345678901234567890', 'tx-unique', 0.01)`
       ).run();
 
       // Second insert with same tx_hash should fail
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-           VALUES ('test-2', 'snake', '0x456', 'tx-unique', 0.01)`
+           VALUES ('test-2', 'snake', '0xabcdef1234567890123456789012345678901234', 'tx-unique', 0.01)`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should enforce player_address format (42 characters, 0x prefix, lowercase)', () => {
+      initializeSchema(db);
+
+      // Valid lowercase address should work
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-1', 'snake', '0x1234567890123456789012345678901234567890', 'tx1', 0.01)`
+        ).run();
+      }).not.toThrow();
+
+      // Invalid: too short
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-2', 'snake', '0x123', 'tx2', 0.01)`
+        ).run();
+      }).toThrow();
+
+      // Invalid: missing 0x prefix
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-3', 'snake', '1234567890123456789012345678901234567890ab', 'tx3', 0.01)`
+        ).run();
+      }).toThrow();
+
+      // Invalid: uppercase (not lowercase)
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-4', 'snake', '0x1234567890123456789012345678901234567ABC', 'tx4', 0.01)`
         ).run();
       }).toThrow();
     });
