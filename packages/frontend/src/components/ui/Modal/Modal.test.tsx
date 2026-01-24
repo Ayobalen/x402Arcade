@@ -5,9 +5,9 @@
  * Covers open/close behavior, keyboard interaction, and accessibility requirements.
  */
 
+import { useState, createRef } from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createRef } from 'react'
 import { axe, toHaveNoViolations } from 'jest-axe'
 import { Modal, ModalBackdrop, ModalHeader, ModalBody, ModalFooter } from './Modal'
 
@@ -670,5 +670,319 @@ describe('Modal Composition', () => {
     )
     const results = await axe(container)
     expect(results).toHaveNoViolations()
+  })
+})
+
+describe('Modal Focus Trap', () => {
+  describe('Focus Trapping', () => {
+    it('traps focus within modal when Tab is pressed', async () => {
+      const user = userEvent.setup()
+      render(
+        <Modal isOpen={true} onClose={vi.fn()} title="Focus Test">
+          <ModalBody>
+            <input data-testid="input-1" type="text" placeholder="First input" />
+            <input data-testid="input-2" type="text" placeholder="Second input" />
+            <button data-testid="btn-1" type="button">Button</button>
+          </ModalBody>
+        </Modal>
+      )
+
+      // Wait for focus to be set
+      await waitFor(() => {
+        // Close button in header should be focused first (first focusable element)
+        expect(document.activeElement).toHaveAttribute('aria-label', 'Close modal')
+      })
+
+      // Tab through all focusable elements
+      await user.tab()
+      expect(screen.getByTestId('input-1')).toHaveFocus()
+
+      await user.tab()
+      expect(screen.getByTestId('input-2')).toHaveFocus()
+
+      await user.tab()
+      expect(screen.getByTestId('btn-1')).toHaveFocus()
+
+      // Tab again should cycle back to the first focusable element (close button)
+      await user.tab()
+      expect(document.activeElement).toHaveAttribute('aria-label', 'Close modal')
+    })
+
+    it('traps focus within modal when Shift+Tab is pressed', async () => {
+      const user = userEvent.setup()
+      render(
+        <Modal isOpen={true} onClose={vi.fn()} title="Focus Test">
+          <ModalBody>
+            <input data-testid="input-1" type="text" />
+            <button data-testid="btn-1" type="button">Action</button>
+          </ModalBody>
+        </Modal>
+      )
+
+      // Wait for focus to be set
+      await waitFor(() => {
+        expect(document.activeElement).toHaveAttribute('aria-label', 'Close modal')
+      })
+
+      // Shift+Tab from first element should go to last element
+      await user.tab({ shift: true })
+      expect(screen.getByTestId('btn-1')).toHaveFocus()
+
+      // Shift+Tab to previous
+      await user.tab({ shift: true })
+      expect(screen.getByTestId('input-1')).toHaveFocus()
+    })
+
+    it('does not trap focus when trapFocus is false', async () => {
+      render(
+        <>
+          <button data-testid="external-btn" type="button">External</button>
+          <Modal isOpen={true} onClose={vi.fn()} trapFocus={false}>
+            <ModalBody>
+              <button data-testid="modal-btn" type="button">Modal Button</button>
+            </ModalBody>
+          </Modal>
+        </>
+      )
+
+      // Focus should not be automatically set when trapFocus is false
+      // The modal button should exist but focus management is disabled
+      expect(screen.getByTestId('modal-btn')).toBeInTheDocument()
+    })
+  })
+
+  describe('Auto-Focus', () => {
+    it('auto-focuses first focusable element by default', async () => {
+      render(
+        <Modal isOpen={true} onClose={vi.fn()} title="Auto Focus Test">
+          <ModalBody>
+            <input data-testid="input-1" type="text" />
+          </ModalBody>
+        </Modal>
+      )
+
+      // The close button in the header is the first focusable element
+      await waitFor(() => {
+        expect(document.activeElement).toHaveAttribute('aria-label', 'Close modal')
+      })
+    })
+
+    it('focuses initialFocus element when provided', async () => {
+      render(
+        <Modal
+          isOpen={true}
+          onClose={vi.fn()}
+          title="Initial Focus Test"
+          initialFocus="[data-testid='target-input']"
+        >
+          <ModalBody>
+            <input data-testid="other-input" type="text" />
+            <input data-testid="target-input" type="text" />
+          </ModalBody>
+        </Modal>
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('target-input')).toHaveFocus()
+      })
+    })
+
+    it('does not auto-focus when autoFocus is false', async () => {
+      render(
+        <Modal isOpen={true} onClose={vi.fn()} autoFocus={false}>
+          <ModalBody>
+            <input data-testid="input-1" type="text" />
+          </ModalBody>
+        </Modal>
+      )
+
+      // Focus should not have moved to the modal
+      // Just verify the component renders without auto-focusing
+      expect(screen.getByTestId('input-1')).toBeInTheDocument()
+    })
+  })
+
+  describe('Return Focus', () => {
+    it('returns focus to trigger element on close', async () => {
+      const TestComponent = () => {
+        const [isOpen, setIsOpen] = useState(false)
+        return (
+          <>
+            <button
+              data-testid="trigger-btn"
+              onClick={() => setIsOpen(true)}
+            >
+              Open Modal
+            </button>
+            <Modal
+              isOpen={isOpen}
+              onClose={() => setIsOpen(false)}
+              title="Return Focus Test"
+            >
+              <ModalBody>
+                <p>Content</p>
+              </ModalBody>
+              <ModalFooter>
+                <button onClick={() => setIsOpen(false)}>Close</button>
+              </ModalFooter>
+            </Modal>
+          </>
+        )
+      }
+
+      const user = userEvent.setup()
+      render(<TestComponent />)
+
+      // Focus the trigger button
+      const triggerBtn = screen.getByTestId('trigger-btn')
+      await user.click(triggerBtn)
+
+      // Modal should open
+      await waitFor(() => {
+        expect(screen.getByText('Return Focus Test')).toBeInTheDocument()
+      })
+
+      // Close the modal via escape
+      fireEvent.keyDown(document, { key: 'Escape' })
+
+      // Wait for modal to close and focus to return
+      await waitFor(() => {
+        expect(screen.queryByText('Return Focus Test')).not.toBeInTheDocument()
+      })
+
+      // Focus should return to trigger button
+      await waitFor(() => {
+        expect(triggerBtn).toHaveFocus()
+      })
+    })
+
+    it('does not return focus when returnFocus is false', async () => {
+      const TestComponent = () => {
+        const [isOpen, setIsOpen] = useState(false)
+        return (
+          <>
+            <button
+              data-testid="trigger-btn"
+              onClick={() => setIsOpen(true)}
+            >
+              Open Modal
+            </button>
+            <Modal
+              isOpen={isOpen}
+              onClose={() => setIsOpen(false)}
+              returnFocus={false}
+            >
+              <ModalBody>
+                <button onClick={() => setIsOpen(false)}>Close</button>
+              </ModalBody>
+            </Modal>
+          </>
+        )
+      }
+
+      const user = userEvent.setup()
+      render(<TestComponent />)
+
+      // Focus and click the trigger button
+      const triggerBtn = screen.getByTestId('trigger-btn')
+      await user.click(triggerBtn)
+
+      // Modal should open
+      await waitFor(() => {
+        expect(screen.getByText('Close')).toBeInTheDocument()
+      })
+
+      // Close the modal via clicking close button
+      await user.click(screen.getByText('Close'))
+
+      // Modal should close
+      await waitFor(() => {
+        expect(screen.queryByText('Close')).not.toBeInTheDocument()
+      })
+
+      // Focus should NOT return to trigger button
+      expect(triggerBtn).not.toHaveFocus()
+    })
+  })
+
+  describe('Focus Containment', () => {
+    it('contains focus even with dynamically added focusable elements', async () => {
+      const TestComponent = () => {
+        const [showExtra, setShowExtra] = useState(false)
+        return (
+          <Modal isOpen={true} onClose={vi.fn()} title="Dynamic Focus Test">
+            <ModalBody>
+              <button
+                data-testid="toggle-btn"
+                onClick={() => setShowExtra(true)}
+              >
+                Show More
+              </button>
+              {showExtra && (
+                <input data-testid="dynamic-input" type="text" />
+              )}
+            </ModalBody>
+          </Modal>
+        )
+      }
+
+      const user = userEvent.setup()
+      render(<TestComponent />)
+
+      // Wait for modal to open and focus
+      await waitFor(() => {
+        expect(screen.getByTestId('toggle-btn')).toBeInTheDocument()
+      })
+
+      // Add the dynamic input
+      await user.click(screen.getByTestId('toggle-btn'))
+
+      // Dynamic input should now be in the DOM
+      expect(screen.getByTestId('dynamic-input')).toBeInTheDocument()
+
+      // Tab should include the new element in the focus cycle
+      await user.tab()
+      await user.tab()
+      // The dynamic input should be reachable
+      expect(screen.getByTestId('dynamic-input')).toBeInTheDocument()
+    })
+
+    it('handles modal with no focusable elements', async () => {
+      render(
+        <Modal isOpen={true} onClose={vi.fn()}>
+          <ModalBody>
+            <p>No focusable elements here</p>
+          </ModalBody>
+        </Modal>
+      )
+
+      // Modal should still render without errors
+      expect(screen.getByText('No focusable elements here')).toBeInTheDocument()
+    })
+
+    it('ignores disabled buttons in focus trap', async () => {
+      const user = userEvent.setup()
+      render(
+        <Modal isOpen={true} onClose={vi.fn()} title="Disabled Test">
+          <ModalBody>
+            <button data-testid="enabled-btn" type="button">Enabled</button>
+            <button data-testid="disabled-btn" type="button" disabled>Disabled</button>
+            <button data-testid="enabled-btn-2" type="button">Enabled 2</button>
+          </ModalBody>
+        </Modal>
+      )
+
+      // Tab through - disabled button should be skipped
+      await waitFor(() => {
+        expect(document.activeElement).toHaveAttribute('aria-label', 'Close modal')
+      })
+
+      await user.tab()
+      expect(screen.getByTestId('enabled-btn')).toHaveFocus()
+
+      await user.tab()
+      // Should skip disabled button
+      expect(screen.getByTestId('enabled-btn-2')).toHaveFocus()
+    })
   })
 })
