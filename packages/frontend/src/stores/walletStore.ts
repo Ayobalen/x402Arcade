@@ -217,14 +217,38 @@ interface AddEthereumChainParameter {
 
 /**
  * Default required chain ID for the application
- * Base Sepolia testnet for development
+ * Cronos Testnet for x402Arcade
  */
-export const REQUIRED_CHAIN_ID: ChainId = 84532
+export const REQUIRED_CHAIN_ID: ChainId = 338
 
 /**
  * Chain configurations for supported networks
  */
 const CHAIN_CONFIGS: Record<number, AddEthereumChainParameter> = {
+  // Cronos Testnet (primary for x402Arcade)
+  338: {
+    chainId: '0x152',
+    chainName: 'Cronos Testnet',
+    nativeCurrency: {
+      name: 'Test CRO',
+      symbol: 'TCRO',
+      decimals: 18,
+    },
+    rpcUrls: ['https://evm-t3.cronos.org/'],
+    blockExplorerUrls: ['https://explorer.cronos.org/testnet'],
+  },
+  // Cronos Mainnet
+  25: {
+    chainId: '0x19',
+    chainName: 'Cronos',
+    nativeCurrency: {
+      name: 'CRO',
+      symbol: 'CRO',
+      decimals: 18,
+    },
+    rpcUrls: ['https://evm.cronos.org'],
+    blockExplorerUrls: ['https://explorer.cronos.org'],
+  },
   // Base Sepolia (testnet)
   84532: {
     chainId: '0x14a34',

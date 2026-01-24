@@ -28,6 +28,11 @@ export default tseslint.config(
 
       // Allow process.env access
       'no-process-env': 'off',
+
+      // Disable type-aware rules that require parserOptions.project
+      // (these require full TypeScript program which slows down linting)
+      '@typescript-eslint/prefer-optional-chain': 'off',
+      '@typescript-eslint/prefer-nullish-coalescing': 'off',
     },
   },
 

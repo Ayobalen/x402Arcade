@@ -6,6 +6,8 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./constants": "./src/constants/index.ts",
+    "./constants/chain": "./src/constants/chain.ts",
     "./test-utils": "./test-utils/index.ts",
     "./test-utils/factories": "./test-utils/factories/index.ts"
   },
@@ -13,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^25.0.10",
     "typescript": "^5.3.3"
   }
 }

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import express, { Application, Request, Response } from 'express';
+import express, { type Application, type Request, type Response } from 'express';
 import {
   TEST_WALLETS,
   generateTestWalletAddress,
@@ -28,7 +28,7 @@ import {
   createAuthOptions,
   testAuthStates,
   TestApiClient,
-  ApiResponse,
+  type ApiResponse,
 } from '../utils';
 
 describe('Authentication Test Helpers', () => {

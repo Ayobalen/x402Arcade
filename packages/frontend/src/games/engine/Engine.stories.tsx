@@ -179,7 +179,7 @@ const InputDemo = () => {
 
     // Animation loop
     let animationId: number
-    let pos = { x: 200, y: 150 }
+    const pos = { x: 200, y: 150 }
     const speed = 5
 
     const animate = () => {
@@ -356,7 +356,7 @@ const CollisionDemo = () => {
     ]
 
     // Mouse-controlled circle
-    let mouseCircle: CircleBounds = { x: 0, y: 0, radius: 25 }
+    const mouseCircle: CircleBounds = { x: 0, y: 0, radius: 25 }
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect()
@@ -856,8 +856,9 @@ const AudioDemo = () => {
                 <div className="flex items-end justify-center gap-1 h-32 bg-[#0a0a0f] rounded-lg p-4">
                   {Array.from({ length: 16 }).map((_, i) => {
                     const isActive = activeSounds.size > 0
+                    // Use deterministic height based on index instead of Math.random() for purity
                     const height = isActive
-                      ? Math.random() * 80 + 20
+                      ? 20 + ((i * 17 + 7) % 80)
                       : 10 + Math.sin(i * 0.5) * 5
                     return (
                       <div

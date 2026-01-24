@@ -28,3 +28,18 @@ export type {
   ScreenUniforms,
   GlowUniforms,
 } from './three.d';
+
+// Error types
+export type {
+  ErrorCategory,
+  ErrorSeverity,
+  AppErrorCode,
+  WalletErrorCode,
+  PaymentErrorCode,
+  GameErrorCode,
+  NetworkErrorCode,
+  SystemErrorCode,
+  RecoveryAction,
+  RecoverySuggestion,
+  AppError,
+} from './errors';

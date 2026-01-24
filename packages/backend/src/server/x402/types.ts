@@ -562,6 +562,209 @@ export function payloadToHeader(payload: PaymentPayload): X402PaymentHeader {
 }
 
 /**
+ * Options for creating a PaymentPayload
+ *
+ * Provides a structured way to specify all the components needed
+ * to construct a complete payment payload for the X-Payment header.
+ */
+export interface CreatePaymentPayloadOptions {
+  /**
+   * Message fields from the EIP-3009 TransferWithAuthorization
+   */
+  message: {
+    /**
+     * Sender's address (the player paying)
+     * Must be a valid Ethereum address (0x + 40 hex chars)
+     */
+    from: string;
+
+    /**
+     * Recipient's address (the arcade wallet)
+     * Must be a valid Ethereum address (0x + 40 hex chars)
+     */
+    to: string;
+
+    /**
+     * Payment value in token's smallest units
+     * Can be bigint, number, or string for flexibility
+     */
+    value: bigint | number | string;
+
+    /**
+     * Unix timestamp (seconds) after which the authorization is valid
+     * Typically '0' for immediate validity
+     * Can be number or string
+     */
+    validAfter: number | string;
+
+    /**
+     * Unix timestamp (seconds) before which the authorization is valid
+     * Authorization expires after this time
+     * Can be number or string
+     */
+    validBefore: number | string;
+
+    /**
+     * Unique 32-byte nonce to prevent replay attacks
+     * Hex string with 0x prefix (66 characters total)
+     */
+    nonce: string;
+  };
+
+  /**
+   * ECDSA signature components
+   */
+  signature: {
+    /**
+     * Signature recovery identifier
+     * Can be 27, 28 (legacy) or EIP-155 values (chainId * 2 + 35/36)
+     */
+    v: number;
+
+    /**
+     * First 32 bytes of the ECDSA signature
+     * Hex string with 0x prefix
+     */
+    r: string;
+
+    /**
+     * Second 32 bytes of the ECDSA signature
+     * Hex string with 0x prefix
+     */
+    s: string;
+  };
+
+  /**
+   * Network identifier
+   * @default 'cronos-testnet'
+   */
+  network?: string;
+}
+
+/**
+ * Create a PaymentPayload from message and signature components
+ *
+ * Constructs a complete PaymentPayload that can be used to create
+ * an X-Payment header for x402 payment requests.
+ *
+ * This function handles:
+ * - Converting bigint/number values to strings
+ * - Setting default version ('1') and scheme ('exact')
+ * - Setting default network if not provided
+ *
+ * @param options - The message fields and signature components
+ * @returns A complete PaymentPayload ready for use
+ *
+ * @example
+ * ```typescript
+ * // Create a payment payload from signature data
+ * const payload = createPaymentPayload({
+ *   message: {
+ *     from: '0x1234567890abcdef1234567890abcdef12345678',
+ *     to: '0xabcdef1234567890abcdef1234567890abcdef12',
+ *     value: 10000n, // $0.01 in USDC smallest units
+ *     validAfter: 0,
+ *     validBefore: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+ *     nonce: '0x' + '1234'.repeat(16),
+ *   },
+ *   signature: {
+ *     v: 27,
+ *     r: '0x' + 'ab'.repeat(32),
+ *     s: '0x' + 'cd'.repeat(32),
+ *   },
+ *   network: 'cronos-testnet',
+ * });
+ *
+ * // Convert to X402PaymentHeader and encode for X-Payment header
+ * const header = payloadToHeader(payload);
+ * const encoded = Buffer.from(JSON.stringify(header)).toString('base64');
+ * ```
+ */
+export function createPaymentPayload(
+  options: CreatePaymentPayloadOptions,
+): PaymentPayload {
+  const { message, signature, network = 'cronos-testnet' } = options;
+
+  // Convert value to string (handles bigint, number, string)
+  const valueString =
+    typeof message.value === 'bigint'
+      ? message.value.toString()
+      : String(message.value);
+
+  // Convert timestamps to strings
+  const validAfterString =
+    typeof message.validAfter === 'number'
+      ? message.validAfter.toString()
+      : String(message.validAfter);
+
+  const validBeforeString =
+    typeof message.validBefore === 'number'
+      ? message.validBefore.toString()
+      : String(message.validBefore);
+
+  return {
+    // Protocol metadata
+    version: '1',
+    scheme: 'exact',
+    network,
+
+    // Message fields
+    from: message.from,
+    to: message.to,
+    value: valueString,
+    validAfter: validAfterString,
+    validBefore: validBeforeString,
+    nonce: message.nonce,
+
+    // Signature components
+    v: signature.v,
+    r: signature.r,
+    s: signature.s,
+  };
+}
+
+/**
+ * Encode a PaymentPayload as a base64 X-Payment header string
+ *
+ * Converts a PaymentPayload to the X402PaymentHeader format and encodes it
+ * as base64 for use in the X-Payment HTTP header.
+ *
+ * This is the complete pipeline for constructing a payment header:
+ * 1. PaymentPayload → X402PaymentHeader (via payloadToHeader)
+ * 2. X402PaymentHeader → JSON string
+ * 3. JSON string → Base64 encoded string
+ *
+ * @param payload - The PaymentPayload to encode
+ * @returns Base64-encoded X-Payment header string
+ *
+ * @example
+ * ```typescript
+ * // Create and encode a payment payload for an HTTP request
+ * const payload = createPaymentPayload({
+ *   message: { from, to, value, validAfter, validBefore, nonce },
+ *   signature: { v, r, s },
+ * });
+ *
+ * const xPaymentHeader = encodePaymentPayload(payload);
+ *
+ * // Use in fetch request
+ * const response = await fetch('/api/play/snake', {
+ *   method: 'POST',
+ *   headers: {
+ *     'X-Payment': xPaymentHeader,
+ *   },
+ * });
+ * ```
+ */
+export function encodePaymentPayload(payload: PaymentPayload): string {
+  // Convert to structured header format
+  const header = payloadToHeader(payload);
+  // Encode as JSON then base64
+  const json = JSON.stringify(header);
+  return Buffer.from(json).toString('base64');
+}
+
+/**
  * PaymentPayload field schema definition
  *
  * Describes all required fields in a PaymentPayload for validation
@@ -936,7 +1139,7 @@ export function parseX402Header(base64Header: string): X402PaymentHeader {
   let jsonString: string;
   try {
     jsonString = Buffer.from(base64Header, 'base64').toString('utf-8');
-  } catch (error) {
+  } catch (_error) {
     throw X402ValidationError.invalidJson('Invalid base64 encoding');
   }
 

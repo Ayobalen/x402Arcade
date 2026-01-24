@@ -8,7 +8,7 @@
 import { jest } from '@jest/globals';
 import type { Request, Response, NextFunction } from 'express';
 import { createMockRequest, createMockResponse, createMockNext } from './test-helpers';
-import { TestApiClient, ApiResponse } from './api-client';
+import { type TestApiClient, type ApiResponse } from './api-client';
 
 /**
  * Test wallet configuration.

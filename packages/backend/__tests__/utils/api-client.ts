@@ -5,7 +5,7 @@
  * Provides automatic JSON parsing, type inference, and authentication support.
  */
 
-import request, { Response, Test } from 'supertest';
+import request, { type Response, type Test } from 'supertest';
 import type { Application } from 'express';
 
 /**

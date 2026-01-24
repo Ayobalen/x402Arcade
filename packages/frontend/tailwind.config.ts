@@ -212,6 +212,8 @@ const config: Config = {
         'glow-red': glowShadows.red,
         'glow-red-lg': glowShadows.redLg,
         'glow-white': glowShadows.white,
+        'glow-white-md': glowShadows.whiteMd,
+        'glow-white-lg': glowShadows.whiteLg,
         'glow-rainbow': glowShadows.rainbow,
         // Combined shadows
         'card-hover': combinedShadows.cardHover,

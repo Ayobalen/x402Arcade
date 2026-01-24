@@ -24,7 +24,7 @@
  *
  * @see https://docs.cronos.org/cronos-zkevm/for-developers/dev-tools-and-integrations/chain-integration
  */
-export const CRONOS_TESTNET_CHAIN_ID: 338 = 338;
+export const CRONOS_TESTNET_CHAIN_ID = 338 as const;
 
 /**
  * Default Cronos Testnet RPC URL
@@ -276,7 +276,7 @@ export const USDC_NAME = 'Bridged USDC (Stargate)';
  * // Convert smallest units back to USDC
  * const usdc = 1500000 / (10 ** USDC_DECIMALS); // 1.5
  */
-export const USDC_DECIMALS: 6 = 6;
+export const USDC_DECIMALS = 6 as const;
 
 /**
  * USDC EIP-712 Domain Version

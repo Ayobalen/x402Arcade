@@ -157,3 +157,84 @@ export {
   type UseSoundVisualizerResult,
   type VisualizerPreset,
 } from './SoundVisualizer3D'
+
+// ============================================================================
+// Arcade Cabinet Components
+// ============================================================================
+
+// Cabinet geometry constants and utilities
+export {
+  // Dimensions
+  CABINET_BODY,
+  CABINET_SCREEN,
+  CABINET_CONTROLS,
+  CABINET_MARQUEE,
+  CABINET_SPEAKER,
+  CABINET_SIDE_ART,
+  CABINET_TRIM,
+  CABINET_COIN_DOOR,
+  // Mesh hierarchy
+  MESH_NAMES,
+  MESH_POSITIONS,
+  // Colors
+  CABINET_COLORS,
+  CABINET_EMISSIVE,
+  // Utilities
+  getCabinetDimensions,
+  getScreenOuterDimensions,
+  getCabinetBoundingBox,
+  getOptimalCameraPosition,
+  getButtonPositions,
+  // Types
+  type CabinetDimensions,
+  type CabinetPosition,
+  type CabinetMeshNames,
+  type CabinetColors,
+} from './cabinet'
+
+// Cabinet Body mesh component
+export {
+  CabinetBody,
+  SimpleCabinetBody,
+  useCabinetBody,
+  type CabinetBodyProps,
+  type CabinetBodyHandle,
+  type SimpleCabinetBodyProps,
+  type UseCabinetBodyOptions,
+  type UseCabinetBodyResult,
+} from './cabinet'
+
+// Screen Material component (emissive screen with CRT effects)
+export {
+  ScreenMaterial,
+  SimpleScreenMaterial,
+  useScreenMaterial,
+  SCREEN_TINT_PRESETS,
+  type ScreenMaterialProps,
+  type ScreenMaterialHandle,
+  type SimpleScreenMaterialProps,
+  type UseScreenMaterialOptions,
+  type UseScreenMaterialResult,
+  type ScreenTintPreset,
+} from './cabinet'
+
+// Cabinet Reflection component (environment reflection mapping)
+export {
+  CabinetReflection,
+  CabinetReflectionProvider,
+  ReflectiveMesh,
+  useReflectiveMaterial,
+  useCabinetReflection,
+  useCabinetReflectionContext,
+  createReflectiveCabinetMaterial,
+  createChromeMaterial,
+  createGlossyMaterial,
+  type CabinetReflectionProps,
+  type CabinetReflectionHandle,
+  type ReflectiveMaterialProps,
+  type ReflectiveMeshProps,
+  type UseReflectiveMaterialOptions,
+  type UseReflectiveMaterialResult,
+  type UseCabinetReflectionOptions,
+  type UseCabinetReflectionResult,
+} from './cabinet'

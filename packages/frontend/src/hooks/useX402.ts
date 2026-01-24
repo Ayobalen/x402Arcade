@@ -262,7 +262,7 @@ export function useX402(options: UseX402Options = {}): UseX402Result {
    * from the connected wallet.
    */
   const createAuthorization = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     async (_request: PaymentRequest): Promise<SignedTransferWithAuthorization> => {
       // TODO: Implement wallet signing with wagmi
       // This is a placeholder that will be implemented when wagmi is added

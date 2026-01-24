@@ -14,7 +14,7 @@
 import { useRef, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { CABINET_SCREEN, CABINET_COLORS } from './ArcadeCabinetGeometry'
+import { CABINET_SCREEN } from './ArcadeCabinetGeometry'
 
 // ============================================================================
 // Types

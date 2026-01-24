@@ -300,3 +300,136 @@ export function setDefaultNonceStore(store: NonceStore): void {
 export function resetDefaultNonceStore(): void {
   defaultNonceStore = null;
 }
+
+// =============================================================================
+// Nonce Generation Utilities
+// =============================================================================
+
+/**
+ * Generate a random 32-byte nonce for EIP-3009 TransferWithAuthorization
+ *
+ * Creates a cryptographically secure random nonce suitable for
+ * payment authorization messages. Each call generates a unique value.
+ *
+ * The nonce is used to:
+ * - Prevent replay attacks (each authorization can only be used once)
+ * - Provide uniqueness for the EIP-712 typed data signature
+ * - Allow the facilitator to track and reject duplicate authorizations
+ *
+ * Format: 0x prefix + 64 hex characters (32 bytes)
+ *
+ * @returns A 32-byte hex string with 0x prefix
+ *
+ * @example
+ * const nonce = generateNonce();
+ * // => '0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890'
+ *
+ * // Use in authorization message
+ * const message = {
+ *   from: playerAddress,
+ *   to: arcadeAddress,
+ *   value: parseUSDC(0.01).toString(),
+ *   validAfter: '0',
+ *   validBefore: (Date.now() / 1000 + 3600).toString(),
+ *   nonce: generateNonce(),
+ * };
+ */
+export function generateNonce(): string {
+  // Generate 32 random bytes using crypto-secure randomness
+  const bytes = new Uint8Array(32);
+
+  if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
+    // Browser or modern Node.js with Web Crypto API
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    // Fallback for older Node.js environments
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const nodeCrypto = require('crypto');
+    const randomBytes = nodeCrypto.randomBytes(32);
+    bytes.set(randomBytes);
+  }
+
+  // Convert to hex string with 0x prefix
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return `0x${hex}`;
+}
+
+/**
+ * Validate a nonce format
+ *
+ * Checks that a nonce has the correct format:
+ * - Starts with 0x prefix
+ * - Contains exactly 64 hex characters after prefix
+ * - Total length of 66 characters
+ *
+ * @param nonce - The nonce string to validate
+ * @returns True if the nonce has valid format
+ *
+ * @example
+ * isValidNonce('0x1234...64 chars...') // => true
+ * isValidNonce('1234...')              // => false (no 0x prefix)
+ * isValidNonce('0x123')                // => false (too short)
+ */
+export function isValidNonce(nonce: string): boolean {
+  return /^0x[a-fA-F0-9]{64}$/.test(nonce);
+}
+
+/**
+ * Validate nonce and throw if invalid
+ *
+ * @param nonce - The nonce to validate
+ * @throws Error if nonce format is invalid
+ *
+ * @example
+ * assertValidNonce('0x1234...64 chars...') // => void
+ * assertValidNonce('invalid') // => throws Error
+ */
+export function assertValidNonce(nonce: string): void {
+  if (!isValidNonce(nonce)) {
+    throw new Error(
+      `Invalid nonce format: ${nonce}. Expected 0x prefix followed by 64 hex characters.`,
+    );
+  }
+}
+
+/**
+ * Generate a nonce and verify it hasn't been used
+ *
+ * Generates a new nonce and checks against the nonce store to ensure
+ * it hasn't been used before. In the extremely unlikely case of a
+ * collision, generates a new nonce.
+ *
+ * @param store - The nonce store to check against
+ * @param maxAttempts - Maximum attempts to generate unique nonce (default: 3)
+ * @returns A unique, unused nonce
+ * @throws Error if unable to generate unique nonce after max attempts
+ *
+ * @example
+ * const store = getDefaultNonceStore();
+ * const nonce = await generateUniqueNonce(store);
+ */
+export async function generateUniqueNonce(
+  store: NonceStore,
+  maxAttempts: number = 3,
+): Promise<string> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const nonce = generateNonce();
+
+    // Check if already used (extremely unlikely with 32 random bytes)
+    const isUsed = await store.isUsed(nonce);
+    if (!isUsed) {
+      return nonce;
+    }
+
+    // Log collision for monitoring (should basically never happen)
+    console.warn(`[nonce] Collision detected on attempt ${attempt + 1}, regenerating...`);
+  }
+
+  throw new Error(
+    `Failed to generate unique nonce after ${maxAttempts} attempts. ` +
+      'This should be statistically impossible - check for issues with random number generation.',
+  );
+}

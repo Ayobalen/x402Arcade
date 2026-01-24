@@ -196,11 +196,11 @@ export interface UseWalletResult extends UseWalletState, UseWalletActions {}
 export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
   const {
     expectedChainId = CRONOS_TESTNET_CHAIN_ID,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     onConnect: _onConnect,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     onDisconnect: _onDisconnect,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     onError: _onError,
   } = options
 
