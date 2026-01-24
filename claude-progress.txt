@@ -21,6 +21,92 @@
 - Shared package: packages/shared - Test factories and shared utilities
 - CI workflow: .github/workflows/test.yml - Runs tests on push/PR
 
+## Session Log - January 24, 2026
+
+### Session: Environment Validation & Documentation
+**Completed:**
+- Feature #402: Configure lint-staged - PASSING (already configured)
+- Feature #433: Create frontend directory structure (assets/) - PASSING (already exists)
+- Feature #435: Configure Vite path aliases - PASSING (@ alias configured)
+- Feature #437: Create frontend .env.example - PASSING (new file created)
+- Feature #438: Create environment validation schema (backend) - PASSING
+- Feature #439: Create environment validation schema (frontend) - PASSING
+- Feature #90: Implement submitScore function - PASSING
+- Feature #440: Document environment setup in README - PASSING
+
+**Files Created:**
+- README.md (project root) - Comprehensive setup documentation
+- packages/frontend/.env.example - All VITE_ variables documented
+- packages/frontend/src/lib/env.ts - Frontend env validation
+- packages/frontend/src/services/score.ts - Score submission service
+- packages/frontend/src/services/index.ts - Services barrel export
+
+**Files Modified:**
+- packages/backend/src/index.ts - Added env validation at startup
+- packages/frontend/src/main.tsx - Added env validation at startup
+
+**Git Commit:** bd165d15 - feat: add environment validation, docs, and score submission
+
+**Status:** 361/1215 features passing (29.7%)
+
+---
+
+### Session: Configure Husky Pre-commit Hooks (Feature #401)
+**Completed:**
+- Feature #401: Configure Husky pre-commit hooks ✅
+  - Verified Husky v9.2.0 already installed in devDependencies
+  - Verified .husky directory initialized with internal hook files
+  - Verified "prepare": "husky" script in package.json
+  - Verified .husky/pre-commit hook exists and is executable (chmod +x)
+  - **Fixed issue:** lint-staged was picking up conflicting configs from nested node_modules
+    - Updated .husky/pre-commit to use `npx lint-staged --config lint-staged.config.js`
+    - This prevents nested package.json files (e.g., cac@6.7.14) from overriding our config
+  - Verified hook triggers correctly on commit:
+    - Empty JSON files: passes with "no files matching configured tasks"
+    - TypeScript files: ESLint + Prettier run correctly
+    - Hook blocks commits with ESLint warnings (--max-warnings=0 enforcement)
+  - Git commits: b540d44b (test), 3849d97a (fix explicit config)
+
+- Feature #402: Configure lint-staged ✅
+  - Verified lint-staged v16.2.7 already installed
+  - Verified lint-staged.config.js exists with proper configuration:
+    - `*.{ts,tsx}`: eslint --fix + prettier --write
+    - `*.{js,jsx}`: eslint --fix + prettier --write
+    - `*.json`: prettier --write
+    - `*.md`: prettier --write
+    - `*.{css,scss}`: prettier --write
+    - `*.{yaml,yml}`: prettier --write
+  - Note: Type checking not configured (intentional - tsc needs full project context)
+  - Already verified working in Feature #401 tests
+
+**Note:** MCP feature database has read-only error preventing `feature_mark_passing`. Features are fully implemented and verified working.
+
+**Status:** 352/1215 features (29.0%) + Features #401, #402 complete (pending DB update)
+
+---
+
+### Backend Agent Session (x402 Payment Features)
+**Completed:**
+- Feature #82: Implement payload base64 encoding ✅
+  - Already implemented in packages/backend/src/server/x402/types.ts
+  - encodePaymentPayload() function handles JSON stringify and base64 encoding
+- Feature #84: Implement X-Payment-Response parsing ✅
+  - Already implemented in packages/backend/src/server/x402/types.ts
+  - decodePaymentResponseHeader() handles base64 decode and JSON parse
+- Feature #86: Implement startGame function ✅
+  - Created packages/backend/src/services/game.ts
+  - startGame() validates payment, settles with facilitator, creates session
+  - getPaymentRequirements() returns game pricing info
+  - Session management: create, complete, expire
+  - In-memory session store for MVP
+
+**Next Steps:**
+- Continue with remaining x402 payment features
+- Add game routes to Express server
+- Implement score submission endpoints
+
+---
+
 ## Session Log - January 23, 2026
 
 ### Session 1 (New Project Setup)
@@ -1775,10 +1861,31 @@ Completed 8 features this session:
      - Score and speed calculations
    - Git commit: 0d2ffa4c
 
+2. **Feature #711: Implement generateFood function** - PASSING
+   - Added `generateFood(snake, gridSize)` function in logic.ts
+   - Generates random x/y from 0 to gridSize - 1
+   - Checks for snake overlap and retries if needed
+   - Returns Position object (simpler than spawnFood which returns Food)
+   - Added 5 tests for generateFood function
+   - Git commit: abddd072
+
+3. **Feature #713: Implement moveSnake function** - PASSING
+   - Added `processSnakeMove(state: SnakeState)` function in logic.ts
+   - Returns unchanged state if paused/game over/not playing
+   - Processes one snake move with full collision detection
+   - Handles wall collision (game over or wrap based on config)
+   - Handles self collision (game over)
+   - Handles food eating, growth, score, and level progression
+   - Manages combo system
+   - Returns immutable new state object
+   - Added 15 comprehensive tests
+   - Git commit: 384f8a66
+
 ### Current Status:
-- 276/1215 features passing (~22.7%)
+- 279/1215 features passing (~23.0%)
 - Working on games workstream (agent games-2)
 
+---
 
 5. **Feature #579: Implement star movement animation** - PASSING
    - Enhanced `/frontend/src/components/3d/effects/Starfield.tsx`
@@ -1812,3 +1919,157 @@ Completed 10 features this session:
 - Features #57, #61, #63, #67, #69, #71, #73, #75, #77, #79
 - Progress: 18.4% -> 25.7% (estimated)
 
+
+
+## Session Log - 2026-01-24 (UI Workstream - Agent ui-1)
+
+### Completed This Session:
+1. **Feature #504: Create ConnectButton component** - PASSING
+   - Created `/packages/frontend/src/components/wallet/ConnectButton/` directory
+   - ConnectButton.tsx: Full wallet connection flow component
+   - ConnectButton.types.ts: TypeScript types for props and state
+   - Supports states: disconnected, connecting, connected, wrong_network, switching_network, error
+   - Auto-detects wallet availability with MetaMask redirect fallback
+   - NetworkIndicator shows correct/wrong network status
+   - Integrated with WalletStore via useWalletStore hook
+   - Customizable labels and callbacks for all states
+   - Git commit: 0396f2ec
+
+### Current Status:
+- Working on UI workstream (agent ui-1)
+- 306/1215 features passing (25.2%)
+
+## Session Log - 2026-01-24 (Games Workstream - Agent games-1)
+
+### Completed This Session:
+1. **Feature #694: Create engine Storybook demos** - PASSING
+   - Added AudioDemo component to Engine.stories.tsx
+   - Synthesized sound effects using Web Audio API oscillator (no external files needed)
+   - Interactive UI with "Initialize Audio" button (handles browser autoplay policy)
+   - Volume controls: Master volume + SFX category volume sliders
+   - Mute/unmute toggle functionality
+   - Visual audio visualizer animation with reactive bars
+   - 9 sound effect buttons: beep, boop, blip, jump, hit, coin, power up, laser, explosion
+   - Each button uses different oscillator types (sine, square, triangle, sawtooth)
+   - Color-coded buttons and legend for wave types
+   - Git commit: 9ee82504
+
+### Files Modified:
+- `/packages/frontend/src/games/engine/Engine.stories.tsx` - Added AudioDemo (+310 lines)
+
+### Stories Now Available in Engine.stories.tsx:
+- Overview: Documentation overview of all engine systems
+- GameLoop: FPS tracking and animation demo
+- Input: Keyboard/touch/mouse handling demo
+- Collision: AABB and circle collision visualization
+- GameStateMachine: State transition demo
+- Audio: Sound playback with volume controls (NEW)
+
+### Current Status:
+- Games workstream (agent games-1)
+- 337/1215 features passing (27.7%)
+
+## Session Log - 2026-01-24 (Backend Workstream - Agent backend-2)
+
+### Completed This Session:
+1. **Feature #55: Handle facilitator network error** - PASSING (already implemented)
+   - Verified: detectNetworkErrorType() handles ECONNREFUSED, ETIMEDOUT
+   - Verified: X402Error.networkConnectivityError() returns 503
+   - Verified: Retry-After header included in middleware
+   - Verified: Network errors logged with facilitator URL
+
+2. **Feature #81: Implement payment payload construction** - PASSING (already implemented)
+   - Verified: PaymentPayload interface with all fields
+   - Verified: createPaymentPayload() function
+   - Verified: headerToPayload() and payloadToHeader() conversions
+   - Verified: encodePaymentPayload() for X-Payment header
+
+3. **Feature #83: Implement payment submission request** - PASSING (already implemented)
+   - Verified: createX402Fetch() wrapper in x402Client.ts
+   - Verified: createPaymentHeader() for encoding
+   - Verified: is402Response() and detect402() for handling
+   - Verified: Parse and submit payment flow
+
+4. **Feature #85: Write unit tests for useX402 hook** - PASSING (newly created)
+   - Created /packages/frontend/src/hooks/__tests__/useX402.test.ts
+   - 28 tests covering state management, payment flow, error handling
+   - Tests for callbacks (onError, onSuccess) and state transitions
+   - All tests passing
+   - Git commit: 44c3795c
+
+### Files Created:
+- `/packages/frontend/src/hooks/__tests__/useX402.test.ts` - 28 tests for useX402 hook
+
+### Current Status:
+- Backend workstream (agent backend-2)
+- 340/1215 features passing (28.0%)
+
+5. **Feature #87: Implement game type validation** - PASSING (newly created)
+   - Created /packages/backend/src/lib/game-types.ts
+   - GameType union: snake, tetris, pong, breakout, space-invaders
+   - GAME_TYPES registry with pricing (priceUsdc, priceUnits)
+   - Validation: isValidGameType(), validateGameType()
+   - Payment mapping: getPaymentAmount(), getPaymentAmountUsdc()
+   - Custom error: GameTypeValidationError with toJSON()
+   - 58 passing tests in game-types.test.ts
+   - Git commit: e291ca25
+
+## Session Log - 2026-01-24T03:02 UTC (UI Workstream - Agent ui-2)
+
+### Completed This Session:
+1. **Feature #489: Implement Modal focus trap** - PASSING
+   - Focus trap was already fully implemented in Modal.tsx!
+   - Custom `useFocusTrap` hook (lines 63-193) provides:
+     - Tab/Shift+Tab cycling within modal content
+     - Auto-focus first focusable element on open
+     - Return focus to trigger element on close
+     - `initialFocus` prop for custom initial focus targets
+     - Handles dynamically added/removed focusable elements
+     - Filters disabled elements from focus cycle
+   - **Fixed 3 failing tests** in Modal.test.tsx:
+     - Added proper `useState` import from react
+     - Removed unused `user` variable
+     - Removed unused `previouslyFocused` variable
+   - All 73 Modal tests now pass
+   - Git commit: 4521b886
+
+### Current Status:
+- UI workstream (agent ui-2)
+- 337/1215 features passing (27.7%)
+
+## Session Log - 2026-01-24T04:45 UTC (UI Workstream)
+
+### Completed This Session:
+1. **Feature #507: Implement wallet_switchEthereumChain** - PASSING
+   - Added automatic chain switching when connecting to wrong network
+   - Implemented useEffect hook that triggers wallet_switchEthereumChain
+   - Added autoSwitchChain prop (default true) to enable/disable feature
+   - Added callbacks: onAutoSwitchStart, onAutoSwitchSuccess, onAutoSwitchError
+   - Tracks auto-switch attempts per session via useRef to prevent infinite loops
+   - Reset tracking when wallet disconnects
+   - 16 comprehensive unit tests added in ConnectButton.test.tsx
+   - Git commit: 6ceca5e5
+
+2. **Feature #509: Implement connected state display** - PASSING
+   - Connected state already implemented with:
+     - Truncated address display (0x1234...5678)
+     - NetworkIndicator with colored dot (chain-specific)
+     - ChevronDownIcon for dropdown trigger
+     - Connected state button variant (ghost)
+   - Enhanced with neon glow effects:
+     - Subtle cyan shadow on connected button
+     - Box shadow glow on NetworkIndicator dot
+     - Hover transition effects
+   - Git commit: 101d8fe7
+
+### Files Created:
+- `/packages/frontend/src/components/wallet/ConnectButton/ConnectButton.test.tsx` - 16 unit tests
+
+### Files Modified:
+- `/packages/frontend/src/components/wallet/ConnectButton/ConnectButton.tsx` - Auto chain switching + glow effects
+- `/packages/frontend/src/components/wallet/ConnectButton/ConnectButton.types.ts` - New props
+
+### Current Status:
+- 353/1215 features passing (29.1%)
+- Note: Database became read-only during session, feature #509 couldn't be marked in DB
+- All changes committed successfully
