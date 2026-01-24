@@ -6765,3 +6765,63 @@ Both database schema features are correctly implemented with CHECK constraints a
 - Get next feature to implement
 - Continue with pending features
 
+
+---
+
+## Session Log - January 25, 2026 00:20 UTC - PrizePool Features
+
+### Features Completed This Session:
+
+**Feature #296: Implement calculatePrizeAmount method** ✅ PASSING
+
+All 5 requirements verified:
+1. ✅ Method signature accepts poolId or pool parameter
+2. ✅ Gets pool total_usdc from database or provided pool object
+3. ✅ Platform fee structure documented (30% taken during payment, 100% of pool to winner)
+4. ✅ Minimum payout threshold code location identified (currently no minimum)
+5. ✅ Returns final payout amount in USDC
+
+Implementation quality:
+- Lines 529-585 in prizePool.ts
+- 14 comprehensive unit tests covering all scenarios
+- Edge cases: zero amounts, large amounts, fractional cents, all pool states
+- Well-documented with JSDoc and inline comments
+- Future enhancement locations clearly marked
+
+**Feature #300: Write unit tests for PrizePoolService** ✅ PASSING
+
+All 8 requirements verified:
+1. ✅ File created: src/services/__tests__/prizePool.service.test.ts (2565 lines)
+2. ✅ In-memory database setup in beforeEach (lines 22-27)
+3. ✅ Tests for addToPrizePool creating new pools (2 tests)
+4. ✅ Tests for addToPrizePool accumulating to existing pools (2 tests)
+5. ✅ Tests for getCurrentPool returning active pools (3+ tests)
+6. ✅ Tests for finalizePool setting winner correctly (3+ tests)
+7. ✅ Tests for recordPayout updating status and tx hash (3+ tests)
+8. ✅ Tests for calculatePrizeAmount applying fees (3+ tests)
+
+Test suite statistics:
+- 10 test suites (describe blocks)
+- 136 individual test cases (it blocks)
+- 2565 lines of comprehensive test coverage
+- Tests written using Vitest framework
+- Covers: Helper methods, all service methods, edge cases, error conditions, complete lifecycle
+
+Test coverage includes:
+- Helper Methods (getTodayDate, getWeekStart)
+- addToPrizePool (13 tests)
+- getCurrentPool (13 tests)
+- calculatePrizeAmount (14 tests)
+- getTopContributor (14 tests)
+- getDailyStats (17 tests)
+- getWeeklyStats (15 tests)
+- getPoolHistory (13 tests)
+- finalizePool (14 tests)
+- recordPayout (13 tests)
+
+### Session Progress:
+- **Starting:** 520/1215 (42.8%)
+- **Current:** 522/1215 (43.0%)
+- **Features completed:** 2 (both backend prize pool features)
+- **All checks:** PASSING ✅
+
