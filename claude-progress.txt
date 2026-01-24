@@ -3111,3 +3111,42 @@ Backend service layer implementation ready to begin:
 - 19 features currently blocked (pending manual verification)
 - Ready for next backend service features
 
+
+---
+
+## Session Log - January 24, 2026 16:50 UTC (LeaderboardService Helper Methods)
+
+### Session Start: 404/1215 (33.3%), 19 blocked
+
+### Smart Regression Testing:
+- Feature #434 (Frontend __tests__/ directory): ✅ Passing
+- Feature #70 (Chain config tests): ✅ Passing
+
+### Features Completed:
+
+1. **Feature #275: getTodayDate helper** (BLOCKED - Intervention #126)
+   - Private method returning YYYY-MM-DD in UTC
+   - 6 comprehensive tests
+   - Commit: 6721d4f7
+
+2. **Feature #276: getWeekStart helper** (BLOCKED - Intervention #127)
+   - Returns Monday of current week in YYYY-MM-DD
+   - Handles Sunday edge case
+   - 8 comprehensive tests
+   - Commit: 86504127
+
+3. **Feature #277: addEntry method** (BLOCKED - Intervention #128)
+   - Records scores to daily/weekly/alltime periods
+   - High score logic (only update if score > existing)
+   - 8 comprehensive tests (22 total with helpers)
+   - Commit: 13591a4d
+
+### Session Summary:
+- Features: 3 completed (all blocked pending verification)
+- Interventions: 3 created (#126, #127, #128)
+- Blocked: 19 → 22 total
+- Commits: 3
+- Tests: 22 comprehensive (14 helpers + 8 addEntry)
+
+### Next Session:
+- Continue LeaderboardService (getTopScores, updateRankings, etc.)
