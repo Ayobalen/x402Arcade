@@ -44,9 +44,9 @@ import scoreRoutes from './routes/score.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
 import prizeRoutes from './routes/prize.routes.js';
 
-// Import middleware (will be added as needed)
-// import { errorHandler } from './middleware/errorHandler.js';
-// import { x402Middleware } from './middleware/x402.js';
+// Import middleware
+import { errorHandler } from './middleware/errorHandler.js';
+// import { x402Middleware } from './middleware/x402.js'; // Will be added when implementing x402 routes
 
 /**
  * Create and configure the Express application.
@@ -229,11 +229,18 @@ export function createApp(): Express {
 
   // 404 handler - must be after all other routes
   app.use((_req: Request, res: Response) => {
-    res.status(404).json({ error: 'Not Found' });
+    res.status(404).json({
+      error: {
+        message: 'Not Found',
+        path: _req.path,
+        timestamp: new Date().toISOString(),
+      },
+    });
   });
 
-  // Global error handler (will be added when errorHandler middleware is created)
-  // app.use(errorHandler);
+  // Global error handler - must be last middleware
+  // Catches all errors thrown in routes and middleware
+  app.use(errorHandler);
 
   return app;
 }
