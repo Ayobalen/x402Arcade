@@ -27,7 +27,15 @@ export const envSchema = z.object({
     }),
 
   // Database Configuration (required)
-  DATABASE_PATH: z.string().default('./data/arcade.db'),
+  DATABASE_PATH: z
+    .string()
+    .default('./data/arcade.db')
+    .refine((path) => path === ':memory:' || path.endsWith('.db'), {
+      message: 'DATABASE_PATH must end with .db extension or be :memory:',
+    })
+    .describe(
+      'Path to the SQLite database file (e.g., ./data/arcade.db or :memory: for in-memory DB)'
+    ),
 
   // JWT/Session Configuration (required)
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
@@ -114,8 +122,8 @@ export function validateEnvOrThrow(): Env {
   const result = validateEnv();
 
   if (!result.success) {
-    const formatted = result.errors!.issues
-      .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
+    const formatted = result
+      .errors!.issues.map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
       .join('\n');
 
     throw new Error(`Environment validation failed:\n${formatted}`);
@@ -133,8 +141,10 @@ export function validateEnvSafe(): Env | undefined {
   const result = validateEnv();
 
   if (!result.success) {
+    // eslint-disable-next-line no-console
     console.error('Environment validation failed:');
     result.errors!.issues.forEach((issue) => {
+      // eslint-disable-next-line no-console
       console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
     });
     return undefined;
