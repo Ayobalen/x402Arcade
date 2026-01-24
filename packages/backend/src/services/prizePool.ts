@@ -328,6 +328,110 @@ export class PrizePoolService {
     return results;
   }
 
+  /**
+   * Finalize a prize pool and determine the winner.
+   *
+   * Called at the end of a period (daily/weekly) to close the pool and select
+   * the winner based on the highest score in the leaderboard.
+   * Updates the pool status from 'active' to 'finalized' and sets the winner address.
+   *
+   * @param params - Parameters for finalizing pool
+   * @param params.gameType - Type of game (snake, tetris, etc.)
+   * @param params.periodType - Period type (daily or weekly)
+   * @param params.periodDate - Period identifier to finalize (YYYY-MM-DD)
+   * @returns Finalized PrizePool with winner, or null if pool doesn't exist or already finalized
+   *
+   * @throws Error if pool is already paid out
+   *
+   * @example
+   * ```typescript
+   * // Finalize yesterday's daily snake pool
+   * const finalizedPool = service.finalizePool({
+   *   gameType: 'snake',
+   *   periodType: 'daily',
+   *   periodDate: '2026-01-23'
+   * });
+   * // Returns: { ..., status: 'finalized', winnerAddress: '0x123...', finalizedAt: '2026-01-24T00:00:00.000Z' }
+   * ```
+   */
+  finalizePool(params: {
+    gameType: GameType;
+    periodType: PeriodType;
+    periodDate: string;
+  }): PrizePool | null {
+    const { gameType, periodType, periodDate } = params;
+
+    // First, get the pool to verify it exists and is active
+    const getPoolStmt = this.db.prepare(`
+      SELECT
+        id,
+        game_type as gameType,
+        period_type as periodType,
+        period_date as periodDate,
+        total_amount_usdc as totalAmountUsdc,
+        total_games as totalGames,
+        status,
+        winner_address as winnerAddress,
+        payout_tx_hash as payoutTxHash,
+        created_at as createdAt,
+        finalized_at as finalizedAt
+      FROM prize_pools
+      WHERE game_type = ? AND period_type = ? AND period_date = ?
+    `);
+
+    const pool = getPoolStmt.get(gameType, periodType, periodDate) as PrizePool | undefined;
+
+    // Return null if pool doesn't exist
+    if (!pool) {
+      return null;
+    }
+
+    // Throw error if pool is already paid (can't re-finalize)
+    if (pool.status === 'paid') {
+      throw new Error(`Pool for ${gameType} ${periodType} ${periodDate} is already paid out`);
+    }
+
+    // Return existing pool if already finalized (idempotent)
+    if (pool.status === 'finalized') {
+      return pool;
+    }
+
+    // Query leaderboard for the top player of this period
+    const getWinnerStmt = this.db.prepare(`
+      SELECT player_address
+      FROM leaderboard_entries
+      WHERE game_type = ? AND period_type = ? AND period_date = ?
+      ORDER BY score DESC
+      LIMIT 1
+    `);
+
+    const winner = getWinnerStmt.get(gameType, periodType, periodDate) as
+      | { player_address: string }
+      | undefined;
+
+    // If no players for this period, return null (can't finalize empty pool)
+    if (!winner) {
+      return null;
+    }
+
+    // Update pool to finalized status with winner
+    const updateStmt = this.db.prepare(`
+      UPDATE prize_pools
+      SET
+        status = 'finalized',
+        winner_address = ?,
+        finalized_at = datetime('now')
+      WHERE game_type = ? AND period_type = ? AND period_date = ?
+    `);
+
+    updateStmt.run(winner.player_address, gameType, periodType, periodDate);
+
+    // Return the updated pool
+    const updatedPool = getPoolStmt.get(gameType, periodType, periodDate) as PrizePool;
+
+    return updatedPool;
+  }
+
   // ============================================================================
   // Private Helper Methods
   // ============================================================================
