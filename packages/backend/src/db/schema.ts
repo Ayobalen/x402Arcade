@@ -82,14 +82,17 @@ CREATE TABLE IF NOT EXISTS game_sessions (
  * Game Sessions Indexes
  *
  * Optimizes common query patterns:
- * - Player lookup: Find all sessions for a player
- * - Status filtering: Find active/completed/expired sessions
+ * - Player lookup: Find all sessions for a player (idx_sessions_player)
+ * - Status filtering: Find active/completed/expired sessions (idx_sessions_status)
+ * - Game type filtering: Find sessions by game type (idx_sessions_game_type)
+ * - Chronological ordering: Sort sessions by creation time descending (idx_sessions_created)
+ *     - DESC ordering optimizes "most recent first" queries (common pattern for leaderboards, history)
  */
 export const GAME_SESSIONS_INDEXES = `
 CREATE INDEX IF NOT EXISTS idx_sessions_player ON game_sessions(player_address);
 CREATE INDEX IF NOT EXISTS idx_sessions_status ON game_sessions(status);
 CREATE INDEX IF NOT EXISTS idx_sessions_game_type ON game_sessions(game_type);
-CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON game_sessions(created_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_created ON game_sessions(created_at DESC);
 `;
 
 /**
