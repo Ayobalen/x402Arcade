@@ -802,5 +802,154 @@ describe('Database Schema', () => {
       expect(indexSql?.sql).toContain('player_address');
       expect(indexSql?.sql).toContain('leaderboard_entries');
     });
+
+    it('should enforce UNIQUE constraint on (game_type, player_address, period_type, period_date)', () => {
+      initializeSchema(db);
+
+      // Create game sessions for foreign key references
+      const validAddress = '0x1234567890123456789012345678901234567890';
+      const validTxHash1 = '0x' + 'a'.repeat(64);
+      const validTxHash2 = '0x' + 'b'.repeat(64);
+
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('session-unique-1', 'snake', '${validAddress}', '${validTxHash1}', 0.01)`
+      ).run();
+
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('session-unique-2', 'snake', '${validAddress}', '${validTxHash2}', 0.01)`
+      ).run();
+
+      // First entry should succeed
+      db.prepare(
+        `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+         VALUES ('session-unique-1', 'snake', '${validAddress}', 500, 'daily', '2026-01-24')`
+      ).run();
+
+      // Second entry with same game/player/period should fail (even with different session_id)
+      expect(() => {
+        db.prepare(
+          `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+           VALUES ('session-unique-2', 'snake', '${validAddress}', 600, 'daily', '2026-01-24')`
+        ).run();
+      }).toThrow();
+
+      // But different period_type should work
+      expect(() => {
+        db.prepare(
+          `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+           VALUES ('session-unique-2', 'snake', '${validAddress}', 600, 'weekly', '2026-W04')`
+        ).run();
+      }).not.toThrow();
+    });
+
+    it('should allow UPSERT pattern with INSERT OR REPLACE for high scores', () => {
+      initializeSchema(db);
+
+      const validAddress = '0x1234567890123456789012345678901234567890';
+      const validTxHash1 = '0x' + 'c'.repeat(64);
+      const validTxHash2 = '0x' + 'd'.repeat(64);
+
+      // Create two game sessions
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('session-upsert-1', 'tetris', '${validAddress}', '${validTxHash1}', 0.02)`
+      ).run();
+
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('session-upsert-2', 'tetris', '${validAddress}', '${validTxHash2}', 0.02)`
+      ).run();
+
+      // Insert initial score
+      db.prepare(
+        `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+         VALUES ('session-upsert-1', 'tetris', '${validAddress}', 1000, 'daily', '2026-01-24')`
+      ).run();
+
+      // Verify initial entry exists
+      let entry = db
+        .prepare(
+          `SELECT score, session_id FROM leaderboard_entries
+           WHERE game_type='tetris' AND player_address='${validAddress}' AND period_type='daily' AND period_date='2026-01-24'`
+        )
+        .get() as { score: number; session_id: string };
+
+      expect(entry.score).toBe(1000);
+      expect(entry.session_id).toBe('session-upsert-1');
+
+      // Use INSERT OR REPLACE to update with higher score
+      db.prepare(
+        `INSERT OR REPLACE INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+         VALUES ('session-upsert-2', 'tetris', '${validAddress}', 2000, 'daily', '2026-01-24')`
+      ).run();
+
+      // Verify entry was replaced (score and session_id updated)
+      entry = db
+        .prepare(
+          `SELECT score, session_id FROM leaderboard_entries
+           WHERE game_type='tetris' AND player_address='${validAddress}' AND period_type='daily' AND period_date='2026-01-24'`
+        )
+        .get() as { score: number; session_id: string };
+
+      expect(entry.score).toBe(2000);
+      expect(entry.session_id).toBe('session-upsert-2');
+
+      // Verify only ONE entry exists for this player/game/period
+      const count = db
+        .prepare(
+          `SELECT COUNT(*) as count FROM leaderboard_entries
+           WHERE game_type='tetris' AND player_address='${validAddress}' AND period_type='daily' AND period_date='2026-01-24'`
+        )
+        .get() as { count: number };
+
+      expect(count.count).toBe(1);
+    });
+
+    it('should allow different players to have entries for same game/period', () => {
+      initializeSchema(db);
+
+      const player1 = '0x1111111111111111111111111111111111111111';
+      const player2 = '0x2222222222222222222222222222222222222222';
+      const validTxHash1 = '0x' + 'e'.repeat(64);
+      const validTxHash2 = '0x' + 'f'.repeat(64);
+
+      // Create game sessions for both players
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('session-multi-1', 'pong', '${player1}', '${validTxHash1}', 0.01)`
+      ).run();
+
+      db.prepare(
+        `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+         VALUES ('session-multi-2', 'pong', '${player2}', '${validTxHash2}', 0.01)`
+      ).run();
+
+      // Both players should be able to have entries for the same game/period
+      expect(() => {
+        db.prepare(
+          `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+           VALUES ('session-multi-1', 'pong', '${player1}', 15, 'daily', '2026-01-24')`
+        ).run();
+      }).not.toThrow();
+
+      expect(() => {
+        db.prepare(
+          `INSERT INTO leaderboard_entries (session_id, game_type, player_address, score, period_type, period_date)
+           VALUES ('session-multi-2', 'pong', '${player2}', 18, 'daily', '2026-01-24')`
+        ).run();
+      }).not.toThrow();
+
+      // Verify both entries exist
+      const count = db
+        .prepare(
+          `SELECT COUNT(*) as count FROM leaderboard_entries
+           WHERE game_type='pong' AND period_type='daily' AND period_date='2026-01-24'`
+        )
+        .get() as { count: number };
+
+      expect(count.count).toBe(2);
+    });
   });
 });
