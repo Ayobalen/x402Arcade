@@ -179,11 +179,13 @@ describe('Database Schema', () => {
     it('should enforce player_address format (42 characters, 0x prefix, lowercase)', () => {
       initializeSchema(db);
 
+      const validTxHash = '0x' + 'a'.repeat(64);
+
       // Valid lowercase address should work
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-           VALUES ('test-1', 'snake', '0x1234567890123456789012345678901234567890', 'tx1', 0.01)`
+           VALUES ('test-1', 'snake', '0x1234567890123456789012345678901234567890', '${validTxHash}1', 0.01)`
         ).run();
       }).not.toThrow();
 
@@ -191,7 +193,7 @@ describe('Database Schema', () => {
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-           VALUES ('test-2', 'snake', '0x123', 'tx2', 0.01)`
+           VALUES ('test-2', 'snake', '0x123', '${validTxHash}2', 0.01)`
         ).run();
       }).toThrow();
 
@@ -199,7 +201,7 @@ describe('Database Schema', () => {
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-           VALUES ('test-3', 'snake', '1234567890123456789012345678901234567890ab', 'tx3', 0.01)`
+           VALUES ('test-3', 'snake', '1234567890123456789012345678901234567890ab', '${validTxHash}3', 0.01)`
         ).run();
       }).toThrow();
 
@@ -207,7 +209,46 @@ describe('Database Schema', () => {
       expect(() => {
         db.prepare(
           `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
-           VALUES ('test-4', 'snake', '0x1234567890123456789012345678901234567ABC', 'tx4', 0.01)`
+           VALUES ('test-4', 'snake', '0x1234567890123456789012345678901234567ABC', '${validTxHash}4', 0.01)`
+        ).run();
+      }).toThrow();
+    });
+
+    it('should enforce payment_tx_hash format (66 characters, 0x prefix)', () => {
+      initializeSchema(db);
+
+      const validAddress = '0x1234567890123456789012345678901234567890';
+
+      // Valid 66-character tx hash should work
+      const validTxHash = '0x' + 'a'.repeat(64);
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-1', 'snake', '${validAddress}', '${validTxHash}', 0.01)`
+        ).run();
+      }).not.toThrow();
+
+      // Invalid: too short
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-2', 'snake', '${validAddress}', '0x123', 0.01)`
+        ).run();
+      }).toThrow();
+
+      // Invalid: missing 0x prefix
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-3', 'snake', '${validAddress}', '${'a'.repeat(66)}', 0.01)`
+        ).run();
+      }).toThrow();
+
+      // Invalid: too long
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-4', 'snake', '${validAddress}', '0x${'a'.repeat(65)}', 0.01)`
         ).run();
       }).toThrow();
     });
