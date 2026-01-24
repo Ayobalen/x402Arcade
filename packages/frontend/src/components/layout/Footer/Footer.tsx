@@ -266,6 +266,12 @@ export function Footer({
               <Link to="/privacy" className="hover:text-[#00ffff] transition-colors duration-150">
                 Privacy Policy
               </Link>
+              <Link to="/docs" className="hover:text-[#00ffff] transition-colors duration-150">
+                Documentation
+              </Link>
+              <Link to="/faq" className="hover:text-[#00ffff] transition-colors duration-150">
+                FAQ
+              </Link>
             </div>
           </div>
         )}
