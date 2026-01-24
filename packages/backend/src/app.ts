@@ -22,9 +22,21 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 // Import environment configuration
 import { getEnv } from './config/env.js';
+import { getDatabase } from './db/index.js';
+
+// Get package.json version
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8')) as {
+  version: string;
+};
+const APP_VERSION = packageJson.version;
 
 // Import route modules (will be added as routes are implemented)
 // import playRoutes from './routes/play.routes.js';
@@ -159,8 +171,32 @@ export function createApp(): Express {
   // ============================================================================
 
   // Health check endpoint
+  // Used by load balancers and monitoring systems to verify service health
   app.get('/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    const healthCheck = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      version: APP_VERSION,
+      uptime: process.uptime(),
+      database: 'unknown' as 'ok' | 'error' | 'unknown',
+    };
+
+    // Check database connectivity (optional check)
+    try {
+      const db = getDatabase();
+      // Simple query to verify database is accessible
+      db.prepare('SELECT 1').get();
+      healthCheck.database = 'ok';
+    } catch (error) {
+      // Database not initialized or error - still return 200
+      // Load balancers should only fail on 5xx errors
+      healthCheck.database = 'error';
+      // Log the error for debugging
+      // eslint-disable-next-line no-console
+      console.error('Health check database error:', error);
+    }
+
+    res.json(healthCheck);
   });
 
   // API info endpoint
