@@ -20,7 +20,11 @@ import type { Database as DatabaseType } from 'better-sqlite3';
  * - game_type: Type of game played (snake, tetris, pong, breakout, space-invaders)
  * - player_address: Ethereum address of the player (42-char hex: 0x + 40 hex digits, lowercase for consistency)
  * - payment_tx_hash: On-chain transaction hash for payment verification (66-char hex: 0x + 64 hex digits, UNIQUE to prevent replay)
- * - amount_paid_usdc: Amount paid in USDC (decimal, e.g., 0.01)
+ * - amount_paid_usdc: Amount paid in USDC (REAL, decimal precision, e.g., 0.01, 0.02)
+ *     - Stored as REAL (floating point) for human-readable decimal values
+ *     - CHECK constraint ensures positive amounts only
+ *     - Note: For critical financial calculations, atomic units (INTEGER) would provide exact precision
+ *     - For this arcade application, REAL is acceptable as amounts are small ($0.01-$0.02)
  * - score: Final score achieved (NULL if game not completed)
  * - status: Session status (active, completed, expired)
  * - created_at: ISO timestamp when session was created
@@ -45,7 +49,7 @@ CREATE TABLE IF NOT EXISTS game_sessions (
         length(payment_tx_hash) = 66 AND
         payment_tx_hash LIKE '0x%'
     ),
-    amount_paid_usdc REAL NOT NULL,
+    amount_paid_usdc REAL NOT NULL CHECK (amount_paid_usdc > 0),
     score INTEGER,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),

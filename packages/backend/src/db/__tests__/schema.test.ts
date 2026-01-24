@@ -252,5 +252,50 @@ describe('Database Schema', () => {
         ).run();
       }).toThrow();
     });
+
+    it('should enforce amount_paid_usdc CHECK constraint (must be positive)', () => {
+      initializeSchema(db);
+
+      const validAddress = '0x1234567890123456789012345678901234567890';
+      const validTxHash = '0x' + 'a'.repeat(64);
+
+      // Valid positive amounts should work
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-1', 'snake', '${validAddress}', '${validTxHash}1', 0.01)`
+        ).run();
+      }).not.toThrow();
+
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-2', 'snake', '${validAddress}', '${validTxHash}2', 0.02)`
+        ).run();
+      }).not.toThrow();
+
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-3', 'snake', '${validAddress}', '${validTxHash}3', 1.5)`
+        ).run();
+      }).not.toThrow();
+
+      // Invalid: zero amount should fail
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-4', 'snake', '${validAddress}', '${validTxHash}4', 0)`
+        ).run();
+      }).toThrow();
+
+      // Invalid: negative amount should fail
+      expect(() => {
+        db.prepare(
+          `INSERT INTO game_sessions (id, game_type, player_address, payment_tx_hash, amount_paid_usdc)
+           VALUES ('test-5', 'snake', '${validAddress}', '${validTxHash}5', -0.01)`
+        ).run();
+      }).toThrow();
+    });
   });
 });
