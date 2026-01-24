@@ -290,6 +290,35 @@ export class LeaderboardService {
   }
 
   /**
+   * Get the all-time leaderboard for a specific game.
+   *
+   * Convenience method that retrieves the highest scores of all time for a game.
+   * This is equivalent to calling getTopScores with periodType='alltime'.
+   *
+   * @param params - Query parameters
+   * @param params.gameType - Type of game to query
+   * @param params.limit - Maximum number of entries to return (default: 10)
+   *
+   * @returns Array of all-time leaderboard entries with computed ranks
+   *
+   * @example
+   * ```typescript
+   * const allTimeScores = leaderboardService.getAllTimeLeaderboard({
+   *   gameType: 'snake',
+   *   limit: 50
+   * });
+   * // Returns top 50 snake scores of all time
+   * ```
+   */
+  getAllTimeLeaderboard(params: { gameType: GameType; limit?: number }): LeaderboardEntry[] {
+    return this.getTopScores({
+      gameType: params.gameType,
+      periodType: 'alltime',
+      limit: params.limit,
+    });
+  }
+
+  /**
    * Get a specific player's ranking and statistics.
    *
    * Retrieves the player's rank, score, and percentile for a specific game and period.
