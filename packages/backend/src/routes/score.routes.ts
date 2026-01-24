@@ -11,6 +11,7 @@ import type { Router as RouterType } from 'express';
 import { GameService } from '../services/game.js';
 import { LeaderboardService } from '../services/leaderboard.js';
 import { getDatabase } from '../db/index.js';
+import { validateScore } from '../lib/score-validation.js';
 
 const router: RouterType = Router();
 
@@ -55,22 +56,6 @@ router.post('/submit', (req: Request, res: Response) => {
     return;
   }
 
-  if (score === undefined || score === null || typeof score !== 'number') {
-    res.status(400).json({
-      error: 'Validation error',
-      message: 'score is required and must be a number',
-    });
-    return;
-  }
-
-  if (score < 0) {
-    res.status(400).json({
-      error: 'Validation error',
-      message: 'score must be >= 0',
-    });
-    return;
-  }
-
   if (!playerAddress || typeof playerAddress !== 'string') {
     res.status(400).json({
       error: 'Validation error',
@@ -91,6 +76,27 @@ router.post('/submit', (req: Request, res: Response) => {
 
   // Get services (lazy initialization)
   const { gameService, leaderboardService } = getServices();
+
+  // Fetch session to get gameType for game-specific score validation
+  const existingSession = gameService.getSession(sessionId);
+  if (!existingSession) {
+    res.status(404).json({
+      error: 'Not found',
+      message: `Session not found: ${sessionId}`,
+    });
+    return;
+  }
+
+  // Validate score with game-specific limits
+  const scoreValidation = validateScore(score, existingSession.gameType);
+  if (!scoreValidation.valid) {
+    res.status(400).json({
+      error: 'Validation error',
+      message: scoreValidation.error,
+      code: scoreValidation.code,
+    });
+    return;
+  }
 
   // Call GameService.completeSession() - throws on error
   let session;
