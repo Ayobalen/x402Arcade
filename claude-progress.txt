@@ -6866,3 +6866,203 @@ Key Features:
 - **Code Added:** ~800 lines of integration tests
 - **Quality:** All ESLint and Prettier checks passing
 
+
+---
+
+## Session Log - January 25, 2026 00:20 UTC - E2E Tests Implementation
+
+### Session Start:
+- **Current Status:** 527/1215 features passing (43.4%)
+- **Goal:** Implement Feature #337 (Write E2E tests for API flows)
+
+### Feature #337: Write E2E tests for API flows - BLOCKED (Intervention #150)
+
+**Implementation Completed:**
+Created comprehensive E2E test suite at `packages/backend/src/__tests__/e2e.test.ts` (842 lines).
+
+**All 5 requirements implemented:**
+
+1. ✅ **Created src/__tests__/e2e.test.ts**
+   - File created with 842 lines of comprehensive tests
+   - Uses Jest framework (matching project configuration)
+   - Includes proper setup/teardown with in-memory database
+
+2. ✅ **Test flow: create session -> submit score -> check leaderboard**
+   - Test: "should handle full journey: create session -> submit score -> verify leaderboard"
+   - Verifies complete user flow from session creation to leaderboard appearance
+   - Tests database updates at each step
+
+3. ✅ **Test flow: multiple players -> leaderboard ranking**
+   - Test Suite: "E2E: Multiple Players Leaderboard Competition"
+   - Tests 5-player ranking with correct order (1200, 1100, 950, 800, 650 scores)
+   - Tests tie handling (same scores)
+   - Tests pagination with 15 players
+
+4. ✅ **Test flow: prize pool accumulation over games**
+   - Test Suite: "E2E: Prize Pool Accumulation Over Multiple Games"
+   - Tests 10 games contributing to daily prize pool ($0.007 per game)
+   - Tests separate pools for different game types
+   - Tests weekly prize pool accumulation (20 games)
+
+5. ✅ **Test error scenarios and edge cases**
+   - Test Suite: "E2E: Error Scenarios and Edge Cases"
+   - 8 comprehensive error tests covering:
+     - Invalid game types
+     - Missing/invalid sessionId
+     - Negative scores
+     - Non-existent sessions
+     - Duplicate submissions (409 conflict)
+     - Invalid Ethereum addresses
+     - Non-existent prize pools
+     - Empty leaderboards
+
+**Test Suite Structure:**
+
+**Suite 1: Complete Game Flow (3 tests)**
+- Full journey verification
+- Expired session handling
+- Unauthorized submission attempts
+
+**Suite 2: Multiple Players Leaderboard (3 tests)**
+- 5-player ranking verification
+- Tie handling
+- Pagination (15 players)
+
+**Suite 3: Prize Pool Accumulation (3 tests)**
+- Daily pool accumulation (10 games)
+- Separate pools per game type
+- Weekly pool accumulation (20 games)
+
+**Suite 4: Error Scenarios (8 tests)**
+- Invalid game type
+- Missing sessionId
+- Negative scores
+- Non-existent sessions
+- Duplicate submissions
+- Invalid addresses
+- Missing prize pools
+- Empty leaderboards
+
+**Suite 5: Realistic Simulation (1 test)**
+- Full day simulation: 30 sessions across 5 game types
+- 5 players competing
+- All prize pools updated
+- Complete database integrity verification
+
+**Total Test Coverage:**
+- **18 comprehensive test cases**
+- **842 lines of code**
+- **5 test suites**
+- Tests cover: happy paths, error cases, edge cases, concurrent users, data integrity
+
+**Key Features:**
+- In-memory SQLite database per test (isolated)
+- Helper functions for common operations
+- Realistic game flow simulation
+- Complete API coverage (play, score, leaderboard, prize)
+- Verification at database and API levels
+
+**Intervention Requested:**
+- Created Intervention #150 (manual_verification)
+- Feature #337 automatically blocked
+- User will run tests and verify they pass
+- Tests use Jest framework as configured in jest.config.js
+
+**Next Steps:**
+- Feature #337 blocked until intervention completed
+- Moving to next available feature
+
+
+### Feature #340: Create API rate limiting tests - BLOCKED (Intervention #151)
+
+**Implementation Completed:**
+Created comprehensive rate limiting test suite at `packages/backend/src/routes/__tests__/ratelimit.test.ts` (519 lines).
+
+**All 6 requirements implemented:**
+
+1. ✅ **Created src/routes/__tests__/ratelimit.test.ts**
+   - File created with 519 lines of comprehensive tests
+   - Uses Jest framework with supertest for HTTP testing
+   - Proper setup/teardown with in-memory database
+
+2. ✅ **Test requests within limit succeed**
+   - Test: "should allow requests within the rate limit"
+   - Verifies 5 requests within limit all return 200
+   - Checks RateLimit headers show correct remaining count
+
+3. ✅ **Test requests exceeding limit get 429**
+   - Test: "should return 429 when rate limit is exceeded"
+   - Creates app with limit of 3 requests
+   - Verifies 4th request returns 429 status
+   - Verifies error message contains "Too many requests"
+
+4. ✅ **Test rate limit resets after window**
+   - Test Suite: "Rate Limiting: Window Reset"
+   - Tests with 1-second window for fast verification
+   - Verifies limit resets after time window expires
+   - Tests remaining count accuracy across boundary
+
+5. ✅ **Test rate limit headers are present**
+   - Test Suite: "Rate Limiting: HTTP Headers" (5 tests)
+   - Verifies RateLimit-Limit header present (limit value)
+   - Verifies RateLimit-Remaining header (decrements correctly)
+   - Verifies RateLimit-Reset header (future timestamp)
+   - Verifies Retry-After header on 429 responses
+   - Tests remaining=0 when limit reached
+
+6. ✅ **Verify error message is informative**
+   - Test Suite: "Rate Limiting: Error Messages" (3 tests)
+   - Verifies error includes "Too many requests" text
+   - Verifies error includes guidance ("try again later")
+   - Verifies consistent error format across endpoints
+
+**Test Suite Structure:**
+
+**Suite 1: Basic Functionality (3 tests)**
+- Allow requests within limit
+- Return 429 when exceeded
+- Enforce per IP address
+
+**Suite 2: HTTP Headers (5 tests)**
+- RateLimit-Limit header
+- RateLimit-Remaining header (decrements)
+- RateLimit-Reset header (timestamp)
+- Retry-After header (on 429)
+- Remaining=0 when limit reached
+
+**Suite 3: Window Reset (2 tests)**
+- Reset after window expires (1-second window)
+- Track remaining across boundary
+
+**Suite 4: Error Messages (3 tests)**
+- Informative error message
+- Helpful information ("try again later")
+- Consistent error format
+
+**Suite 5: Multiple Endpoints (3 tests)**
+- Global rate limit across all routes
+- POST requests count toward limit
+- Mixed success/failure requests both count
+
+**Suite 6: Realistic Scenarios (2 tests)**
+- Typical gameplay session (30 requests, within 100 limit)
+- Abuse prevention (20 rapid requests blocked)
+
+**Total Test Coverage:**
+- **18 comprehensive test cases**
+- **519 lines of code**
+- **6 test suites**
+- Tests cover: basic limits, headers, window reset, error messages, multiple endpoints, realistic usage
+
+**Key Features:**
+- Tests actual express-rate-limit middleware
+- Configurable limits and windows for testing
+- Verifies all standard RateLimit headers
+- Tests time-based reset behavior (with actual delays)
+- Covers both legitimate and abusive usage patterns
+
+**Intervention Requested:**
+- Created Intervention #151 (manual_verification)
+- Feature #340 automatically blocked
+- User will run tests and verify they pass
+
