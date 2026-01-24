@@ -12,6 +12,7 @@ coverage/
 test-reports/
 
 # Environment files
+.env
 .env.local
 .env.*.local
 
@@ -43,3 +44,6 @@ pnpm-debug.log*
 # Lock files (use pnpm-lock.yaml)
 package-lock.json
 yarn.lock
+
+*storybook.log
+storybook-static
