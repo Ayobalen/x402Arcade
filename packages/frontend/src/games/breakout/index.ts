@@ -167,3 +167,10 @@ export {
   isGameOver,
   resetAfterLifeLost,
 } from './logic';
+
+// ============================================================================
+// Component Exports
+// ============================================================================
+
+export { BreakoutGame } from './BreakoutGame';
+export type { BreakoutGameProps } from './BreakoutGame';
