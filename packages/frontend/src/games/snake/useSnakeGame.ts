@@ -23,10 +23,28 @@ import {
   togglePause,
   startGame,
 } from './logic';
+import {
+  renderBackground,
+  renderGrid,
+  renderFood,
+  renderSnakeHead,
+  renderSnakeBody,
+  renderPauseOverlay,
+  renderGameOverOverlay,
+  renderScore,
+} from './renderer';
 
 // ============================================================================
 // Hook Interface
 // ============================================================================
+
+/**
+ * Hook options interface for useSnakeGame.
+ */
+export interface UseSnakeGameOptions {
+  /** Callback when game ends (called with final score) */
+  onGameOver?: (score: number) => void;
+}
 
 /**
  * Return value interface for useSnakeGame hook.
@@ -53,6 +71,7 @@ export interface UseSnakeGameReturn {
  * context, and provides methods for controlling the game.
  *
  * @param difficulty - Initial difficulty level (default: 'normal')
+ * @param options - Optional configuration (onGameOver callback, etc.)
  * @returns Game state, canvas ref, context, and control methods
  *
  * @description
@@ -61,11 +80,14 @@ export interface UseSnakeGameReturn {
  * - Obtains 2D rendering context after mount
  * - Provides reset function to restart game
  * - State updates trigger re-renders automatically
+ * - Calls onGameOver callback when game ends
  *
  * @example
  * ```tsx
  * function SnakeGame() {
- *   const { state, canvasRef, context, reset } = useSnakeGame()
+ *   const { state, canvasRef, context, reset } = useSnakeGame('normal', {
+ *     onGameOver: (score) => console.log('Game over! Score:', score)
+ *   })
  *
  *   return (
  *     <div>
@@ -77,7 +99,11 @@ export interface UseSnakeGameReturn {
  * }
  * ```
  */
-export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGameReturn {
+export function useSnakeGame(
+  difficulty: SnakeDifficulty = 'normal',
+  options: UseSnakeGameOptions = {}
+): UseSnakeGameReturn {
+  const { onGameOver } = options;
   // ============================================================================
   // State Initialization
   // ============================================================================
@@ -105,10 +131,28 @@ export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGa
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
 
   /**
-   * Ref for game loop interval ID.
-   * Used to store and clear the game loop interval.
+   * Ref for game loop RAF ID.
+   * Used to store and cancel the game loop animation frame.
    */
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+  const gameLoopRef = useRef<number | null>(null);
+
+  /**
+   * Ref for render loop RAF ID.
+   * Used to store and cancel the render loop animation frame.
+   */
+  const renderLoopRef = useRef<number | null>(null);
+
+  /**
+   * Ref for tracking last update timestamp.
+   * Used for time-based game updates.
+   */
+  const lastUpdateTimeRef = useRef<number>(0);
+
+  /**
+   * Ref for accumulated time since last move.
+   * Used to determine when to process next game tick.
+   */
+  const accumulatedTimeRef = useRef<number>(0);
 
   /**
    * Initialize canvas context after mount.
@@ -124,18 +168,17 @@ export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGa
   }, []);
 
   // ============================================================================
-  // Game Loop
+  // Game Loop (Time-Based with RAF)
   // ============================================================================
 
   /**
-   * Game loop effect.
-   * Runs the game tick at the current speed interval.
-   * Updates when playing state or speed changes.
+   * Time-based game loop using requestAnimationFrame.
+   * Updates game state only when enough time has elapsed based on current speed.
    */
   useEffect(() => {
-    // Clear any existing interval
+    // Cancel any existing RAF
     if (gameLoopRef.current) {
-      clearInterval(gameLoopRef.current);
+      cancelAnimationFrame(gameLoopRef.current);
       gameLoopRef.current = null;
     }
 
@@ -143,15 +186,39 @@ export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGa
     if (state.isPlaying && !state.isPaused && !state.isGameOver) {
       const currentSpeed = state.gameSpecific?.currentSpeed || 150;
 
-      gameLoopRef.current = setInterval(() => {
-        setState((prevState) => processSnakeMove(prevState));
-      }, currentSpeed);
+      // Initialize timestamp on first frame
+      lastUpdateTimeRef.current = performance.now();
+      accumulatedTimeRef.current = 0;
+
+      // Game update loop
+      const gameLoop = (currentTime: number) => {
+        // Calculate time since last frame
+        const deltaTime = currentTime - lastUpdateTimeRef.current;
+        lastUpdateTimeRef.current = currentTime;
+
+        // Accumulate time
+        accumulatedTimeRef.current += deltaTime;
+
+        // Update game if enough time has elapsed
+        if (accumulatedTimeRef.current >= currentSpeed) {
+          setState((prevState) => processSnakeMove(prevState));
+          accumulatedTimeRef.current -= currentSpeed;
+        }
+
+        // Continue loop if still playing
+        if (state.isPlaying && !state.isPaused && !state.isGameOver) {
+          gameLoopRef.current = requestAnimationFrame(gameLoop);
+        }
+      };
+
+      // Start the loop
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
     }
 
     // Cleanup on unmount or when dependencies change
     return () => {
       if (gameLoopRef.current) {
-        clearInterval(gameLoopRef.current);
+        cancelAnimationFrame(gameLoopRef.current);
         gameLoopRef.current = null;
       }
     };
@@ -217,6 +284,87 @@ export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGa
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  // ============================================================================
+  // Render Loop
+  // ============================================================================
+
+  /**
+   * Render loop using requestAnimationFrame.
+   * Continuously renders the game state to the canvas.
+   */
+  useEffect(() => {
+    const ctx = contextRef.current;
+
+    // Only render if we have a context
+    if (!ctx) return;
+
+    // Cancel any existing render loop
+    if (renderLoopRef.current) {
+      cancelAnimationFrame(renderLoopRef.current);
+      renderLoopRef.current = null;
+    }
+
+    // Render function
+    const render = () => {
+      // Clear canvas and render background
+      renderBackground(ctx);
+      renderGrid(ctx);
+
+      // Render game elements if playing
+      if (state.isPlaying || state.isGameOver) {
+        // Render food
+        renderFood(ctx, state.gameSpecific.food);
+
+        // Render snake (head and body)
+        const segments = state.gameSpecific.segments;
+        if (segments.length > 0) {
+          // Render body segments (all except head)
+          renderSnakeBody(ctx, segments);
+
+          // Render head last (on top)
+          renderSnakeHead(ctx, segments[0], state.gameSpecific.direction);
+        }
+
+        // Render score
+        renderScore(ctx, state.gameSpecific.score);
+      }
+
+      // Render overlays
+      if (state.isPaused) {
+        renderPauseOverlay(ctx);
+      } else if (state.isGameOver) {
+        renderGameOverOverlay(ctx, state.gameSpecific.score);
+      }
+
+      // Continue render loop
+      renderLoopRef.current = requestAnimationFrame(render);
+    };
+
+    // Start render loop
+    renderLoopRef.current = requestAnimationFrame(render);
+
+    // Cleanup on unmount
+    return () => {
+      if (renderLoopRef.current) {
+        cancelAnimationFrame(renderLoopRef.current);
+        renderLoopRef.current = null;
+      }
+    };
+  }, [state]); // Re-render when state changes
+
+  // ============================================================================
+  // Game Over Callback
+  // ============================================================================
+
+  /**
+   * Call onGameOver callback when game ends.
+   */
+  useEffect(() => {
+    if (state.isGameOver && onGameOver) {
+      onGameOver(state.gameSpecific.score);
+    }
+  }, [state.isGameOver, state.gameSpecific.score, onGameOver]);
 
   // ============================================================================
   // Control Methods
