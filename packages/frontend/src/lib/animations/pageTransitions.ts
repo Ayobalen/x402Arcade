@@ -350,10 +350,7 @@ export function blurTransition(blurAmount = 10): PageTransitionVariants {
  * @param degrees - Rotation degrees (default: 90)
  * @returns Page transition variants
  */
-export function rotateTransition(
-  axis: 'x' | 'y' = 'y',
-  degrees = 90
-): PageTransitionVariants {
+export function rotateTransition(axis: 'x' | 'y' = 'y', degrees = 90): PageTransitionVariants {
   const rotateProperty = axis === 'x' ? 'rotateX' : 'rotateY';
 
   return {
@@ -495,3 +492,252 @@ export function getPageTransitionPreset(
  * Type exports
  */
 export type PageTransitionPreset = keyof typeof PAGE_TRANSITION_PRESETS;
+
+/**
+ * Page Transition Orchestration
+ *
+ * Utilities for coordinating parent-child animations during page transitions.
+ * Allows page content to animate in sequence with stagger and delay effects.
+ */
+
+/**
+ * Configuration options for page transition orchestration
+ */
+export interface PageOrchestrationOptions {
+  /**
+   * Delay before children start animating (in seconds)
+   * @default 0
+   */
+  delayChildren?: number;
+
+  /**
+   * Delay between each child animation (in seconds)
+   * @default 0.05
+   */
+  staggerChildren?: number;
+
+  /**
+   * When children should start animating relative to parent
+   * - 'afterParent': Wait for parent animation to complete
+   * - 'withParent': Animate alongside parent
+   * - 'beforeParent': Start before parent (unusual, but possible)
+   * @default 'afterParent'
+   */
+  when?: 'afterParent' | 'withParent' | 'beforeParent';
+}
+
+/**
+ * Creates orchestrated page transition variants
+ *
+ * Wraps any page transition variant to add parent-child animation coordination.
+ * Use this to create smooth, sequential animations for page content.
+ *
+ * @param baseTransition - Base page transition variants
+ * @param options - Orchestration options
+ * @returns Enhanced page transition variants with orchestration
+ *
+ * @example
+ * ```tsx
+ * // Orchestrate fade transition with staggered children
+ * const orchestratedFade = createOrchestration(fadeTransition, {
+ *   delayChildren: 0.2,
+ *   staggerChildren: 0.1
+ * });
+ *
+ * // Use in PageTransition component
+ * <motion.div variants={orchestratedFade} initial="initial" animate="animate" exit="exit">
+ *   <motion.h1 variants={childVariants}>Title</motion.h1>
+ *   <motion.p variants={childVariants}>Content</motion.p>
+ * </motion.div>
+ * ```
+ */
+export function createOrchestration(
+  baseTransition: PageTransitionVariants,
+  options: PageOrchestrationOptions = {}
+): PageTransitionVariants {
+  const { delayChildren = 0, staggerChildren = 0.05, when = 'afterParent' } = options;
+
+  // Calculate when to start children based on 'when' option
+  const getChildDelay = () => {
+    if (when === 'withParent') return delayChildren;
+    if (when === 'beforeParent') return Math.max(0, delayChildren - 0.2);
+    // 'afterParent' - add extra delay after parent animation
+    return delayChildren;
+  };
+
+  // Build animate transition object conditionally
+  const animateTransition: Record<string, unknown> = {
+    ...(baseTransition.animate.transition as object),
+    delayChildren: getChildDelay(),
+    staggerChildren,
+  };
+
+  // Only add 'when' for afterParent
+  if (when === 'afterParent') {
+    animateTransition.when = 'beforeChildren';
+  }
+
+  return {
+    initial: baseTransition.initial,
+    animate: {
+      ...baseTransition.animate,
+      transition: animateTransition,
+    },
+    exit: {
+      ...baseTransition.exit,
+      transition: {
+        ...(baseTransition.exit.transition as object),
+        when: 'afterChildren', // Always wait for children to exit first
+        staggerChildren: staggerChildren / 2, // Exit faster
+      },
+    },
+  };
+}
+
+/**
+ * Creates child variants for orchestrated page transitions
+ *
+ * Use these variants on child elements within an orchestrated page transition.
+ * Children will automatically inherit timing from parent orchestration.
+ *
+ * @param type - Type of child animation
+ * @returns Child animation variants
+ *
+ * @example
+ * ```tsx
+ * <motion.div variants={orchestratedPageTransition}>
+ *   <motion.h1 variants={pageChildVariants('fade')}>Title</motion.h1>
+ *   <motion.p variants={pageChildVariants('slideUp')}>Content</motion.p>
+ * </motion.div>
+ * ```
+ */
+export function pageChildVariants(
+  type: 'fade' | 'slideUp' | 'slideDown' | 'scale' = 'fade'
+): Variants {
+  const variants = {
+    fade: {
+      initial: { opacity: 0 },
+      animate: { opacity: 1, transition: { duration: 0.4 } },
+      exit: { opacity: 0, transition: { duration: 0.2 } },
+    },
+    slideUp: {
+      initial: { opacity: 0, y: 20 },
+      animate: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+      exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
+    },
+    slideDown: {
+      initial: { opacity: 0, y: -20 },
+      animate: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+      exit: { opacity: 0, y: 10, transition: { duration: 0.2 } },
+    },
+    scale: {
+      initial: { opacity: 0, scale: 0.95 },
+      animate: { opacity: 1, scale: 1, transition: { duration: 0.4 } },
+      exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
+    },
+  };
+
+  return variants[type];
+}
+
+/**
+ * Page Orchestration Presets
+ *
+ * Pre-configured orchestration settings for common page transition patterns.
+ */
+export const PAGE_ORCHESTRATION_PRESETS = {
+  /**
+   * Quick - Fast sequential reveal
+   * Best for: Simple pages with few elements
+   */
+  quick: {
+    delayChildren: 0.1,
+    staggerChildren: 0.03,
+    when: 'afterParent' as const,
+  },
+
+  /**
+   * Normal - Balanced sequential reveal
+   * Best for: Standard pages with moderate content
+   */
+  normal: {
+    delayChildren: 0.2,
+    staggerChildren: 0.05,
+    when: 'afterParent' as const,
+  },
+
+  /**
+   * Slow - Deliberate, cinematic reveal
+   * Best for: Landing pages, hero sections
+   */
+  slow: {
+    delayChildren: 0.3,
+    staggerChildren: 0.1,
+    when: 'afterParent' as const,
+  },
+
+  /**
+   * Simultaneous - Children animate with parent
+   * Best for: Simple transitions where everything moves together
+   */
+  simultaneous: {
+    delayChildren: 0,
+    staggerChildren: 0.02,
+    when: 'withParent' as const,
+  },
+
+  /**
+   * Dramatic - Long delays, noticeable stagger
+   * Best for: Marketing pages, feature showcases
+   */
+  dramatic: {
+    delayChildren: 0.5,
+    staggerChildren: 0.15,
+    when: 'afterParent' as const,
+  },
+} as const;
+
+/**
+ * Type for page orchestration preset keys
+ */
+export type PageOrchestrationPreset = keyof typeof PAGE_ORCHESTRATION_PRESETS;
+
+/**
+ * Get a page orchestration preset by name
+ *
+ * @param preset - Preset name
+ * @returns Orchestration options
+ */
+export function getPageOrchestrationPreset(
+  preset: PageOrchestrationPreset
+): PageOrchestrationOptions {
+  return PAGE_ORCHESTRATION_PRESETS[preset];
+}
+
+/**
+ * Helper to create a fully orchestrated page transition from presets
+ *
+ * Combines a transition preset with an orchestration preset for quick setup.
+ *
+ * @param transitionPreset - Page transition preset
+ * @param orchestrationPreset - Orchestration preset
+ * @returns Orchestrated page transition variants
+ *
+ * @example
+ * ```tsx
+ * // Quick setup with presets
+ * const transition = createOrchestrated('fade', 'normal');
+ *
+ * <motion.div variants={transition} initial="initial" animate="animate" exit="exit">
+ *   <motion.h1 variants={pageChildVariants('fade')}>Title</motion.h1>
+ * </motion.div>
+ * ```
+ */
+export function createOrchestrated(
+  transitionPreset: PageTransitionPreset,
+  orchestrationPreset: PageOrchestrationPreset
+): PageTransitionVariants {
+  const baseTransition = PAGE_TRANSITION_PRESETS[transitionPreset];
+  const orchestrationOptions = PAGE_ORCHESTRATION_PRESETS[orchestrationPreset];
+  return createOrchestration(baseTransition, orchestrationOptions);
+}
