@@ -6,6 +6,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>x402 Arcade - Insert a Penny, Play for Glory</title>
     <meta name="description" content="Gasless arcade gaming on Cronos blockchain using x402 protocol for micropayments" />
+
+    <!-- Preconnect to Google Fonts for faster font loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Preload critical fonts to avoid FOIT (Flash of Invisible Text) -->
+    <!-- Inter 400 - Primary body font -->
+    <link
+      rel="preload"
+      href="https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <!-- Orbitron 700 - Primary display font for headings -->
+    <link
+      rel="preload"
+      href="https://fonts.gstatic.com/s/orbitron/v31/yMJMMIlzdpvBhQQL_SC3X9yhF25-T1nymSmLJb5ZV4Q.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <!-- Critical CSS for font-display: swap -->
+    <style>
+      /* Ensure fonts show immediately with fallback, then swap when loaded */
+      @font-face {
+        font-family: 'Inter fallback';
+        src: local('Arial'), local('Helvetica'), local('sans-serif');
+        font-display: swap;
+        ascent-override: 90%;
+        descent-override: 25%;
+        line-gap-override: 0%;
+        size-adjust: 107%;
+      }
+      @font-face {
+        font-family: 'Orbitron fallback';
+        src: local('Arial Black'), local('Arial Bold'), local('sans-serif');
+        font-display: swap;
+        ascent-override: 100%;
+        descent-override: 25%;
+        line-gap-override: 0%;
+        size-adjust: 95%;
+      }
+      /* Prevent FOIT by showing text immediately */
+      html {
+        font-family: 'Inter', 'Inter fallback', system-ui, -apple-system, sans-serif;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
