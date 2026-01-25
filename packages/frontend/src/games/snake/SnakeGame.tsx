@@ -9,6 +9,7 @@
 import { useSnakeGame } from './useSnakeGame';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants';
 import type { SnakeDifficulty } from './constants';
+import { getTxUrl } from '../../config/chain';
 
 // ============================================================================
 // Component Props
@@ -26,6 +27,8 @@ export interface SnakeGameProps {
   onGameOver?: (score: number, sessionId?: string) => void;
   /** Callback to fetch rankings after game over */
   onFetchRankings?: (score: number) => Promise<RankingEntry[]>;
+  /** Transaction hash from the game payment */
+  transactionHash?: string;
   /** Optional CSS class name */
   className?: string;
 }
@@ -54,6 +57,7 @@ export function SnakeGame({
   difficulty = 'normal',
   onGameOver,
   onFetchRankings,
+  transactionHash,
   className = '',
 }: SnakeGameProps) {
   // Use the Snake game hook
@@ -134,6 +138,19 @@ export function SnakeGame({
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Transaction Verification Link */}
+            {transactionHash && (
+              <a
+                href={getTxUrl(transactionHash)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transaction-link"
+              >
+                <span className="tx-icon">&#x2713;</span>
+                <span className="tx-text">Verify on Explorer</span>
+              </a>
             )}
 
             <button className="restart-button" onClick={restart}>
@@ -405,6 +422,36 @@ export function SnakeGame({
           color: #00ffff;
           min-width: 3rem;
           text-align: right;
+        }
+
+        .transaction-link {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.75rem;
+          color: #94a3b8;
+          text-decoration: none;
+          background: rgba(0, 255, 0, 0.05);
+          border: 1px solid rgba(0, 255, 0, 0.2);
+          border-radius: 0.375rem;
+          transition: all 0.2s ease;
+        }
+
+        .transaction-link:hover {
+          color: #00ff00;
+          background: rgba(0, 255, 0, 0.1);
+          border-color: rgba(0, 255, 0, 0.4);
+        }
+
+        .tx-icon {
+          color: #00ff00;
+          font-size: 0.875rem;
+        }
+
+        .tx-text {
+          letter-spacing: 0.025em;
         }
 
         .restart-button {
