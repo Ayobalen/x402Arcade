@@ -6,10 +6,12 @@
  * @module games/snake/SnakeGame
  */
 
+import { useEffect, useCallback } from 'react';
 import { useSnakeGame } from './useSnakeGame';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants';
 import type { SnakeDifficulty } from './constants';
 import { getTxUrl } from '../../config/chain';
+import { useScoreSubmission } from '../../hooks/useScoreSubmission';
 
 // ============================================================================
 // Component Props
@@ -29,6 +31,10 @@ export interface SnakeGameProps {
   onFetchRankings?: (score: number) => Promise<RankingEntry[]>;
   /** Transaction hash from the game payment */
   transactionHash?: string;
+  /** Whether to enable automatic score submission */
+  enableScoreSubmission?: boolean;
+  /** Callback when score submission completes */
+  onScoreSubmitted?: (success: boolean, error?: string) => void;
   /** Optional CSS class name */
   className?: string;
 }
@@ -58,13 +64,56 @@ export function SnakeGame({
   onGameOver,
   onFetchRankings,
   transactionHash,
+  enableScoreSubmission = false,
+  onScoreSubmitted,
   className = '',
 }: SnakeGameProps) {
   // Use the Snake game hook
-  const { state, canvasRef, restart, playerRank, rankings, isLoadingRankings } = useSnakeGame(
-    difficulty,
-    { onGameOver, onFetchRankings }
-  );
+  const { state, canvasRef, restart, playerRank, rankings, isLoadingRankings, sessionId } =
+    useSnakeGame(difficulty, { onGameOver, onFetchRankings });
+
+  // Score submission hook
+  const {
+    submit: submitScore,
+    isSubmitting: isSubmittingScore,
+    isSuccess: scoreSubmitted,
+    isError: scoreSubmissionFailed,
+    error: scoreError,
+    reset: resetScoreSubmission,
+  } = useScoreSubmission();
+
+  // Auto-submit score on game over
+  useEffect(() => {
+    if (
+      state.isGameOver &&
+      enableScoreSubmission &&
+      sessionId &&
+      !scoreSubmitted &&
+      !isSubmittingScore
+    ) {
+      submitScore(sessionId, state.score).then((result) => {
+        if (onScoreSubmitted) {
+          onScoreSubmitted(!!result, result ? undefined : scoreError?.message);
+        }
+      });
+    }
+  }, [
+    state.isGameOver,
+    enableScoreSubmission,
+    sessionId,
+    state.score,
+    scoreSubmitted,
+    isSubmittingScore,
+    submitScore,
+    onScoreSubmitted,
+    scoreError?.message,
+  ]);
+
+  // Reset score submission state when game restarts
+  const handleRestart = useCallback(() => {
+    resetScoreSubmission();
+    restart();
+  }, [resetScoreSubmission, restart]);
 
   return (
     <div className={`snake-game ${className}`}>
@@ -140,6 +189,32 @@ export function SnakeGame({
               </div>
             )}
 
+            {/* Score Submission Status */}
+            {enableScoreSubmission && (
+              <div className="submission-status">
+                {isSubmittingScore && (
+                  <div className="submission-loading">
+                    <span className="submission-spinner"></span>
+                    <span className="submission-text">Submitting score...</span>
+                  </div>
+                )}
+                {scoreSubmitted && (
+                  <div className="submission-success">
+                    <span className="submission-icon">&#x2713;</span>
+                    <span className="submission-text">Score submitted!</span>
+                  </div>
+                )}
+                {scoreSubmissionFailed && (
+                  <div className="submission-error">
+                    <span className="submission-icon">&#x2717;</span>
+                    <span className="submission-text">
+                      {scoreError?.message || 'Submission failed'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Transaction Verification Link */}
             {transactionHash && (
               <a
@@ -153,7 +228,7 @@ export function SnakeGame({
               </a>
             )}
 
-            <button className="restart-button" onClick={restart}>
+            <button className="restart-button" onClick={handleRestart} disabled={isSubmittingScore}>
               Play Again
             </button>
           </div>
@@ -424,6 +499,68 @@ export function SnakeGame({
           text-align: right;
         }
 
+        .submission-status {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 2rem;
+          margin: 0.5rem 0;
+        }
+
+        .submission-loading,
+        .submission-success,
+        .submission-error {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.875rem;
+        }
+
+        .submission-loading {
+          color: #00ffff;
+          background: rgba(0, 255, 255, 0.1);
+          border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .submission-success {
+          color: #00ff00;
+          background: rgba(0, 255, 0, 0.1);
+          border: 1px solid rgba(0, 255, 0, 0.2);
+        }
+
+        .submission-error {
+          color: #ff4444;
+          background: rgba(255, 68, 68, 0.1);
+          border: 1px solid rgba(255, 68, 68, 0.2);
+        }
+
+        .submission-spinner {
+          width: 1rem;
+          height: 1rem;
+          border: 2px solid rgba(0, 255, 255, 0.3);
+          border-top-color: #00ffff;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .submission-icon {
+          font-size: 1rem;
+          font-weight: bold;
+        }
+
+        .submission-text {
+          font-weight: 500;
+        }
+
         .transaction-link {
           display: flex;
           align-items: center;
@@ -475,6 +612,18 @@ export function SnakeGame({
 
         .restart-button:active {
           transform: translateY(0);
+        }
+
+        .restart-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        .restart-button:disabled:hover {
+          transform: none;
+          box-shadow: none;
         }
 
         .game-info {

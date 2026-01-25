@@ -284,4 +284,58 @@ describe('SnakeGame Component', () => {
       expect(container.querySelector('.snake-game')).toBeInTheDocument();
     });
   });
+
+  describe('Score Submission', () => {
+    it('should accept enableScoreSubmission prop', () => {
+      const { container } = render(<SnakeGame enableScoreSubmission={true} />);
+
+      // Component should render without errors
+      expect(container.querySelector('.snake-game')).toBeInTheDocument();
+    });
+
+    it('should accept onScoreSubmitted callback', () => {
+      const onScoreSubmitted = vi.fn();
+      const { container } = render(<SnakeGame onScoreSubmitted={onScoreSubmitted} />);
+
+      // Component should render without errors
+      expect(container.querySelector('.snake-game')).toBeInTheDocument();
+    });
+
+    it('should not show submission status when enableScoreSubmission is false', () => {
+      render(<SnakeGame enableScoreSubmission={false} />);
+
+      // Submission status elements should not be present during gameplay
+      expect(screen.queryByText('Submitting score...')).not.toBeInTheDocument();
+      expect(screen.queryByText('Score submitted!')).not.toBeInTheDocument();
+    });
+
+    it('should render with all score submission props combined', () => {
+      const onScoreSubmitted = vi.fn();
+      const { container } = render(
+        <SnakeGame
+          enableScoreSubmission={true}
+          onScoreSubmitted={onScoreSubmitted}
+          onGameOver={vi.fn()}
+        />
+      );
+
+      // Component should render without errors
+      expect(container.querySelector('.snake-game')).toBeInTheDocument();
+    });
+
+    it('should handle score submission with transaction hash', () => {
+      const onScoreSubmitted = vi.fn();
+      const txHash = '0xabc123';
+      const { container } = render(
+        <SnakeGame
+          enableScoreSubmission={true}
+          onScoreSubmitted={onScoreSubmitted}
+          transactionHash={txHash}
+        />
+      );
+
+      // Component should render without errors
+      expect(container.querySelector('.snake-game')).toBeInTheDocument();
+    });
+  });
 });
