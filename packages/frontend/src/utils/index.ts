@@ -109,3 +109,16 @@ export {
   type AudioOptions,
   default as AudioManager,
 } from './AudioManager';
+
+export {
+  SFXEngine,
+  getSFXEngine,
+  SoundPriority,
+  type SoundAsset,
+  type SoundVariant,
+  type SoundSprite,
+  type SoundPlayRequest,
+  type CacheStats,
+  type PlaybackStats,
+  type SFXEngineConfig,
+} from './SFXEngine';
