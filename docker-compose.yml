@@ -1,0 +1,165 @@
+version: '3.8'
+
+# x402Arcade Full Stack Docker Compose Configuration
+# This orchestrates both frontend and backend services for local development and testing
+
+services:
+  # ============================================================================
+  # Backend API Service
+  # ============================================================================
+  backend:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: x402arcade-backend
+    ports:
+      - '${BACKEND_PORT:-8000}:8000'
+    environment:
+      # Server Configuration
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=8000
+      - HOST=0.0.0.0
+
+      # Blockchain Configuration (Cronos Testnet)
+      - CHAIN_ID=${CHAIN_ID:-338}
+      - RPC_URL=${RPC_URL:-https://evm-t3.cronos.org}
+      - FACILITATOR_URL=${FACILITATOR_URL:-https://x402.cronos.org/v1}
+      - USDC_ADDRESS=${USDC_ADDRESS:-0x0000000000000000000000000000000000000000}
+
+      # Application Configuration
+      - GAME_COST_USD=${GAME_COST_USD:-0.01}
+      - PRIZE_POOL_PERCENTAGE=${PRIZE_POOL_PERCENTAGE:-70}
+
+      # Security
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+
+      # Optional: Database URL (SQLite by default)
+      - DATABASE_URL=${DATABASE_URL:-}
+
+    volumes:
+      # Persist SQLite database
+      - backend-data:/app/data
+
+      # Optional: Mount .env for local development
+      # - ./packages/backend/.env:/app/.env:ro
+
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:8000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - x402arcade-network
+
+  # ============================================================================
+  # Frontend Web Application (Production Build)
+  # ============================================================================
+  frontend:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+        - VITE_CHAIN_ID=${VITE_CHAIN_ID:-338}
+        - VITE_RPC_URL=${VITE_RPC_URL:-https://evm-t3.cronos.org}
+        - VITE_USDC_ADDRESS=${VITE_USDC_ADDRESS:-0x0000000000000000000000000000000000000000}
+    container_name: x402arcade-frontend
+    ports:
+      - '${FRONTEND_PORT:-3000}:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - x402arcade-network
+
+  # ============================================================================
+  # Frontend Development Server (Hot Reload)
+  # ============================================================================
+  frontend-dev:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: x402arcade-frontend-dev
+    ports:
+      - '${FRONTEND_DEV_PORT:-3001}:3000'
+    environment:
+      - VITE_API_URL=http://backend:8000
+      - VITE_CHAIN_ID=338
+      - VITE_RPC_URL=https://evm-t3.cronos.org
+    volumes:
+      # Mount source for hot reload
+      - ./packages/frontend/src:/app/src
+      - ./packages/frontend/public:/app/public
+      - ./packages/frontend/index.html:/app/index.html
+      - ./packages/frontend/vite.config.ts:/app/vite.config.ts
+      - ./packages/frontend/tsconfig.json:/app/tsconfig.json
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+    networks:
+      - x402arcade-network
+    profiles:
+      - dev
+
+  # ============================================================================
+  # Backend Development Server (Hot Reload)
+  # ============================================================================
+  backend-dev:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+      target: dependencies
+    container_name: x402arcade-backend-dev
+    ports:
+      - '${BACKEND_DEV_PORT:-8001}:8000'
+    environment:
+      - NODE_ENV=development
+      - PORT=8000
+      - HOST=0.0.0.0
+      - CHAIN_ID=338
+      - RPC_URL=https://evm-t3.cronos.org
+    volumes:
+      # Mount source for hot reload
+      - ./packages/backend/src:/app/src
+      - ./packages/backend/package.json:/app/package.json
+      - ./packages/backend/.env:/app/.env:ro
+      - backend-dev-data:/app/data
+    command: npm run dev
+    networks:
+      - x402arcade-network
+    profiles:
+      - dev
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  x402arcade-network:
+    driver: bridge
+    name: x402arcade-network
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  # Backend production database
+  backend-data:
+    driver: local
+
+  # Backend development database
+  backend-dev-data:
+    driver: local
