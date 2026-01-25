@@ -81,5 +81,8 @@ export const TETRIS_GAME_ID = 'tetris' as const;
 // Main game component
 export { TetrisGame, type TetrisGameProps } from './TetrisGame';
 
+// Game wrapper component
+export { TetrisGameWrapper, type TetrisGameWrapperProps } from './TetrisGameWrapper';
+
 // Re-export game type for convenience
 export { GAME_TYPES } from '../types';

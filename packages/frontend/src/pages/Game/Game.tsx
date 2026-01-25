@@ -11,6 +11,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { SnakeGame } from '@/games/snake/SnakeGame';
 import { PongGameWrapper } from '@/games/pong/PongGameWrapper';
+import { TetrisGameWrapper } from '@/games/tetris/TetrisGameWrapper';
 
 /**
  * Game metadata
@@ -46,7 +47,7 @@ const GAMES: Record<string, GameInfo> = {
     name: 'Tetris',
     emoji: '🟦',
     description: 'Stack falling blocks to clear lines. Speed increases as you progress.',
-    status: 'coming-soon',
+    status: 'available',
   },
   breakout: {
     id: 'breakout',
@@ -158,6 +159,17 @@ export function Game() {
       <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
         <div className="max-w-4xl mx-auto w-full">
           <PongGameWrapper onExit={handleExit} />
+        </div>
+      </div>
+    );
+  }
+
+  // Render available game - Tetris
+  if (gameInfo.status === 'available' && gameId === 'tetris') {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="max-w-4xl mx-auto w-full">
+          <TetrisGameWrapper onExit={handleExit} />
         </div>
       </div>
     );

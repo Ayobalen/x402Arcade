@@ -54,7 +54,7 @@ const GAMES: Game[] = [
     emoji: '🟦',
     description: 'Stack falling blocks to clear lines. Speed increases as you progress.',
     price: '$0.01',
-    status: 'coming-soon',
+    status: 'available',
     route: '/play/tetris',
   },
   {
