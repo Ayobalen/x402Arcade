@@ -89,3 +89,16 @@ export {
 export { useReducedMotion, useMotionConfig } from './useReducedMotion';
 
 export { useAnimation, type ExtendedAnimationControls } from './useAnimation';
+
+export {
+  useScrollRestoration,
+  clearScrollPositions,
+  __testing as scrollRestorationTesting,
+} from './useScrollRestoration';
+
+export {
+  useScoreSubmission,
+  type SubmissionStatus,
+  type SubmissionError,
+  type UseScoreSubmissionReturn,
+} from './useScoreSubmission';
