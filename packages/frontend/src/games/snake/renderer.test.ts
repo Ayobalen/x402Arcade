@@ -15,6 +15,9 @@ import {
   renderSnakeHead,
   renderSnakeBody,
   renderSnakeBodyAnimated,
+  renderPauseOverlay,
+  renderGameOverOverlay,
+  renderScore,
   RENDER_COLORS,
 } from './renderer';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, CELL_SIZE } from './constants';
@@ -40,6 +43,9 @@ function createMockContext() {
     lineWidth: 1,
     shadowBlur: 0,
     shadowColor: '',
+    font: '',
+    textAlign: 'left' as CanvasTextAlign,
+    textBaseline: 'alphabetic' as CanvasTextBaseline,
 
     // Drawing methods
     fillRect: (...args: any[]) => calls.push({ method: 'fillRect', args }),
@@ -52,6 +58,8 @@ function createMockContext() {
     arc: (...args: any[]) => calls.push({ method: 'arc', args }),
     closePath: () => calls.push({ method: 'closePath', args: [] }),
     clearRect: (...args: any[]) => calls.push({ method: 'clearRect', args }),
+    fillText: (...args: any[]) => calls.push({ method: 'fillText', args }),
+    measureText: (text: string) => ({ width: text.length * 10 }),
 
     // Helper to get all calls of a specific method
     getCalls(method: string) {
@@ -899,5 +907,342 @@ describe('renderSnakeBodyAnimated', () => {
     const fillRectCalls = mockCtx.getCalls('fillRect');
 
     expect(fillRectCalls).toHaveLength(1);
+  });
+});
+
+// ============================================================================
+// Pause Overlay Tests
+// ============================================================================
+
+describe('renderPauseOverlay', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+  });
+
+  it('should draw semi-transparent overlay', () => {
+    renderPauseOverlay(ctx);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    // First fillRect should be the overlay
+    expect(fillRectCalls.length).toBeGreaterThan(0);
+    expect(fillRectCalls[0].args).toEqual([0, 0, CANVAS_WIDTH, CANVAS_HEIGHT]);
+  });
+
+  it('should use semi-transparent black for overlay', () => {
+    const mockCtx = ctx as any;
+
+    renderPauseOverlay(ctx);
+
+    // Check that the first fillRect (overlay) was drawn
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+    expect(fillRectCalls.length).toBeGreaterThan(0);
+
+    // The overlay should cover the entire canvas
+    expect(fillRectCalls[0].args).toEqual([0, 0, CANVAS_WIDTH, CANVAS_HEIGHT]);
+  });
+
+  it('should draw "PAUSED" text', () => {
+    renderPauseOverlay(ctx);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Should have at least one fillText call with "PAUSED"
+    const pausedCall = fillTextCalls.find((call: any) => call.args[0] === 'PAUSED');
+    expect(pausedCall).toBeDefined();
+  });
+
+  it('should draw instruction text', () => {
+    renderPauseOverlay(ctx);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Should have fillText call with space instruction
+    const instructionCall = fillTextCalls.find((call: any) => call.args[0].includes('SPACE'));
+    expect(instructionCall).toBeDefined();
+  });
+
+  it('should center "PAUSED" text', () => {
+    renderPauseOverlay(ctx);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Find "PAUSED" text call
+    const pausedCall = fillTextCalls.find((call: any) => call.args[0] === 'PAUSED');
+    expect(pausedCall).toBeDefined();
+
+    // Check that x coordinate is center
+    expect(pausedCall.args[1]).toBe(CANVAS_WIDTH / 2);
+  });
+
+  it('should set textAlign to center', () => {
+    renderPauseOverlay(ctx);
+    expect(ctx.textAlign).toBe('center');
+  });
+
+  it('should set textBaseline to middle', () => {
+    renderPauseOverlay(ctx);
+    expect(ctx.textBaseline).toBe('middle');
+  });
+
+  it('should use white text color', () => {
+    renderPauseOverlay(ctx);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // fillStyle should be white for text
+    expect(fillTextCalls.length).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
+// Game Over Overlay Tests
+// ============================================================================
+
+describe('renderGameOverOverlay', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+  });
+
+  it('should draw semi-transparent overlay', () => {
+    renderGameOverOverlay(ctx, 100);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    // First fillRect should be the overlay
+    expect(fillRectCalls.length).toBeGreaterThan(0);
+    expect(fillRectCalls[0].args).toEqual([0, 0, CANVAS_WIDTH, CANVAS_HEIGHT]);
+  });
+
+  it('should use semi-transparent black for overlay', () => {
+    const mockCtx = ctx as any;
+
+    renderGameOverOverlay(ctx, 100);
+
+    // Check that the first fillRect (overlay) was drawn
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+    expect(fillRectCalls.length).toBeGreaterThan(0);
+
+    // The overlay should cover the entire canvas
+    expect(fillRectCalls[0].args).toEqual([0, 0, CANVAS_WIDTH, CANVAS_HEIGHT]);
+  });
+
+  it('should draw "GAME OVER" text', () => {
+    renderGameOverOverlay(ctx, 100);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Should have fillText call with "GAME OVER"
+    const gameOverCall = fillTextCalls.find((call: any) => call.args[0] === 'GAME OVER');
+    expect(gameOverCall).toBeDefined();
+  });
+
+  it('should display final score', () => {
+    const testScore = 1250;
+    renderGameOverOverlay(ctx, testScore);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Should have fillText call with score
+    const scoreCall = fillTextCalls.find((call: any) => call.args[0].includes(`${testScore}`));
+    expect(scoreCall).toBeDefined();
+    expect(scoreCall.args[0]).toContain('Score:');
+  });
+
+  it('should draw instruction text', () => {
+    renderGameOverOverlay(ctx, 100);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Should have fillText call with restart instruction
+    const instructionCall = fillTextCalls.find((call: any) => call.args[0].includes('restart'));
+    expect(instructionCall).toBeDefined();
+  });
+
+  it('should center text', () => {
+    renderGameOverOverlay(ctx, 100);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // All text calls should be centered
+    fillTextCalls.forEach((call: any) => {
+      expect(call.args[1]).toBe(CANVAS_WIDTH / 2);
+    });
+  });
+
+  it('should handle score of 0', () => {
+    renderGameOverOverlay(ctx, 0);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    const scoreCall = fillTextCalls.find((call: any) => call.args[0].includes('0'));
+    expect(scoreCall).toBeDefined();
+  });
+
+  it('should handle large scores', () => {
+    const largeScore = 999999;
+    renderGameOverOverlay(ctx, largeScore);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    const scoreCall = fillTextCalls.find((call: any) => call.args[0].includes(`${largeScore}`));
+    expect(scoreCall).toBeDefined();
+  });
+
+  it('should set textAlign to center', () => {
+    renderGameOverOverlay(ctx, 100);
+    expect(ctx.textAlign).toBe('center');
+  });
+
+  it('should set textBaseline to middle', () => {
+    renderGameOverOverlay(ctx, 100);
+    expect(ctx.textBaseline).toBe('middle');
+  });
+});
+
+// ============================================================================
+// Score Display Tests
+// ============================================================================
+
+describe('renderScore', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+    // Mock measureText for score display
+    (ctx as any).measureText = (text: string) => ({
+      width: text.length * 10, // Approximate width
+    });
+  });
+
+  it('should draw background rectangle', () => {
+    renderScore(ctx, 100);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    expect(fillRectCalls.length).toBeGreaterThan(0);
+  });
+
+  it('should draw score text', () => {
+    const testScore = 350;
+    renderScore(ctx, testScore);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Should have fillText call with score
+    const scoreCall = fillTextCalls.find((call: any) => call.args[0].includes(`${testScore}`));
+    expect(scoreCall).toBeDefined();
+    expect(scoreCall.args[0]).toContain('Score:');
+  });
+
+  it('should position in top-left corner', () => {
+    renderScore(ctx, 100);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Background should be near top-left
+    expect(fillRectCalls[0].args[0]).toBe(10); // x = 10
+    expect(fillRectCalls[0].args[1]).toBe(10); // y = 10
+
+    // Text should also be near top-left
+    expect(fillTextCalls[0].args[1]).toBeLessThan(50); // x position
+    expect(fillTextCalls[0].args[2]).toBeLessThan(50); // y position
+  });
+
+  it('should use semi-transparent background', () => {
+    renderScore(ctx, 100);
+
+    // Background should use rgba with alpha
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+    expect(fillRectCalls.length).toBeGreaterThan(0);
+  });
+
+  it('should use white text color', () => {
+    renderScore(ctx, 100);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Text should be white
+    expect(fillTextCalls.length).toBeGreaterThan(0);
+  });
+
+  it('should handle score of 0', () => {
+    renderScore(ctx, 0);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    const scoreCall = fillTextCalls.find((call: any) => call.args[0].includes('0'));
+    expect(scoreCall).toBeDefined();
+  });
+
+  it('should handle large scores', () => {
+    const largeScore = 999999;
+    renderScore(ctx, largeScore);
+
+    const mockCtx = ctx as any;
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    const scoreCall = fillTextCalls.find((call: any) => call.args[0].includes(`${largeScore}`));
+    expect(scoreCall).toBeDefined();
+  });
+
+  it('should set textAlign to left', () => {
+    renderScore(ctx, 100);
+    expect(ctx.textAlign).toBe('left');
+  });
+
+  it('should set textBaseline to top', () => {
+    renderScore(ctx, 100);
+    expect(ctx.textBaseline).toBe('top');
+  });
+
+  it('should call measureText to calculate background width', () => {
+    const mockCtx = ctx as any;
+    let measureTextCalled = false;
+    mockCtx.measureText = (text: string) => {
+      measureTextCalled = true;
+      return { width: text.length * 10 };
+    };
+
+    renderScore(ctx, 100);
+
+    expect(measureTextCalled).toBe(true);
+  });
+
+  it('should add padding to background', () => {
+    renderScore(ctx, 100);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+    const fillTextCalls = mockCtx.getCalls('fillText');
+
+    // Background should be wider than text (includes padding)
+    const bgWidth = fillRectCalls[0].args[2];
+    const textX = fillTextCalls[0].args[1];
+
+    expect(bgWidth).toBeGreaterThan(0);
   });
 });
