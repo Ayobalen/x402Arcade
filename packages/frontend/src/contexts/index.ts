@@ -32,3 +32,25 @@ export {
 } from './AnimationContext';
 
 export type { AnimationContextType, AnimationProviderProps } from './AnimationContext';
+
+// Quality Context
+export {
+  QualityContext,
+  QualityProvider,
+  useQuality,
+  useQualitySafe,
+  useQualitySettings,
+  useQualityFeatures,
+  useFpsReporter,
+  QUALITY_PRESETS as QUALITY_3D_PRESETS,
+} from './QualityContext';
+
+export type {
+  QualityPreset as Quality3DPreset,
+  ResolvedQuality,
+  Quality3DSettings,
+  QualityContextState,
+  QualityContextMethods,
+  QualityContextType,
+  QualityProviderProps,
+} from './QualityContext';

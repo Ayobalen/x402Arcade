@@ -151,3 +151,15 @@ export {
   type CacheOptions,
   type UseApiCacheReturn,
 } from './useApiCache';
+
+export {
+  useAutoQualityDetection,
+  type DeviceType,
+  type ConnectionQuality,
+  type BatteryStatus,
+  type DeviceCapabilities,
+  type QualityRecommendation,
+  type FpsMonitorState,
+  type UseAutoQualityDetectionOptions,
+  type UseAutoQualityDetectionResult,
+} from './useAutoQualityDetection';
