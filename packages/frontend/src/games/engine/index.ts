@@ -8,7 +8,7 @@
  */
 
 // Export all types from types.ts
-export * from './types'
+export * from './types';
 
 // Export game loop utilities
 export {
@@ -22,7 +22,7 @@ export {
   DEFAULT_GAME_LOOP_CONFIG,
   type DeltaTimeCalculator,
   type FpsCounter,
-} from './game-loop'
+} from './game-loop';
 
 // Export state machine utilities
 export {
@@ -37,7 +37,7 @@ export {
   type StateMachineConfig,
   type StateMachine,
   type GameStateName,
-} from './state-machine'
+} from './state-machine';
 
 // Export touch input utilities
 export {
@@ -53,7 +53,7 @@ export {
   type TouchInputCallbacks,
   type TouchPoint,
   type SwipeGesture,
-} from './touch-input'
+} from './touch-input';
 
 // Export collision detection utilities
 export {
@@ -92,7 +92,7 @@ export {
   type AABB,
   type LineSegment,
   type CollisionResponseOptions,
-} from './collision'
+} from './collision';
 
 // Export input manager utilities
 export {
@@ -112,7 +112,26 @@ export {
   type RegisteredHandler,
   type KeyMapping,
   type InputState,
-} from './input-manager'
+} from './input-manager';
+
+// Export input buffer utilities
+export {
+  createInputBuffer,
+  createGameStateRecorder,
+  downloadRecording,
+  downloadStateRecording,
+  loadRecording,
+  loadStateRecording,
+  DEFAULT_INPUT_BUFFER_CONFIG,
+  type InputBuffer,
+  type InputBufferConfig,
+  type InputEvent,
+  type BufferedInput,
+  type InputRecording,
+  type SerializedRecording,
+  type GameStateSnapshot,
+  type GameStateRecorder,
+} from './input-buffer';
 
 // Export audio manager utilities
 export {
@@ -126,7 +145,7 @@ export {
   type SoundCategory,
   type LoadedSound,
   type PlayingSound,
-} from './audio-manager'
+} from './audio-manager';
 
 // Export music manager utilities
 export {
@@ -140,7 +159,7 @@ export {
   type MusicTrack,
   type MusicState,
   type CrossfadeConfig,
-} from './music-manager'
+} from './music-manager';
 
 // Default export for convenient importing
-export { default as types } from '../types'
+export { default as types } from '../types';

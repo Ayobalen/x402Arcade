@@ -10,6 +10,7 @@ A lightweight, modular game engine designed for the x402 Arcade platform. Built 
   - [GameLoop](#gameloop)
   - [StateMachine](#statemachine)
   - [InputManager](#inputmanager)
+  - [InputBuffer](#inputbuffer)
   - [Collision Detection](#collision-detection)
   - [AudioManager](#audiomanager)
   - [MusicManager](#musicmanager)
@@ -37,13 +38,13 @@ import {
   createInputManager,
   createAudioManager,
   GAME_STATES,
-} from '@/games/engine'
+} from '@/games/engine';
 
 // 1. Create the game loop
-const gameLoop = createGameLoop({ targetFps: 60 })
+const gameLoop = createGameLoop({ targetFps: 60 });
 
 // 2. Create input manager
-const inputManager = createInputManager()
+const inputManager = createInputManager();
 
 // 3. Create state machine
 const stateMachine = createStateMachine({
@@ -54,33 +55,33 @@ const stateMachine = createStateMachine({
     { name: GAME_STATES.PAUSED },
     { name: GAME_STATES.GAME_OVER },
   ],
-})
+});
 
 // 4. Set up game loop callbacks
 gameLoop.setUpdateCallback((frameInfo) => {
-  const input = inputManager.getInput()
+  const input = inputManager.getInput();
 
   // Handle input
   if (input.pause && stateMachine.isInState(GAME_STATES.PLAYING)) {
-    stateMachine.transitionTo(GAME_STATES.PAUSED)
-    gameLoop.pause()
+    stateMachine.transitionTo(GAME_STATES.PAUSED);
+    gameLoop.pause();
   }
 
   // Update game logic
-  updateGame(frameInfo.deltaTime, input)
-})
+  updateGame(frameInfo.deltaTime, input);
+});
 
 gameLoop.setRenderCallback((frameInfo) => {
-  renderGame()
-})
+  renderGame();
+});
 
 // 5. Start the game
-stateMachine.transitionTo(GAME_STATES.PLAYING)
-gameLoop.start()
+stateMachine.transitionTo(GAME_STATES.PLAYING);
+gameLoop.start();
 
 // 6. Cleanup when done
-gameLoop.destroy()
-inputManager.dispose()
+gameLoop.destroy();
+inputManager.dispose();
 ```
 
 ## Core Modules
@@ -90,15 +91,15 @@ inputManager.dispose()
 The game loop provides frame-rate independent timing with support for fixed timestep physics.
 
 ```typescript
-import { createGameLoop, deltaToSeconds } from '@/games/engine'
+import { createGameLoop, deltaToSeconds } from '@/games/engine';
 
 const loop = createGameLoop({
-  targetFps: 60,              // Target frame rate
-  fixedTimestep: 1000 / 60,   // Physics timestep (16.67ms)
-  maxDeltaTime: 100,          // Cap delta to prevent spiral of death
-  useFixedTimestep: true,     // Enable fixed timestep for physics
-  autoPauseOnHidden: true,    // Pause when tab is hidden
-})
+  targetFps: 60, // Target frame rate
+  fixedTimestep: 1000 / 60, // Physics timestep (16.67ms)
+  maxDeltaTime: 100, // Cap delta to prevent spiral of death
+  useFixedTimestep: true, // Enable fixed timestep for physics
+  autoPauseOnHidden: true, // Pause when tab is hidden
+});
 
 // Variable timestep update (for animations, input)
 loop.setUpdateCallback((frameInfo) => {
@@ -107,46 +108,46 @@ loop.setUpdateCallback((frameInfo) => {
   // frameInfo.frameNumber - current frame count
   // frameInfo.fps - current frames per second
 
-  player.update(frameInfo.deltaTime)
-})
+  player.update(frameInfo.deltaTime);
+});
 
 // Fixed timestep update (for physics)
 loop.setFixedUpdateCallback((deltaTime) => {
   // deltaTime is always fixedTimestep (16.67ms at 60fps)
-  physicsWorld.step(deltaToSeconds(deltaTime))
-})
+  physicsWorld.step(deltaToSeconds(deltaTime));
+});
 
 // Render callback
 loop.setRenderCallback((frameInfo) => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  renderGame()
-})
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  renderGame();
+});
 
 // Control the loop
-loop.start()
-loop.pause()
-loop.resume()
-loop.stop()
-loop.destroy() // Clean up listeners
+loop.start();
+loop.pause();
+loop.resume();
+loop.stop();
+loop.destroy(); // Clean up listeners
 
 // Query state
-loop.isRunning()
-loop.isPaused()
-loop.getFps()
+loop.isRunning();
+loop.isPaused();
+loop.getFps();
 ```
 
 #### Utility Functions
 
 ```typescript
-import { deltaToSeconds, deltaToMs, calculateInterpolationAlpha } from '@/games/engine'
+import { deltaToSeconds, deltaToMs, calculateInterpolationAlpha } from '@/games/engine';
 
 // Convert between milliseconds and seconds
-const seconds = deltaToSeconds(16.67)  // 0.01667
-const ms = deltaToMs(0.01667)          // 16.67
+const seconds = deltaToSeconds(16.67); // 0.01667
+const ms = deltaToMs(0.01667); // 16.67
 
 // For smooth rendering between physics steps
-const alpha = calculateInterpolationAlpha(accumulatedTime, fixedTimestep)
-const renderX = prevX + (currX - prevX) * alpha
+const alpha = calculateInterpolationAlpha(accumulatedTime, fixedTimestep);
+const renderX = prevX + (currX - prevX) * alpha;
 ```
 
 ### StateMachine
@@ -154,28 +155,28 @@ const renderX = prevX + (currX - prevX) * alpha
 Manage game states with validated transitions and lifecycle hooks.
 
 ```typescript
-import { createStateMachine, createGameStateMachine, GAME_STATES } from '@/games/engine'
+import { createStateMachine, createGameStateMachine, GAME_STATES } from '@/games/engine';
 
 // Option 1: Use the pre-configured game state machine
 const stateMachine = createGameStateMachine(gameContext, {
   playing: {
     onEnter: (ctx) => {
-      ctx.startTime = Date.now()
-      console.log('Game started!')
+      ctx.startTime = Date.now();
+      console.log('Game started!');
     },
     onUpdate: (ctx, deltaTime) => {
-      ctx.elapsed += deltaTime
+      ctx.elapsed += deltaTime;
     },
     onExit: (ctx) => {
-      console.log('Game ended')
+      console.log('Game ended');
     },
   },
   gameOver: {
     onEnter: (ctx) => {
-      saveHighScore(ctx.score)
+      saveHighScore(ctx.score);
     },
   },
-})
+});
 
 // Option 2: Create a custom state machine
 const customMachine = createStateMachine({
@@ -202,26 +203,26 @@ const customMachine = createStateMachine({
     { from: 'playing', to: 'menu' },
   ],
   context: gameContext,
-})
+});
 
 // Use the state machine
-stateMachine.transitionTo(GAME_STATES.PLAYING)
-stateMachine.update(deltaTime)
+stateMachine.transitionTo(GAME_STATES.PLAYING);
+stateMachine.update(deltaTime);
 
 // Query state
-stateMachine.getCurrentState()      // 'playing'
-stateMachine.getPreviousState()     // 'idle'
-stateMachine.isInState('playing')   // true
-stateMachine.canTransitionTo('paused') // true
-stateMachine.getValidTransitions()  // ['paused', 'game_over']
+stateMachine.getCurrentState(); // 'playing'
+stateMachine.getPreviousState(); // 'idle'
+stateMachine.isInState('playing'); // true
+stateMachine.canTransitionTo('paused'); // true
+stateMachine.getValidTransitions(); // ['paused', 'game_over']
 
 // Subscribe to state changes
 const unsubscribe = stateMachine.subscribe((event) => {
-  console.log(`State changed: ${event.previousState} -> ${event.currentState}`)
-})
+  console.log(`State changed: ${event.previousState} -> ${event.currentState}`);
+});
 
 // Reset to initial state
-stateMachine.reset()
+stateMachine.reset();
 ```
 
 ### InputManager
@@ -233,32 +234,36 @@ import {
   createInputManager,
   getPrimaryDirection,
   hasAnyInput,
-  DEFAULT_KEY_MAPPING
-} from '@/games/engine'
+  DEFAULT_KEY_MAPPING,
+} from '@/games/engine';
 
 const input = createInputManager({
   keyMapping: {
     ...DEFAULT_KEY_MAPPING,
-    action: ['Space', 'Enter', 'KeyZ', 'KeyJ'],  // Custom action keys
+    action: ['Space', 'Enter', 'KeyZ', 'KeyJ'], // Custom action keys
   },
   enableKeyboard: true,
   enableTouch: true,
   enableMouse: true,
   preventDefault: true,
-})
+});
 
 // Attach to canvas for touch/mouse support
-input.attach(canvasElement)
+input.attach(canvasElement);
 
 // Register handlers for immediate input events
-input.registerHandler('movement', (action, pressed) => {
-  if (action === 'up' && pressed) {
-    player.jump()
-  }
-}, 10) // Priority 10 (higher = called first)
+input.registerHandler(
+  'movement',
+  (action, pressed) => {
+    if (action === 'up' && pressed) {
+      player.jump();
+    }
+  },
+  10
+); // Priority 10 (higher = called first)
 
 // Poll input state in game loop
-const state = input.getInput()
+const state = input.getInput();
 // state.directions - Set<Direction> ('up', 'down', 'left', 'right')
 // state.action - boolean (primary action)
 // state.secondaryAction - boolean
@@ -267,22 +272,182 @@ const state = input.getInput()
 // state.pointerDown - boolean
 
 // Utility functions
-const direction = getPrimaryDirection(state) // 'up' | 'down' | 'left' | 'right' | null
+const direction = getPrimaryDirection(state); // 'up' | 'down' | 'left' | 'right' | null
 if (hasAnyInput(state)) {
   // Some input is active
 }
 
 // Check specific inputs
-input.isActionPressed('action')
-input.isDirectionPressed('up')
+input.isActionPressed('action');
+input.isDirectionPressed('up');
 
 // Customize key mappings at runtime
 input.setKeyMapping({
   up: ['ArrowUp', 'KeyW', 'KeyK'],
-})
+});
 
 // Cleanup
-input.dispose()
+input.dispose();
+```
+
+### InputBuffer
+
+Advanced input buffering system for frame-perfect actions and deterministic replay.
+
+```typescript
+import {
+  createInputManager,
+  createInputBuffer,
+  createGameStateRecorder,
+  downloadRecording,
+} from '@/games/engine';
+
+// 1. Create input manager with buffering enabled
+const inputManager = createInputManager({
+  enableBuffering: true,
+  bufferConfig: {
+    maxBufferFrames: 10, // Keep last 10 frames
+    frameWindow: 3, // 3-frame window for frame-perfect inputs
+    enableRecording: true, // Enable input recording
+    maxRecordFrames: 36000, // Record up to 10 minutes at 60fps
+  },
+});
+
+const inputBuffer = inputManager.getBuffer()!;
+
+// 2. Start recording (optional - for replay)
+inputBuffer.startRecording('snake', 60); // gameType, targetFps
+
+// 3. In your game loop
+let frame = 0;
+
+function gameLoop() {
+  // Get input for this frame
+  const input = inputManager.getInput();
+
+  // Capture frame for buffering
+  inputManager.captureFrame(frame);
+
+  // Frame-perfect input detection
+  // Allows 3-frame window for player inputs (more forgiving)
+  if (inputBuffer.wasActionPressedInWindow('action', frame)) {
+    player.jump(); // Will trigger even if press was 1-3 frames ago
+  }
+
+  // Regular input check (exact frame only)
+  if (input.directions.has('left')) {
+    player.moveLeft();
+  }
+
+  // Check for release events
+  if (inputBuffer.wasActionReleasedInWindow('action', frame)) {
+    player.stopCharging();
+  }
+
+  frame++;
+  requestAnimationFrame(gameLoop);
+}
+
+// 4. Stop recording and save
+const recording = inputBuffer.stopRecording();
+if (recording) {
+  downloadRecording(recording, inputBuffer, 'my-replay.json');
+  console.log(`Recorded ${recording.totalFrames} frames`);
+}
+
+// 5. Serialize/deserialize recordings
+const json = inputBuffer.serializeRecording(recording);
+localStorage.setItem('replay', json);
+
+// Later, load the recording
+const savedJson = localStorage.getItem('replay')!;
+const loadedRecording = inputBuffer.deserializeRecording(savedJson);
+```
+
+#### Game State Recording
+
+Record game state for time-travel debugging and replay verification:
+
+```typescript
+import { createGameStateRecorder } from '@/games/engine';
+
+// Create recorder
+const stateRecorder = createGameStateRecorder(inputBuffer, 3600); // Keep 3600 frames (1 min at 60fps)
+
+// Capture state each frame
+function gameLoop() {
+  // ... game logic ...
+
+  // Capture serializable game state
+  stateRecorder.captureState(frame, {
+    player: {
+      x: player.x,
+      y: player.y,
+      velocity: { x: player.vx, y: player.vy },
+      hp: player.hp,
+    },
+    enemies: enemies.map((e) => ({ x: e.x, y: e.y, hp: e.hp })),
+    score: gameScore,
+    level: currentLevel,
+  });
+
+  frame++;
+}
+
+// Time-travel debugging: Go back to a specific frame
+const pastState = stateRecorder.getState(frame - 60); // 1 second ago
+if (pastState) {
+  console.log('Player was at:', pastState.state.player);
+  console.log('Input was:', pastState.input?.input.directions);
+}
+
+// Get all snapshots for analysis
+const allSnapshots = stateRecorder.getAllSnapshots();
+console.log(`Captured ${allSnapshots.length} state snapshots`);
+
+// Save state history
+const stateJson = stateRecorder.serialize();
+localStorage.setItem('state-history', stateJson);
+```
+
+#### Use Cases
+
+**Frame-Perfect Inputs:**
+
+```typescript
+// Fighting game: Allow 3-frame buffer for special moves
+if (inputBuffer.wasActionPressedInWindow('action', frame) && player.isOnGround()) {
+  player.performSpecialMove();
+}
+```
+
+**Input Replay for Testing:**
+
+```typescript
+// Record a test session
+inputBuffer.startRecording('test-level-1', 60);
+playLevel1();
+const testRecording = inputBuffer.stopRecording();
+
+// Replay inputs for deterministic testing
+function replayTest(recording) {
+  for (const [frameNum, frameData] of recording.frames) {
+    // Apply recorded inputs
+    applyInputs(frameData.input);
+    updateGame();
+  }
+}
+```
+
+**Debugging:**
+
+```typescript
+// When a bug occurs, dump the last 10 seconds
+const recording = inputBuffer.getRecording();
+if (recording) {
+  downloadRecording(recording, inputBuffer, 'bug-report.json');
+  downloadStateRecording(stateRecorder, 'bug-state.json');
+}
 ```
 
 ### Collision Detection
@@ -298,22 +463,22 @@ import {
   aabbCollisionNormal,
   pointInAABB,
   expandAABB,
-} from '@/games/engine'
+} from '@/games/engine';
 
-const player = { x: 100, y: 100, width: 32, height: 32 }
-const wall = { x: 120, y: 90, width: 50, height: 100 }
+const player = { x: 100, y: 100, width: 32, height: 32 };
+const wall = { x: 120, y: 90, width: 50, height: 100 };
 
 // Check for collision
 if (aabbIntersects(player, wall)) {
   // Get minimum translation vector to separate
-  const mtv = aabbMTV(player, wall)
+  const mtv = aabbMTV(player, wall);
   if (mtv) {
-    player.x += mtv.x
-    player.y += mtv.y
+    player.x += mtv.x;
+    player.y += mtv.y;
   }
 
   // Get collision normal for physics response
-  const normal = aabbCollisionNormal(player, wall)
+  const normal = aabbCollisionNormal(player, wall);
 }
 
 // Point collision
@@ -322,32 +487,27 @@ if (pointInAABB({ x: 110, y: 110 }, player)) {
 }
 
 // Create buffer zone around an entity
-const bufferZone = expandAABB(player, 10) // 10px larger on each side
+const bufferZone = expandAABB(player, 10); // 10px larger on each side
 ```
 
 #### Circle Collision
 
 ```typescript
-import {
-  circleIntersects,
-  circleMTV,
-  circleAABBIntersects,
-  pointInCircle,
-} from '@/games/engine'
+import { circleIntersects, circleMTV, circleAABBIntersects, pointInCircle } from '@/games/engine';
 
-const ball = { x: 100, y: 100, radius: 20 }
-const obstacle = { x: 150, y: 100, radius: 30 }
+const ball = { x: 100, y: 100, radius: 20 };
+const obstacle = { x: 150, y: 100, radius: 30 };
 
 if (circleIntersects(ball, obstacle)) {
-  const mtv = circleMTV(ball, obstacle)
+  const mtv = circleMTV(ball, obstacle);
   if (mtv) {
-    ball.x += mtv.x
-    ball.y += mtv.y
+    ball.x += mtv.x;
+    ball.y += mtv.y;
   }
 }
 
 // Circle vs rectangle
-const wall = { x: 180, y: 80, width: 50, height: 100 }
+const wall = { x: 180, y: 80, width: 50, height: 100 };
 if (circleAABBIntersects(ball, wall)) {
   // Ball hit the wall
 }
@@ -356,25 +516,25 @@ if (circleAABBIntersects(ball, wall)) {
 #### Line Collision
 
 ```typescript
-import { lineIntersects, lineIntersectionPoint, lineAABBIntersects } from '@/games/engine'
+import { lineIntersects, lineIntersectionPoint, lineAABBIntersects } from '@/games/engine';
 
 const laser = {
   start: { x: 0, y: 100 },
   end: { x: 500, y: 100 },
-}
+};
 
 const obstacle = {
   start: { x: 250, y: 0 },
   end: { x: 250, y: 200 },
-}
+};
 
 if (lineIntersects(laser, obstacle)) {
-  const hitPoint = lineIntersectionPoint(laser, obstacle)
+  const hitPoint = lineIntersectionPoint(laser, obstacle);
   // hitPoint = { x: 250, y: 100 }
 }
 
 // Line vs rectangle
-const wall = { x: 300, y: 50, width: 50, height: 100 }
+const wall = { x: 300, y: 50, width: 50, height: 100 };
 if (lineAABBIntersects(laser, wall)) {
   // Laser hits the wall
 }
@@ -383,24 +543,24 @@ if (lineAABBIntersects(laser, wall)) {
 #### Physics Response
 
 ```typescript
-import { calculateCollisionResponse, reflectVelocity } from '@/games/engine'
+import { calculateCollisionResponse, reflectVelocity } from '@/games/engine';
 
 // Elastic collision between two objects
 const { velocityA, velocityB } = calculateCollisionResponse(
-  ball1.velocity,  // { x: 5, y: 0 }
-  ball2.velocity,  // { x: -3, y: 0 }
-  ball1.mass,      // 1
-  ball2.mass,      // 2
+  ball1.velocity, // { x: 5, y: 0 }
+  ball2.velocity, // { x: -3, y: 0 }
+  ball1.mass, // 1
+  ball2.mass, // 2
   collisionNormal, // { x: 1, y: 0 }
-  0.8              // restitution (bounciness)
-)
+  0.8 // restitution (bounciness)
+);
 
 // Reflect off a surface (walls, paddles)
 const newVelocity = reflectVelocity(
-  ball.velocity,   // { x: 5, y: 5 }
-  wallNormal,      // { x: -1, y: 0 }
-  0.9              // restitution
-)
+  ball.velocity, // { x: 5, y: 5 }
+  wallNormal, // { x: -1, y: 0 }
+  0.9 // restitution
+);
 ```
 
 ### AudioManager
@@ -408,7 +568,7 @@ const newVelocity = reflectVelocity(
 Sound effects management with Web Audio API.
 
 ```typescript
-import { createAudioManager, getGlobalAudioManager } from '@/games/engine'
+import { createAudioManager, getGlobalAudioManager } from '@/games/engine';
 
 // Create a dedicated audio manager
 const audio = createAudioManager({
@@ -421,46 +581,46 @@ const audio = createAudioManager({
   },
   maxConcurrentSounds: 32,
   autoSuspendOnHidden: true,
-})
+});
 
 // Initialize (must be called after user interaction)
-document.addEventListener('click', () => audio.init(), { once: true })
+document.addEventListener('click', () => audio.init(), { once: true });
 
 // Load sounds
 await audio.loadSound('jump', '/sounds/jump.mp3', {
   category: 'sfx',
   volume: 0.8,
-})
+});
 
 await audio.loadSound('coin', '/sounds/coin.mp3', {
   category: 'sfx',
-})
+});
 
 await audio.loadSounds([
   { key: 'explosion', url: '/sounds/explosion.mp3' },
   { key: 'powerup', url: '/sounds/powerup.mp3' },
-])
+]);
 
 // Play sounds
-const jumpId = audio.play('jump')
-audio.play('coin', { volume: 0.5, playbackRate: 1.2 })
+const jumpId = audio.play('jump');
+audio.play('coin', { volume: 0.5, playbackRate: 1.2 });
 
 // Control playback
-audio.stop(jumpId)
-audio.stopAll('explosion')  // Stop all explosions
-audio.stopAll()             // Stop everything
+audio.stop(jumpId);
+audio.stopAll('explosion'); // Stop all explosions
+audio.stopAll(); // Stop everything
 
 // Volume control
-audio.setMasterVolume(0.5)
-audio.setCategoryVolume('sfx', 0.8)
-audio.mute()
-audio.unmute()
+audio.setMasterVolume(0.5);
+audio.setCategoryVolume('sfx', 0.8);
+audio.mute();
+audio.unmute();
 
 // Cleanup
-audio.dispose()
+audio.dispose();
 
 // Or use the global singleton
-const globalAudio = getGlobalAudioManager()
+const globalAudio = getGlobalAudioManager();
 ```
 
 ### MusicManager
@@ -468,56 +628,56 @@ const globalAudio = getGlobalAudioManager()
 Background music playback with crossfade support.
 
 ```typescript
-import { createMusicManager, getGlobalMusicManager } from '@/games/engine'
+import { createMusicManager, getGlobalMusicManager } from '@/games/engine';
 
 const music = createMusicManager({
   defaultCrossfadeDuration: 2000,
   defaultVolume: 0.7,
   autoResumeOnVisible: true,
   fadeOutDuration: 1000,
-})
+});
 
 // Initialize on user interaction
-document.addEventListener('click', () => music.init(), { once: true })
+document.addEventListener('click', () => music.init(), { once: true });
 
 // Load tracks
 await music.loadTrack({
   key: 'menu',
   url: '/music/menu-theme.mp3',
   volume: 0.8,
-})
+});
 
 await music.loadTrack({
   key: 'gameplay',
   url: '/music/gameplay.mp3',
   volume: 1.0,
-  loopStart: 0.5,  // Optional loop points
+  loopStart: 0.5, // Optional loop points
   loopEnd: 120.0,
-})
+});
 
 await music.loadTrack({
   key: 'boss',
   url: '/music/boss-battle.mp3',
   volume: 0.9,
-})
+});
 
 // Play music
-music.play('menu')
+music.play('menu');
 
 // Crossfade to new track
 music.crossfadeTo('gameplay', {
   duration: 3000,
   easing: 'ease-in-out',
-})
+});
 
 // Control playback
-music.pause()
-music.resume()
-music.setVolume(0.5)
-music.stop(true)  // Fade out
+music.pause();
+music.resume();
+music.setVolume(0.5);
+music.stop(true); // Fade out
 
 // Get state
-const state = music.getState()
+const state = music.getState();
 // state.currentTrack - 'gameplay'
 // state.playing - true
 // state.paused - false
@@ -526,7 +686,7 @@ const state = music.getState()
 // state.volume - current volume
 
 // Cleanup
-music.dispose()
+music.dispose();
 ```
 
 ### TouchInput
@@ -538,20 +698,20 @@ import {
   createTouchInputHandler,
   touchPositionToDirection,
   isTouchSupported,
-} from '@/games/engine'
+} from '@/games/engine';
 
 // Check for touch support
 if (!isTouchSupported()) {
-  console.log('Touch not supported')
+  console.log('Touch not supported');
 }
 
 const touch = createTouchInputHandler({
-  swipeThreshold: 30,      // Minimum swipe distance in pixels
-  swipeMaxDuration: 300,   // Max swipe duration in ms
-  swipeMinVelocity: 100,   // Min velocity in pixels/second
+  swipeThreshold: 30, // Minimum swipe distance in pixels
+  swipeMaxDuration: 300, // Max swipe duration in ms
+  swipeMinVelocity: 100, // Min velocity in pixels/second
   preventDefault: true,
   stopPropagation: true,
-})
+});
 
 // Set up callbacks
 touch.setCallbacks({
@@ -560,34 +720,34 @@ touch.setCallbacks({
     // swipe.distance - pixels traveled
     // swipe.velocity - pixels/second
     // swipe.duration - milliseconds
-    player.move(swipe.direction)
+    player.move(swipe.direction);
   },
   onTap: (position) => {
-    player.shoot(position)
+    player.shoot(position);
   },
   onTouchStart: (touchPoint) => {
-    showTouchFeedback(touchPoint.position)
+    showTouchFeedback(touchPoint.position);
   },
-})
+});
 
 // Attach to canvas
-touch.attach(canvasElement)
+touch.attach(canvasElement);
 
 // Poll state in game loop
 if (touch.isTouching()) {
-  const pos = touch.getPosition()
+  const pos = touch.getPosition();
   // Handle continuous touch
 }
 
 // Check for swipe (alternative to callback)
-const swipeDir = touch.getSwipeDirection()
+const swipeDir = touch.getSwipeDirection();
 if (swipeDir) {
-  handleSwipe(swipeDir)
-  touch.clearSwipe()  // Clear after processing
+  handleSwipe(swipeDir);
+  touch.clearSwipe(); // Clear after processing
 }
 
 // Cleanup
-touch.dispose()
+touch.dispose();
 ```
 
 ## Types Reference
@@ -597,32 +757,32 @@ touch.dispose()
 ```typescript
 // 2D vector for positions, velocities
 interface Vector2D {
-  x: number
-  y: number
+  x: number;
+  y: number;
 }
 
 // Rectangle bounds
 interface Bounds {
-  x: number      // Left edge
-  y: number      // Top edge
-  width: number
-  height: number
+  x: number; // Left edge
+  y: number; // Top edge
+  width: number;
+  height: number;
 }
 
 // Circle bounds
 interface CircleBounds {
-  x: number      // Center X
-  y: number      // Center Y
-  radius: number
+  x: number; // Center X
+  y: number; // Center Y
+  radius: number;
 }
 
 // Frame timing information
 interface FrameInfo {
-  deltaTime: number    // Time since last frame (ms)
-  totalTime: number    // Time since game started (ms)
-  frameNumber: number  // Current frame count
-  fps: number          // Current FPS
-  targetFps: number    // Target FPS from config
+  deltaTime: number; // Time since last frame (ms)
+  totalTime: number; // Time since game started (ms)
+  frameNumber: number; // Current frame count
+  fps: number; // Current FPS
+  targetFps: number; // Target FPS from config
 }
 ```
 
@@ -638,19 +798,19 @@ const GAME_STATES = {
   GAME_OVER: 'game_over',
   VICTORY: 'victory',
   LOADING: 'loading',
-}
+};
 
 // Direction type
-type Direction = 'up' | 'down' | 'left' | 'right'
+type Direction = 'up' | 'down' | 'left' | 'right';
 
 // Game input state
 interface GameInput {
-  directions: Set<Direction>
-  action: boolean
-  secondaryAction: boolean
-  pause: boolean
-  pointer: Vector2D | null
-  pointerDown: boolean
+  directions: Set<Direction>;
+  action: boolean;
+  secondaryAction: boolean;
+  pause: boolean;
+  pointer: Vector2D | null;
+  pointerDown: boolean;
 }
 ```
 
@@ -661,12 +821,16 @@ interface GameInput {
 Browsers require user interaction before playing audio:
 
 ```typescript
-const startButton = document.getElementById('start')
-startButton.addEventListener('click', async () => {
-  await audio.init()
-  await music.init()
-  startGame()
-}, { once: true })
+const startButton = document.getElementById('start');
+startButton.addEventListener(
+  'click',
+  async () => {
+    await audio.init();
+    await music.init();
+    startGame();
+  },
+  { once: true }
+);
 ```
 
 ### 2. Use Fixed Timestep for Physics
@@ -676,13 +840,13 @@ Variable frame rates can cause inconsistent physics:
 ```typescript
 // Good: Fixed timestep for deterministic physics
 loop.setFixedUpdateCallback((dt) => {
-  world.step(deltaToSeconds(dt))
-})
+  world.step(deltaToSeconds(dt));
+});
 
 // Variable timestep for visual updates
 loop.setUpdateCallback((frameInfo) => {
-  animation.update(frameInfo.deltaTime)
-})
+  animation.update(frameInfo.deltaTime);
+});
 ```
 
 ### 3. Clean Up Resources
@@ -691,11 +855,11 @@ Always dispose of managers when the game ends:
 
 ```typescript
 function cleanup() {
-  gameLoop.destroy()
-  inputManager.dispose()
-  audio.dispose()
-  music.dispose()
-  touchInput.dispose()
+  gameLoop.destroy();
+  inputManager.dispose();
+  audio.dispose();
+  music.dispose();
+  touchInput.dispose();
 }
 ```
 
@@ -705,13 +869,13 @@ Keep game logic organized:
 
 ```typescript
 // Instead of boolean flags
-let isPlaying = false
-let isPaused = false
-let isGameOver = false
+let isPlaying = false;
+let isPaused = false;
+let isGameOver = false;
 
 // Use state machine
-stateMachine.isInState(GAME_STATES.PLAYING)
-stateMachine.transitionTo(GAME_STATES.PAUSED)
+stateMachine.isInState(GAME_STATES.PLAYING);
+stateMachine.transitionTo(GAME_STATES.PAUSED);
 ```
 
 ### 5. Pool Frequently Created Objects
@@ -727,14 +891,14 @@ const collisionResult: CollisionResult = {
   normal: { x: 0, y: 0 },
   depth: 0,
   contactPoint: { x: 0, y: 0 },
-}
+};
 
 // Reuse instead of creating new objects
 function checkCollision(a: Entity, b: Entity): CollisionResult {
   // Update existing object instead of creating new
-  collisionResult.collided = aabbIntersects(a.bounds, b.bounds)
+  collisionResult.collided = aabbIntersects(a.bounds, b.bounds);
   // ...
-  return collisionResult
+  return collisionResult;
 }
 ```
 
@@ -743,13 +907,13 @@ function checkCollision(a: Entity, b: Entity): CollisionResult {
 Pause game when tab is hidden:
 
 ```typescript
-const loop = createGameLoop({ autoPauseOnHidden: true })
+const loop = createGameLoop({ autoPauseOnHidden: true });
 
 loop.setVisibilityCallback((visible) => {
   if (!visible) {
-    stateMachine.transitionTo(GAME_STATES.PAUSED)
+    stateMachine.transitionTo(GAME_STATES.PAUSED);
   }
-})
+});
 ```
 
 ## License
