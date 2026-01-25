@@ -5,7 +5,7 @@
  * Supports multiple variants for different notification types.
  */
 
-import type { ReactNode } from 'react'
+import type { ReactNode } from 'react';
 
 /**
  * Toast variant options
@@ -15,7 +15,7 @@ import type { ReactNode } from 'react'
  * - `warning`: Warning messages with orange styling
  * - `info`: Informational messages with cyan/blue styling
  */
-export type ToastVariant = 'success' | 'error' | 'warning' | 'info'
+export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
 /**
  * Toast position options
@@ -28,7 +28,7 @@ export type ToastPosition =
   | 'top-right'
   | 'bottom-left'
   | 'bottom-center'
-  | 'bottom-right'
+  | 'bottom-right';
 
 /**
  * Toast Props Interface
@@ -40,62 +40,69 @@ export interface ToastProps {
    * Visual style variant determining colors and icon
    * @default 'info'
    */
-  variant?: ToastVariant
+  variant?: ToastVariant;
 
   /**
    * Title text displayed prominently
    */
-  title?: string
+  title?: string;
 
   /**
    * Description text for additional context
    */
-  description?: ReactNode
+  description?: ReactNode;
 
   /**
    * Whether the toast is currently visible
    */
-  isOpen: boolean
+  isOpen: boolean;
 
   /**
    * Callback when the toast should close
    */
-  onClose?: () => void
+  onClose?: () => void;
 
   /**
    * Duration in milliseconds before auto-close (0 to disable)
    * @default 5000
    */
-  duration?: number
+  duration?: number;
 
   /**
    * Custom icon to override the default variant icon
    */
-  icon?: ReactNode
+  icon?: ReactNode;
 
   /**
    * Whether to show a close button
    * @default true
    */
-  showCloseButton?: boolean
+  showCloseButton?: boolean;
 
   /**
    * Optional action button
    */
   action?: {
-    label: string
-    onClick: () => void
-  }
+    label: string;
+    onClick: () => void;
+  };
+
+  /**
+   * Position of the toast on screen
+   * Used to determine slide-in direction
+   * @default 'top-right'
+   */
+  position?: ToastPosition;
 
   /**
    * Additional CSS classes to apply
    */
-  className?: string
+  className?: string;
 
   /**
    * Data test ID for testing
    */
-  'data-testid'?: string
+  'data-testid'?: string;
 }
 
 /**
@@ -108,36 +115,36 @@ export interface ToastContainerProps {
    * Position of toasts on screen
    * @default 'top-right'
    */
-  position?: ToastPosition
+  position?: ToastPosition;
 
   /**
    * Maximum number of toasts to show at once
    * @default 5
    */
-  maxToasts?: number
+  maxToasts?: number;
 
   /**
    * Children (Toast components)
    */
-  children?: ReactNode
+  children?: ReactNode;
 
   /**
    * Additional CSS classes
    */
-  className?: string
+  className?: string;
 }
 
 /**
  * Individual toast data for managing multiple toasts
  */
 export interface ToastData {
-  id: string
-  variant: ToastVariant
-  title?: string
-  description?: ReactNode
-  duration?: number
+  id: string;
+  variant: ToastVariant;
+  title?: string;
+  description?: ReactNode;
+  duration?: number;
   action?: {
-    label: string
-    onClick: () => void
-  }
+    label: string;
+    onClick: () => void;
+  };
 }
