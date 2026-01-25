@@ -126,3 +126,11 @@ export {
   type UseColorSchemeResult,
   type UseColorSchemeOptions,
 } from './useColorScheme';
+
+export {
+  useGameLoader,
+  useGamePreload,
+  type UseGameLoaderState,
+  type UseGameLoaderOptions,
+  type UseGamePreloadOptions,
+} from './useGameLoader';

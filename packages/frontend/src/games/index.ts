@@ -41,10 +41,10 @@ export {
   // Difficulty utilities
   isValidDifficulty,
   getDifficultyModifiers,
-} from './types'
+} from './types';
 
 // Engine types - extended game engine types
-export * from './engine'
+export * from './engine';
 
 // Game registry for runtime game registration and management
 export {
@@ -58,7 +58,27 @@ export {
   type GameEngineFactory,
   type GameRendererFactory,
   type GameRegistryOptions,
-} from './registry'
+} from './registry';
 
 // Common game utilities (score, time, grid, random, math)
-export * from './common'
+export * from './common';
+
+// Lazy loading utilities for game engines
+export {
+  loadSnakeEngine,
+  loadTetrisEngine,
+  loadGameEngine,
+  preloadGameEngine,
+  preloadGameEngines,
+  getGameLoadStatus,
+  getGameLoadTime,
+  isGameLoading,
+  isGameLoaded,
+  clearGameCache,
+  getGameCacheStats,
+  LazySnakeGame,
+  LazyTetrisGame,
+  type LazyGameResult,
+  type LazyLoadStatus,
+  type UseGameLoaderState,
+} from './lazy';
