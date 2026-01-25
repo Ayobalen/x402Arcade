@@ -23,6 +23,7 @@ const Home = lazy(() => import('@/pages/Home'));
 const Play = lazy(() => import('@/pages/Play'));
 const Game = lazy(() => import('@/pages/Game'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
+const ComponentShowcase = lazy(() => import('@/pages/ComponentShowcase'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 /**
@@ -93,6 +94,18 @@ function AnimatedRoutes() {
           <PageSuspense fallback={<LeaderboardPageSkeleton />}>
             <PageTransition>
               <Leaderboard />
+            </PageTransition>
+          </PageSuspense>
+        }
+      />
+
+      {/* Component Showcase - Extended component library demo */}
+      <Route
+        path="/components"
+        element={
+          <PageSuspense fallback={<HomePageSkeleton />}>
+            <PageTransition>
+              <ComponentShowcase />
             </PageTransition>
           </PageSuspense>
         }
