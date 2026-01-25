@@ -13,6 +13,7 @@ import { SnakeGame } from '@/games/snake/SnakeGame';
 import { PongGameWrapper } from '@/games/pong/PongGameWrapper';
 import { TetrisGameWrapper } from '@/games/tetris/TetrisGameWrapper';
 import { BreakoutGameWrapper } from '@/games/breakout/BreakoutGameWrapper';
+import { SpaceInvadersGameWrapper } from '@/games/space-invaders/SpaceInvadersGameWrapper';
 
 /**
  * Game metadata
@@ -62,7 +63,7 @@ const GAMES: Record<string, GameInfo> = {
     name: 'Space Invaders',
     emoji: '👾',
     description: 'Defend Earth from alien invaders. Shoot them down before they reach you.',
-    status: 'coming-soon',
+    status: 'available',
   },
 };
 
@@ -182,6 +183,17 @@ export function Game() {
       <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
         <div className="max-w-4xl mx-auto w-full">
           <BreakoutGameWrapper onExit={handleExit} />
+        </div>
+      </div>
+    );
+  }
+
+  // Render available game - Space Invaders
+  if (gameInfo.status === 'available' && gameId === 'space-invaders') {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="max-w-4xl mx-auto w-full">
+          <SpaceInvadersGameWrapper onExit={handleExit} />
         </div>
       </div>
     );
