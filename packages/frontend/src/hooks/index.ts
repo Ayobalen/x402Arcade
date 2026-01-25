@@ -163,3 +163,14 @@ export {
   type UseAutoQualityDetectionOptions,
   type UseAutoQualityDetectionResult,
 } from './useAutoQualityDetection';
+
+export {
+  useErrorTracking,
+  useGameErrorTracking,
+  useWalletErrorTracking,
+  usePaymentErrorTracking,
+  useErrorTrackingUser,
+  useInitializeErrorTracking,
+  type ErrorTrackingOptions,
+  type ErrorTrackingMethods,
+} from './useErrorTracking';
