@@ -54,3 +54,7 @@ export type {
   QualityContextType,
   QualityProviderProps,
 } from './QualityContext';
+
+// Audio Context
+export { AudioProvider, useAudioContext } from './AudioContext';
+export { default as AudioContext } from './AudioContext';

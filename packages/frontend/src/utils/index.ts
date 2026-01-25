@@ -102,3 +102,10 @@ export {
   type RetryState,
   type RetryResult,
 } from './retry';
+
+export {
+  audioManager,
+  AudioCategory,
+  type AudioOptions,
+  default as AudioManager,
+} from './AudioManager';
