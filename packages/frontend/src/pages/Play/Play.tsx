@@ -45,7 +45,7 @@ const GAMES: Game[] = [
     emoji: '🏓',
     description: 'Classic arcade pong. Keep the ball in play and beat the AI.',
     price: '$0.01',
-    status: 'coming-soon',
+    status: 'available',
     route: '/play/pong',
   },
   {
@@ -188,7 +188,7 @@ export function Play() {
                   : 'bg-[#1a1a2e] border border-[#2d2d4a] text-white hover:border-[#00ffff] hover:text-[#00ffff]'
               )}
             >
-              Available (0)
+              Available ({GAMES.filter((g) => g.status === 'available').length})
             </button>
             <button
               onClick={() => setFilter('coming-soon')}
