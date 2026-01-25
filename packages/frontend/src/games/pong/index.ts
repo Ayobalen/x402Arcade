@@ -85,5 +85,16 @@ export {
   checkGoal,
 } from './logic';
 
+// Renderer
+export { renderGame, renderBackground, renderPaddle, renderBall } from './renderer';
+
+// Hook
+export { usePongGame } from './usePongGame';
+export type { UsePongGameOptions, UsePongGameReturn } from './usePongGame';
+
+// Component
+export { PongGame } from './PongGame';
+export type { PongGameProps } from './PongGame';
+
 // Default export
 export { default } from './logic';
