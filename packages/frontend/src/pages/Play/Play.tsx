@@ -63,7 +63,7 @@ const GAMES: Game[] = [
     emoji: '🧱',
     description: 'Break all the bricks with your paddle and ball. Classic arcade action.',
     price: '$0.01',
-    status: 'coming-soon',
+    status: 'available',
     route: '/play/breakout',
   },
   {
