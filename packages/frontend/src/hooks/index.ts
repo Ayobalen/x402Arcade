@@ -10,7 +10,7 @@ export {
   type PerformanceMetrics,
   type UsePerformanceMonitorOptions,
   type UsePerformanceMonitorResult,
-} from './usePerformanceMonitor'
+} from './usePerformanceMonitor';
 
 export {
   useGracefulDegradation,
@@ -20,7 +20,7 @@ export {
   type GracefulDegradationState,
   type UseGracefulDegradationResult,
   type UseGracefulDegradationOptions,
-} from './useGracefulDegradation'
+} from './useGracefulDegradation';
 
 export {
   useCameraControls,
@@ -42,7 +42,7 @@ export {
   type UseCameraControlsOptions,
   type UseCameraControlsResult,
   type OrbitControlsProps,
-} from './useCameraControls'
+} from './useCameraControls';
 
 export {
   useX402,
@@ -54,7 +54,7 @@ export {
   type UseX402Actions,
   type UseX402Options,
   type UseX402Result,
-} from './useX402'
+} from './useX402';
 
 export {
   useWallet,
@@ -68,14 +68,14 @@ export {
   type UseWalletActions,
   type UseWalletOptions,
   type UseWalletResult,
-} from './useWallet'
+} from './useWallet';
 
 export {
   useAutoChainSwitch,
   type ChainSwitchStatus,
   type UseAutoChainSwitchOptions,
   type UseAutoChainSwitchResult,
-} from './useAutoChainSwitch'
+} from './useAutoChainSwitch';
 
 export {
   usePerformanceScaling,
@@ -84,4 +84,8 @@ export {
   type QualitySettings as PerformanceQualitySettings,
   type PerformanceStats,
   type UsePerformanceScalingResult,
-} from './usePerformanceScaling'
+} from './usePerformanceScaling';
+
+export { useReducedMotion, useMotionConfig } from './useReducedMotion';
+
+export { useAnimation, type ExtendedAnimationControls } from './useAnimation';
