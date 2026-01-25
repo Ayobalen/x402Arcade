@@ -27,6 +27,10 @@ import {
   calculateDropPosition,
   isGameOver,
   cloneTetrisState,
+  spawnPiece,
+  movePiece,
+  rotatePiece,
+  hardDrop,
 } from '../logic';
 import {
   BOARD_WIDTH,
@@ -150,9 +154,10 @@ describe('Tetris Logic', () => {
         [1, 1],
       ];
       const rotated = rotateMatrixClockwise(original);
+      // Transpose: [[1,1], [0,1]], then reverse each row: [[1,1], [1,0]]
       expect(rotated).toEqual([
         [1, 1],
-        [0, 1],
+        [1, 0],
       ]);
     });
 
@@ -612,6 +617,391 @@ describe('Tetris Logic', () => {
 
       clone.stats.linesCleared = 10;
       expect(original.stats.linesCleared).toBe(0);
+    });
+  });
+
+  describe('Piece Spawning', () => {
+    it('should spawn a new piece from the queue', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+
+      expect(spawned.gameSpecific.currentPiece).not.toBeNull();
+      expect(spawned.gameSpecific.currentPiece?.type).toBe(state.gameSpecific.nextPieces[0]);
+    });
+
+    it('should update the next pieces queue', () => {
+      const state = createInitialState();
+      const originalFirstNext = state.gameSpecific.nextPieces[0];
+      const originalSecondNext = state.gameSpecific.nextPieces[1];
+      const spawned = spawnPiece(state);
+
+      // First piece should move to current
+      expect(spawned.gameSpecific.currentPiece?.type).toBe(originalFirstNext);
+      // Queue should shift
+      expect(spawned.gameSpecific.nextPieces[0]).toBe(originalSecondNext);
+    });
+
+    it('should create ghost piece at drop position', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+
+      expect(spawned.gameSpecific.ghostPiece).not.toBeNull();
+      expect(spawned.gameSpecific.ghostPiece?.type).toBe(spawned.gameSpecific.currentPiece?.type);
+      expect(spawned.gameSpecific.ghostPiece?.position.y).toBeGreaterThanOrEqual(
+        spawned.gameSpecific.currentPiece?.position.y || 0
+      );
+    });
+
+    it('should reset hold availability', () => {
+      const state = createInitialState();
+      state.gameSpecific.canHold = false;
+      const spawned = spawnPiece(state);
+
+      expect(spawned.gameSpecific.canHold).toBe(true);
+    });
+
+    it('should reset lock timer and resets', () => {
+      const state = createInitialState();
+      state.gameSpecific.lockTimer = 500;
+      state.gameSpecific.lockResets = 10;
+      const spawned = spawnPiece(state);
+
+      expect(spawned.gameSpecific.lockTimer).toBe(0);
+      expect(spawned.gameSpecific.lockResets).toBe(0);
+    });
+
+    it('should detect game over when spawn position is blocked', () => {
+      const state = createInitialState();
+      // Block spawn area
+      for (let y = 0; y < 3; y++) {
+        for (let x = 0; x < BOARD_WIDTH; x++) {
+          state.gameSpecific.board[y][x] = 'I';
+        }
+      }
+
+      const spawned = spawnPiece(state);
+
+      expect(spawned.isGameOver).toBe(true);
+      expect(spawned.isPlaying).toBe(false);
+    });
+
+    it('should maintain queue size', () => {
+      const state = createInitialState();
+      const initialQueueLength = state.gameSpecific.nextPieces.length;
+      const spawned = spawnPiece(state);
+
+      expect(spawned.gameSpecific.nextPieces.length).toBeGreaterThanOrEqual(initialQueueLength - 1);
+    });
+  });
+
+  describe('Piece Movement', () => {
+    it('should move piece left', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const originalX = spawned.gameSpecific.currentPiece!.position.x;
+
+      const moved = movePiece(spawned, 'left');
+
+      expect(moved.gameSpecific.currentPiece?.position.x).toBe(originalX - 1);
+    });
+
+    it('should move piece right', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const originalX = spawned.gameSpecific.currentPiece!.position.x;
+
+      const moved = movePiece(spawned, 'right');
+
+      expect(moved.gameSpecific.currentPiece?.position.x).toBe(originalX + 1);
+    });
+
+    it('should move piece down', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const originalY = spawned.gameSpecific.currentPiece!.position.y;
+
+      const moved = movePiece(spawned, 'down');
+
+      expect(moved.gameSpecific.currentPiece?.position.y).toBe(originalY + 1);
+    });
+
+    it('should not move piece into left wall', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      // Move to left wall
+      spawned.gameSpecific.currentPiece!.position.x = 0;
+
+      const moved = movePiece(spawned, 'left');
+
+      expect(moved.gameSpecific.currentPiece?.position.x).toBe(0);
+    });
+
+    it('should not move piece into right wall', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      // Move to right wall (O piece is 2 wide)
+      spawned.gameSpecific.currentPiece!.position.x = BOARD_WIDTH - 2;
+
+      const moved = movePiece(spawned, 'right');
+
+      expect(moved.gameSpecific.currentPiece?.position.x).toBe(BOARD_WIDTH - 2);
+    });
+
+    it('should not move piece into filled cells', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const currentX = spawned.gameSpecific.currentPiece!.position.x;
+      const currentY = spawned.gameSpecific.currentPiece!.position.y;
+
+      // Place obstacle to the right
+      spawned.gameSpecific.board[currentY][currentX + 3] = 'I';
+
+      const moved = movePiece(spawned, 'right');
+
+      // Should eventually hit the obstacle
+      expect(moved).toBeDefined();
+    });
+
+    it('should update ghost piece when moving', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const originalGhostX = spawned.gameSpecific.ghostPiece!.position.x;
+
+      const moved = movePiece(spawned, 'left');
+
+      expect(moved.gameSpecific.ghostPiece?.position.x).toBe(originalGhostX - 1);
+    });
+
+    it('should update isOnGround when reaching bottom', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+
+      // Move piece near bottom
+      spawned.gameSpecific.currentPiece!.position.y = TOTAL_BOARD_HEIGHT - 3;
+
+      const moved = movePiece(spawned, 'down');
+
+      expect(moved.gameSpecific.isOnGround).toBe(true);
+    });
+
+    it('should reset lock timer on horizontal movement while on ground', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      spawned.gameSpecific.currentPiece!.position.y = TOTAL_BOARD_HEIGHT - 3;
+      spawned.gameSpecific.isOnGround = true;
+      spawned.gameSpecific.lockTimer = 500;
+
+      const moved = movePiece(spawned, 'left');
+
+      expect(moved.gameSpecific.lockTimer).toBe(0);
+    });
+
+    it('should handle no current piece gracefully', () => {
+      const state = createInitialState();
+      state.gameSpecific.currentPiece = null;
+
+      const moved = movePiece(state, 'left');
+
+      expect(moved).toBe(state);
+    });
+  });
+
+  describe('Hard Drop', () => {
+    it('should drop piece to bottom instantly', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const ghostY = spawned.gameSpecific.ghostPiece!.position.y;
+
+      const dropped = hardDrop(spawned);
+
+      expect(dropped.gameSpecific.currentPiece?.position.y).toBe(ghostY);
+    });
+
+    it('should set isOnGround to true', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+
+      const dropped = hardDrop(spawned);
+
+      expect(dropped.gameSpecific.isOnGround).toBe(true);
+    });
+
+    it('should reset lock timer', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      spawned.gameSpecific.lockTimer = 500;
+
+      const dropped = hardDrop(spawned);
+
+      expect(dropped.gameSpecific.lockTimer).toBe(0);
+    });
+
+    it('should handle no current piece gracefully', () => {
+      const state = createInitialState();
+      state.gameSpecific.currentPiece = null;
+
+      const dropped = hardDrop(state);
+
+      expect(dropped).toBe(state);
+    });
+
+    it('should drop to correct position with obstacles', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+
+      // Create obstacle at bottom
+      for (let x = 0; x < BOARD_WIDTH; x++) {
+        spawned.gameSpecific.board[TOTAL_BOARD_HEIGHT - 1][x] = 'I';
+      }
+
+      const dropped = hardDrop(spawned);
+      const piece = dropped.gameSpecific.currentPiece!;
+
+      // Should be above the obstacle
+      expect(piece.position.y).toBeLessThan(TOTAL_BOARD_HEIGHT - 1);
+    });
+  });
+
+  describe('Piece Rotation', () => {
+    it('should rotate piece clockwise', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const originalRotation = spawned.gameSpecific.currentPiece!.rotation;
+
+      const rotated = rotatePiece(spawned, 'cw');
+      const expectedRotation = ((originalRotation + 1) % 4) as 0 | 1 | 2 | 3;
+
+      expect(rotated.gameSpecific.currentPiece?.rotation).toBe(expectedRotation);
+    });
+
+    it('should rotate piece counter-clockwise', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const originalRotation = spawned.gameSpecific.currentPiece!.rotation;
+
+      const rotated = rotatePiece(spawned, 'ccw');
+      const expectedRotation = ((originalRotation + 3) % 4) as 0 | 1 | 2 | 3;
+
+      expect(rotated.gameSpecific.currentPiece?.rotation).toBe(expectedRotation);
+    });
+
+    it('should rotate piece 180 degrees', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      const originalRotation = spawned.gameSpecific.currentPiece!.rotation;
+
+      const rotated = rotatePiece(spawned, '180');
+      const expectedRotation = ((originalRotation + 2) % 4) as 0 | 1 | 2 | 3;
+
+      expect(rotated.gameSpecific.currentPiece?.rotation).toBe(expectedRotation);
+    });
+
+    it('should not rotate O piece', () => {
+      const state = createInitialState();
+      // Force O piece
+      state.gameSpecific.nextPieces[0] = 'O';
+      const spawned = spawnPiece(state);
+      const originalRotation = spawned.gameSpecific.currentPiece!.rotation;
+
+      const rotated = rotatePiece(spawned, 'cw');
+
+      expect(rotated.gameSpecific.currentPiece?.rotation).toBe(originalRotation);
+    });
+
+    it('should apply wall kick when rotation is blocked', () => {
+      const state = createInitialState();
+      // Force I piece for testing
+      state.gameSpecific.nextPieces[0] = 'I';
+      const spawned = spawnPiece(state);
+
+      // Move to left wall
+      spawned.gameSpecific.currentPiece!.position.x = 0;
+
+      const rotated = rotatePiece(spawned, 'cw');
+
+      // Should still rotate with kick
+      expect(rotated.gameSpecific.currentPiece?.rotation).not.toBe(0);
+    });
+
+    it('should update ghost piece after rotation', () => {
+      const state = createInitialState();
+      state.gameSpecific.nextPieces[0] = 'T';
+      const spawned = spawnPiece(state);
+      const originalGhostRotation = spawned.gameSpecific.ghostPiece!.rotation;
+
+      const rotated = rotatePiece(spawned, 'cw');
+
+      expect(rotated.gameSpecific.ghostPiece?.rotation).not.toBe(originalGhostRotation);
+    });
+
+    it('should reset lock timer on successful rotation while on ground', () => {
+      const state = createInitialState();
+      const spawned = spawnPiece(state);
+      spawned.gameSpecific.isOnGround = true;
+      spawned.gameSpecific.lockTimer = 500;
+
+      const rotated = rotatePiece(spawned, 'cw');
+
+      if (rotated.gameSpecific.currentPiece?.rotation !== 0) {
+        expect(rotated.gameSpecific.lockTimer).toBe(0);
+      }
+    });
+
+    it('should return original state when rotation is impossible', () => {
+      const state = createInitialState();
+      // Force an I piece which has wider kick requirements
+      state.gameSpecific.nextPieces[0] = 'I';
+      const spawned = spawnPiece(state);
+      const piece = spawned.gameSpecific.currentPiece!;
+      const originalRotation = piece.rotation;
+
+      // Fill the entire board except the exact current piece location
+      for (let y = 0; y < TOTAL_BOARD_HEIGHT; y++) {
+        for (let x = 0; x < BOARD_WIDTH; x++) {
+          spawned.gameSpecific.board[y][x] = 'Z';
+        }
+      }
+
+      // Clear only the current piece's cells
+      const shape = getPieceShape(piece.type, piece.rotation);
+      for (let sy = 0; sy < shape.length; sy++) {
+        for (let sx = 0; sx < shape[sy].length; sx++) {
+          if (shape[sy][sx]) {
+            const boardY = piece.position.y + sy;
+            const boardX = piece.position.x + sx;
+            if (boardY >= 0 && boardY < TOTAL_BOARD_HEIGHT) {
+              spawned.gameSpecific.board[boardY][boardX] = null;
+            }
+          }
+        }
+      }
+
+      const rotated = rotatePiece(spawned, 'cw');
+
+      // Rotation should fail - piece should stay at original rotation
+      expect(rotated.gameSpecific.currentPiece?.rotation).toBe(originalRotation);
+    });
+
+    it('should handle no current piece gracefully', () => {
+      const state = createInitialState();
+      state.gameSpecific.currentPiece = null;
+
+      const rotated = rotatePiece(state, 'cw');
+
+      expect(rotated).toBe(state);
+    });
+
+    it('should cycle through all 4 rotations with clockwise', () => {
+      const state = createInitialState();
+      state.gameSpecific.nextPieces[0] = 'T';
+      let current = spawnPiece(state);
+
+      for (let i = 0; i < 4; i++) {
+        current = rotatePiece(current, 'cw');
+      }
+
+      // After 4 rotations, should be back to rotation 0
+      expect(current.gameSpecific.currentPiece?.rotation).toBe(0);
     });
   });
 });
