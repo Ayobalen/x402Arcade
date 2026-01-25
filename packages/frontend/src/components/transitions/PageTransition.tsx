@@ -15,6 +15,18 @@ interface PageTransitionProps {
    * @default 'fade'
    */
   transition?: PageTransitionPreset;
+  /**
+   * Callback fired when the animation starts
+   */
+  onAnimationStart?: () => void;
+  /**
+   * Callback fired when the animation completes
+   */
+  onAnimationComplete?: () => void;
+  /**
+   * Callback fired when the exit animation completes
+   */
+  onExitComplete?: () => void;
 }
 
 /**
@@ -28,6 +40,7 @@ interface PageTransitionProps {
  * - Applies configurable transition variants
  * - Respects reduced motion preferences
  * - Supports all page transition presets
+ * - Provides animation lifecycle callbacks
  *
  * @example
  * ```tsx
@@ -45,9 +58,25 @@ interface PageTransitionProps {
  * <PageTransition transition="blur">
  *   <ProfilePage />
  * </PageTransition>
+ *
+ * // With animation callbacks
+ * <PageTransition
+ *   transition="zoom"
+ *   onAnimationStart={() => console.log('Animation started')}
+ *   onAnimationComplete={() => console.log('Animation completed')}
+ *   onExitComplete={() => console.log('Exit complete')}
+ * >
+ *   <GamePage />
+ * </PageTransition>
  * ```
  */
-export function PageTransition({ children, transition = 'fade' }: PageTransitionProps) {
+export function PageTransition({
+  children,
+  transition = 'fade',
+  onAnimationStart,
+  onAnimationComplete,
+  onExitComplete,
+}: PageTransitionProps) {
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
 
@@ -60,13 +89,15 @@ export function PageTransition({ children, transition = 'fade' }: PageTransition
   }
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" onExitComplete={onExitComplete}>
       <motion.div
         key={location.pathname}
         variants={transitionVariant}
         initial="initial"
         animate="animate"
         exit="exit"
+        onAnimationStart={onAnimationStart}
+        onAnimationComplete={onAnimationComplete}
       >
         {children}
       </motion.div>
