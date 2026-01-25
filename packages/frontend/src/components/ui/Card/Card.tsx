@@ -20,8 +20,9 @@
  * </Card>
  */
 
-import { forwardRef } from 'react'
-import { cn } from '@/lib/utils'
+import { forwardRef } from 'react';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import type {
   CardProps,
   CardHeaderProps,
@@ -30,7 +31,7 @@ import type {
   CardVariant,
   CardPadding,
   CardGlowColor,
-} from './Card.types'
+} from './Card.types';
 
 /**
  * Base styles applied to all cards
@@ -42,7 +43,7 @@ const baseStyles = [
   'rounded-lg',
   // Transitions
   'transition-all duration-200',
-]
+];
 
 /**
  * Variant-specific styles
@@ -52,7 +53,7 @@ const variantStyles: Record<CardVariant, string> = {
     // Background - surface color
     'bg-surface-primary',
     // Border - subtle
-    'border border-border',
+    'border border-border'
   ),
   elevated: cn(
     // Background - slightly elevated surface
@@ -60,13 +61,13 @@ const variantStyles: Record<CardVariant, string> = {
     // Border
     'border border-border',
     // Shadow for elevation
-    'shadow-lg',
+    'shadow-lg'
   ),
   outlined: cn(
     // Background - transparent
     'bg-transparent',
     // Border - more prominent
-    'border-2 border-border',
+    'border-2 border-border'
   ),
   glass: cn(
     // Background - semi-transparent
@@ -74,9 +75,9 @@ const variantStyles: Record<CardVariant, string> = {
     // Glassmorphism effect
     'backdrop-blur-md',
     // Border - subtle glow
-    'border border-border/50',
+    'border border-border/50'
   ),
-}
+};
 
 /**
  * Padding styles
@@ -86,26 +87,22 @@ const paddingStyles: Record<CardPadding, string> = {
   sm: 'p-3',
   md: 'p-4',
   lg: 'p-6',
-}
+};
 
 /**
- * Hover effect styles with scale and shadow transitions
- * Uses will-change for GPU acceleration and smooth performance
+ * Hover effect styles
+ * Scale and shadow are now handled by framer-motion whileHover
  */
 const hoverableStyles = cn(
   // Cursor to indicate interactivity
   'cursor-pointer',
-  // Subtle scale transform on hover (1.02 = 2% increase)
-  'hover:scale-[1.02]',
-  // Border accent on hover
+  // Border accent on hover (still using CSS for smooth blend)
   'hover:border-primary/50',
   // Background shift for visual feedback
   'hover:bg-surface-secondary',
-  // Increased shadow/elevation on hover
-  'hover:shadow-lg hover:shadow-primary/10',
   // Performance optimization for transform
-  'will-change-transform',
-)
+  'will-change-transform'
+);
 
 /**
  * Interactive (clickable) styles
@@ -116,16 +113,13 @@ const interactiveStyles = cn(
   'hover:bg-surface-secondary',
   'active:scale-[0.99]',
   'focus:outline-none focus-visible:outline-none',
-  'focus-visible:border-primary focus-visible:shadow-glow-cyan',
-)
+  'focus-visible:border-primary focus-visible:shadow-glow-cyan'
+);
 
 /**
  * Glow on hover styles
  */
-const glowHoverStyles = cn(
-  'hover:shadow-glow-cyan',
-  'hover:border-primary/70',
-)
+const glowHoverStyles = cn('hover:shadow-glow-cyan', 'hover:border-primary/70');
 
 /**
  * Glow color mapping to Tailwind shadow classes
@@ -167,12 +161,21 @@ const glowColorStyles: Record<CardGlowColor, Record<'sm' | 'md' | 'lg', string>>
     md: 'shadow-glow-rainbow border-primary/50',
     lg: 'shadow-glow-rainbow border-primary/70',
   },
-}
+};
 
 /**
  * Glow pulse animation class
  */
-const glowPulseStyles = 'animate-glow-pulse'
+const glowPulseStyles = 'animate-glow-pulse';
+
+/**
+ * Entrance animation variants
+ * Card fades in and slides up from below
+ */
+const entranceVariants = {
+  initial: { y: 20, opacity: 0 },
+  animate: { y: 0, opacity: 1 },
+};
 
 /**
  * Card Component
@@ -188,6 +191,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       glowColor,
       glowPulse = false,
       glowIntensity = 'md',
+      isSelected = false,
+      animateEntrance = true,
+      entranceDelay = 0,
       className,
       children,
       ...props
@@ -195,11 +201,36 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     ref
   ) => {
     // Get glow styles if glowColor is specified
-    const glowStyles = glowColor ? glowColorStyles[glowColor][glowIntensity] : undefined
+    const glowStyles = glowColor ? glowColorStyles[glowColor][glowIntensity] : undefined;
+
+    // Create motion component as div
+    const MotionDiv = motion.div;
+
+    // Hover lift animation - only apply if hoverable or interactive
+    const hoverAnimation =
+      hoverable || interactive
+        ? {
+            y: -4,
+            scale: 1.02,
+            boxShadow:
+              variant === 'elevated'
+                ? '0 20px 25px -5px rgba(139, 92, 246, 0.3), 0 10px 10px -5px rgba(139, 92, 246, 0.2)'
+                : '0 10px 15px -3px rgba(139, 92, 246, 0.2), 0 4px 6px -2px rgba(139, 92, 246, 0.1)',
+          }
+        : undefined;
+
+    // Selection animation - border and shadow
+    const selectedAnimation = isSelected
+      ? {
+          borderColor: 'rgba(139, 92, 246, 1)', // primary color
+          boxShadow: '0 0 20px rgba(139, 92, 246, 0.6)',
+          scale: 1.01,
+        }
+      : {};
 
     return (
-      <div
-        ref={ref}
+      <MotionDiv
+        ref={ref as React.Ref<HTMLDivElement>}
         className={cn(
           baseStyles,
           variantStyles[variant],
@@ -209,19 +240,34 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           glowOnHover && !glowColor && glowHoverStyles,
           glowStyles,
           glowColor && glowPulse && glowPulseStyles,
-          className,
+          className
         )}
         tabIndex={interactive ? 0 : undefined}
         role={interactive ? 'button' : undefined}
+        // Entrance animation
+        initial={animateEntrance ? entranceVariants.initial : undefined}
+        animate={
+          animateEntrance
+            ? { ...entranceVariants.animate, ...selectedAnimation }
+            : selectedAnimation
+        }
+        // Hover lift animation
+        whileHover={hoverAnimation}
+        transition={{
+          type: 'spring',
+          stiffness: 300,
+          damping: 25,
+          delay: entranceDelay,
+        }}
         {...props}
       >
         {children}
-      </div>
-    )
+      </MotionDiv>
+    );
   }
-)
+);
 
-Card.displayName = 'Card'
+Card.displayName = 'Card';
 
 /**
  * CardHeader Component
@@ -233,21 +279,16 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
     return (
       <div
         ref={ref}
-        className={cn(
-          'flex flex-col space-y-1.5',
-          'pb-4',
-          'border-b border-border/50',
-          className,
-        )}
+        className={cn('flex flex-col space-y-1.5', 'pb-4', 'border-b border-border/50', className)}
         {...props}
       >
         {children}
       </div>
-    )
+    );
   }
-)
+);
 
-CardHeader.displayName = 'CardHeader'
+CardHeader.displayName = 'CardHeader';
 
 /**
  * CardBody Component
@@ -257,18 +298,14 @@ CardHeader.displayName = 'CardHeader'
 export const CardBody = forwardRef<HTMLDivElement, CardBodyProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div
-        ref={ref}
-        className={cn('py-4', className)}
-        {...props}
-      >
+      <div ref={ref} className={cn('py-4', className)} {...props}>
         {children}
       </div>
-    )
+    );
   }
-)
+);
 
-CardBody.displayName = 'CardBody'
+CardBody.displayName = 'CardBody';
 
 /**
  * CardFooter Component
@@ -280,20 +317,15 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
     return (
       <div
         ref={ref}
-        className={cn(
-          'flex items-center',
-          'pt-4',
-          'border-t border-border/50',
-          className,
-        )}
+        className={cn('flex items-center', 'pt-4', 'border-t border-border/50', className)}
         {...props}
       >
         {children}
       </div>
-    )
+    );
   }
-)
+);
 
-CardFooter.displayName = 'CardFooter'
+CardFooter.displayName = 'CardFooter';
 
-export default Card
+export default Card;
