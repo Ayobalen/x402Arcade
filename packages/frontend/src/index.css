@@ -34,8 +34,9 @@ body {
   color: var(--text-default, var(--color-text-primary));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color var(--duration-moderate) var(--ease-out),
-              color var(--duration-moderate) var(--ease-out);
+  transition:
+    background-color var(--duration-moderate) var(--ease-out),
+    color var(--duration-moderate) var(--ease-out);
 }
 
 /* ============================================
@@ -132,14 +133,92 @@ body {
    Accessible focus rings using design system
    ============================================ */
 
+/* Global focus-visible styles for all interactive elements */
+:focus-visible {
+  outline: none;
+}
+
+/* Default focus ring for interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role='button']:focus-visible,
+[role='link']:focus-visible,
+[role='checkbox']:focus-visible,
+[role='radio']:focus-visible,
+[role='switch']:focus-visible,
+[role='tab']:focus-visible,
+[role='menuitem']:focus-visible,
+[role='option']:focus-visible,
+[tabindex]:focus-visible:not([tabindex='-1']) {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-bg-primary),
+    0 0 0 4px var(--color-primary);
+}
+
+/* Focus ring utility class - standard outline style */
 .focus-ring:focus-visible {
   outline: 2px solid var(--interactive-default, var(--color-primary));
   outline-offset: 2px;
+  box-shadow: none;
 }
 
+/* Focus ring with cyan glow effect */
+.focus-ring-glow:focus-visible,
 .focus-glow:focus-visible {
   outline: none;
-  box-shadow: var(--glow-cyan-md), 0 0 0 2px var(--interactive-default, var(--color-primary));
+  box-shadow:
+    var(--glow-cyan-md),
+    0 0 0 2px var(--interactive-default, var(--color-primary));
+}
+
+/* Focus ring inset variant - for filled elements */
+.focus-ring-inset:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 2px var(--interactive-default, var(--color-primary)),
+    inset 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+/* Focus ring with magenta glow */
+.focus-ring-magenta:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--glow-magenta-md),
+    0 0 0 2px var(--color-secondary);
+}
+
+/* Focus ring inset magenta variant */
+.focus-ring-inset-magenta:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 2px var(--color-secondary),
+    inset 0 0 10px rgba(255, 0, 255, 0.2);
+}
+
+/* Focus ring for success states */
+.focus-ring-success:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--glow-green),
+    0 0 0 2px var(--color-success);
+}
+
+/* Focus ring for error states */
+.focus-ring-error:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--glow-red),
+    0 0 0 2px var(--color-error);
+}
+
+/* Disable focus ring for mouse users (keyboard-only) */
+:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
 }
 
 /* ============================================
@@ -190,7 +269,8 @@ body {
 
 /* Glow Pulse - pulsing neon glow intensity */
 @keyframes glowPulse {
-  0%, 100% {
+  0%,
+  100% {
     filter: brightness(1);
     box-shadow: var(--glow-cyan);
   }
@@ -202,7 +282,8 @@ body {
 
 /* Glow Pulse Magenta variant */
 @keyframes glowPulseMagenta {
-  0%, 100% {
+  0%,
+  100% {
     filter: brightness(1);
     box-shadow: var(--glow-magenta);
   }
@@ -214,7 +295,8 @@ body {
 
 /* Glow Pulse Green variant */
 @keyframes glowPulseGreen {
-  0%, 100% {
+  0%,
+  100% {
     filter: brightness(1);
     box-shadow: var(--glow-green);
   }
@@ -226,23 +308,35 @@ body {
 
 /* Glow Pulse Red variant */
 @keyframes glowPulseRed {
-  0%, 100% {
+  0%,
+  100% {
     filter: brightness(1);
     box-shadow: var(--glow-red);
   }
   50% {
     filter: brightness(1.1);
-    box-shadow: 0 0 20px rgba(255, 51, 102, 0.5), 0 0 40px rgba(255, 51, 102, 0.3);
+    box-shadow:
+      0 0 20px rgba(255, 51, 102, 0.5),
+      0 0 40px rgba(255, 51, 102, 0.3);
   }
 }
 
 /* Neon Flicker - retro sign flicker effect */
 @keyframes neonFlicker {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+  0%,
+  19%,
+  21%,
+  23%,
+  25%,
+  54%,
+  56%,
+  100% {
     opacity: 1;
     filter: brightness(1);
   }
-  20%, 24%, 55% {
+  20%,
+  24%,
+  55% {
     opacity: 0.8;
     filter: brightness(0.9);
   }
@@ -250,7 +344,8 @@ body {
 
 /* Pulse - subtle scale pulse */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -264,7 +359,8 @@ body {
     transform: scale(1);
     opacity: 1;
   }
-  75%, 100% {
+  75%,
+  100% {
     transform: scale(2);
     opacity: 0;
   }
@@ -282,7 +378,8 @@ body {
 
 /* Bounce - vertical bounce */
 @keyframes bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(-25%);
     animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
   }
@@ -294,13 +391,21 @@ body {
 
 /* Shake - horizontal shake for errors */
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
-  10%, 30%, 50%, 70%, 90% {
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: translateX(-4px);
   }
-  20%, 40%, 60%, 80% {
+  20%,
+  40%,
+  60%,
+  80% {
     transform: translateX(4px);
   }
 }
