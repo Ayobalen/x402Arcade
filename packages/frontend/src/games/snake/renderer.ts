@@ -426,3 +426,143 @@ export function renderSnakeBodyAnimated(
     ctx.fillRect(pixelX + 1 + offset, pixelY + 1 + offset, scaledSize, scaledSize);
   }
 }
+
+// ============================================================================
+// Overlay Rendering
+// ============================================================================
+
+/**
+ * Renders the pause overlay with semi-transparent background and text.
+ *
+ * This function displays a pause screen over the game with a dark overlay
+ * and centered text prompting the player to resume.
+ *
+ * @param ctx - Canvas 2D rendering context
+ *
+ * @description
+ * - Fills canvas with semi-transparent black (#000000 at 70% opacity)
+ * - Displays "PAUSED" text in center of canvas
+ * - Shows "Press SPACE to continue" instruction below
+ * - Uses white text for visibility against dark overlay
+ * - Uses large font for "PAUSED" (48px) and smaller for instruction (20px)
+ *
+ * @example
+ * ```ts
+ * if (isPaused) {
+ *   renderPauseOverlay(ctx)
+ * }
+ * ```
+ */
+export function renderPauseOverlay(ctx: CanvasRenderingContext2D): void {
+  // Draw semi-transparent overlay
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // Draw "PAUSED" text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 48px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('PAUSED', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
+
+  // Draw instruction text
+  ctx.font = '20px Inter, sans-serif';
+  ctx.fillText('Press SPACE to continue', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+}
+
+/**
+ * Renders the game over overlay with final score.
+ *
+ * This function displays a game over screen with the player's final score
+ * and prompts them to restart.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param score - Final score to display
+ *
+ * @description
+ * - Fills canvas with semi-transparent black (#000000 at 70% opacity)
+ * - Displays "GAME OVER" text in center
+ * - Shows final score below game over text
+ * - Shows "Press SPACE to restart" instruction at bottom
+ * - Uses neon red accent for game over text (#ff0000)
+ * - Uses white for score and instruction text
+ *
+ * @example
+ * ```ts
+ * if (isGameOver) {
+ *   renderGameOverOverlay(ctx, 1250)
+ * }
+ * ```
+ */
+export function renderGameOverOverlay(ctx: CanvasRenderingContext2D, score: number): void {
+  // Draw semi-transparent overlay
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // Draw "GAME OVER" text
+  ctx.fillStyle = '#ff0000'; // Neon red for game over
+  ctx.font = 'bold 48px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('GAME OVER', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
+
+  // Draw score
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 32px Inter, sans-serif';
+  ctx.fillText(`Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
+
+  // Draw instruction text
+  ctx.font = '20px Inter, sans-serif';
+  ctx.fillText('Press SPACE to restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+}
+
+/**
+ * Renders the current score display in the top-left corner.
+ *
+ * This function displays the player's current score during gameplay
+ * with a semi-transparent background for readability.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param score - Current score to display
+ *
+ * @description
+ * - Positions in top-left corner with padding (10px from edges)
+ * - Draws semi-transparent background rectangle for readability
+ * - Displays score with "Score: " prefix
+ * - Uses white text on dark background
+ * - Updates every frame during gameplay
+ * - Font size: 20px for easy reading
+ *
+ * @example
+ * ```ts
+ * // In game loop
+ * renderBackground(ctx)
+ * renderGrid(ctx)
+ * renderSnake(ctx, snake)
+ * renderFood(ctx, food)
+ * renderScore(ctx, currentScore) // Always render score on top
+ * ```
+ */
+export function renderScore(ctx: CanvasRenderingContext2D, score: number): void {
+  // Measure text to calculate background size
+  ctx.font = '20px Inter, sans-serif';
+  const text = `Score: ${score}`;
+  const textMetrics = ctx.measureText(text);
+  const textWidth = textMetrics.width;
+
+  // Draw background rectangle
+  const padding = 8;
+  const bgX = 10;
+  const bgY = 10;
+  const bgWidth = textWidth + padding * 2;
+  const bgHeight = 30;
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.fillRect(bgX, bgY, bgWidth, bgHeight);
+
+  // Draw score text
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(text, bgX + padding, bgY + 5);
+}
