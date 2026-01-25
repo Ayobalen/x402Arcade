@@ -62,6 +62,23 @@ import {
   UFO_WIDTH,
 } from './constants';
 import type { SpaceInvadersDifficulty } from './constants';
+import { useSFX } from '../../hooks/useSFX';
+import {
+  initializeSpaceInvadersSounds,
+  playPlayerShootSound,
+  playAlienShootSound,
+  playAlienMovementSound,
+  playAlienDeathSound,
+  playUFOFlybySound,
+  stopUFOFlybySound,
+  playUFODeathSound,
+  playShieldHitSound,
+  playShieldDestroySound,
+  playPlayerDeathSound,
+  playWaveCompleteSound,
+  playWaveStartSound,
+  playGameOverSound,
+} from './SpaceInvadersSounds';
 
 // ============================================================================
 // Component Props
@@ -391,6 +408,9 @@ export const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const difficultyConfig = getDifficultyConfig(difficulty);
 
+  // Audio system
+  const sfx = useSFX();
+
   const [gameState, setGameState] = useState<SpaceInvadersFullState>(() => {
     const gameSpecific = initSpaceInvadersState(difficultyConfig);
     return {
@@ -407,6 +427,10 @@ export const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({
 
   const animationFrameRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
+
+  // Refs for tracking state changes for audio triggers
+  const prevUFOActiveRef = useRef<boolean>(false);
+  const alienMovementTimerRef = useRef<number>(0);
 
   // ============================================================================
   // Game Loop
@@ -438,13 +462,27 @@ export const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({
 
         // Handle player shooting
         if (isShooting && gs.player.shootCooldown <= 0) {
+          const prevBulletCount = gs.bullets.filter((b) => b.owner === 'player').length;
           const shootResult = playerShoot(gs.player, gs.bullets, difficultyConfig);
           gs.player = shootResult.player;
           gs.bullets = shootResult.bullets;
+          const newBulletCount = gs.bullets.filter((b) => b.owner === 'player').length;
+          if (newBulletCount > prevBulletCount) {
+            playPlayerShootSound(sfx);
+          }
         }
 
         // Update formation (aliens)
+        const prevFormationPos = gs.formation.position.x;
         gs.formation = updateFormationMovement(gs.formation, deltaTime);
+
+        // Play alien movement sound periodically (when formation moves)
+        const alienCount = gs.formation.rows.flat().filter((a) => a.alive).length;
+        alienMovementTimerRef.current -= deltaTime;
+        if (alienMovementTimerRef.current <= 0 && gs.formation.position.x !== prevFormationPos) {
+          playAlienMovementSound(sfx, alienCount, 55);
+          alienMovementTimerRef.current = 0.5; // Play every 0.5 seconds
+        }
 
         // Update alien explosions
         gs.formation = updateAlienExplosions(gs.formation, deltaTime);
@@ -460,10 +498,15 @@ export const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({
         // Handle alien shooting
         gs.alienShootTimer -= deltaTime;
         if (gs.alienShootTimer <= 0) {
+          const prevAlienBullets = gs.bullets.filter((b) => b.owner === 'alien').length;
           const shootResult = alienShoot(gs.formation, gs.bullets, difficultyConfig);
           gs.formation = shootResult.formation;
           gs.bullets = shootResult.bullets;
           gs.alienShootTimer = difficultyConfig.alienShootInterval;
+          const newAlienBullets = gs.bullets.filter((b) => b.owner === 'alien').length;
+          if (newAlienBullets > prevAlienBullets) {
+            playAlienShootSound(sfx);
+          }
         }
 
         // Update shields
@@ -479,6 +522,7 @@ export const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({
         }
 
         // Check collisions
+        const prevAliveAliens = gs.formation.rows.flat().filter((a) => a.alive);
         const alienCollisions = checkBulletAlienCollisions(
           gs.bullets,
           gs.formation,
@@ -489,32 +533,81 @@ export const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({
         score += alienCollisions.scoreGained;
         if (alienCollisions.scoreGained > 0) {
           gs = updateCombo(gs);
+          // Play alien death sound for each killed alien
+          const currentAliveAliens = gs.formation.rows.flat().filter((a) => a.alive);
+          const killedCount = prevAliveAliens.length - currentAliveAliens.length;
+          for (let i = 0; i < killedCount; i++) {
+            // Find the type of killed alien(s) - use the first alive alien's type as fallback
+            const killedAlien = prevAliveAliens.find(
+              (a) => !currentAliveAliens.some((ca) => ca.id === a.id)
+            );
+            if (killedAlien) {
+              playAlienDeathSound(sfx, killedAlien.type);
+            }
+          }
         }
 
+        const prevUFOAlive = gs.ufo?.alive ?? false;
         const ufoCollisions = checkBulletUFOCollisions(gs.bullets, gs.ufo);
         gs.bullets = ufoCollisions.bullets;
         gs.ufo = ufoCollisions.ufo;
         score += ufoCollisions.scoreGained;
+        // Play UFO death sound if UFO was killed
+        const currentUFOAlive = gs.ufo?.alive ?? false;
+        if (prevUFOAlive && !currentUFOAlive) {
+          stopUFOFlybySound(sfx);
+          playUFODeathSound(sfx);
+        }
 
+        const prevShields = gs.shields.map((s) => ({ ...s, segments: [...s.segments] }));
         const shieldCollisions = checkBulletShieldCollisions(gs.bullets, gs.shields);
         gs.bullets = shieldCollisions.bullets;
         gs.shields = shieldCollisions.shields;
+        // Play shield hit sound if any shield was damaged
+        const shieldDamaged = gs.shields.some((shield, idx) => {
+          const prevShield = prevShields[idx];
+          return shield.segments.some(
+            (seg, segIdx) => seg.health < prevShield.segments[segIdx].health
+          );
+        });
+        if (shieldDamaged) {
+          playShieldHitSound(sfx);
+        }
+        // Play shield destroy sound if any segment was destroyed
+        const shieldDestroyed = gs.shields.some((shield, idx) => {
+          const prevShield = prevShields[idx];
+          return shield.segments.some(
+            (seg, segIdx) => seg.health === 0 && prevShield.segments[segIdx].health > 0
+          );
+        });
+        if (shieldDestroyed) {
+          playShieldDestroySound(sfx);
+        }
 
+        const prevPlayerLives = gs.player.lives;
         const playerCollisions = checkBulletPlayerCollisions(gs.bullets, gs.player);
         gs.bullets = playerCollisions.bullets;
         if (playerCollisions.wasHit) {
           gs = handlePlayerDeath(gs, difficultyConfig);
+          // Play player death sound if lives decreased
+          if (gs.player.lives < prevPlayerLives) {
+            playPlayerDeathSound(sfx);
+          }
         }
 
         // Check if wave is complete
         if (isWaveComplete(gs.formation) && prevState.status === 'playing') {
+          playWaveCompleteSound(sfx);
           gs = advanceWave(gs, difficultyConfig);
           score += 500; // Wave completion bonus
+          // Play wave start sound after a short delay
+          setTimeout(() => playWaveStartSound(sfx), 500);
         }
 
         // Check game over
         if (checkGameOver(gs.player, gs.formation)) {
           setIsGameOverState(true);
+          playGameOverSound(sfx);
           if (onGameOver) {
             onGameOver(score, gs.level, gs.wave, sessionId);
           }
@@ -542,8 +635,33 @@ export const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({
       onGameOver,
       sessionId,
       difficultyConfig,
+      sfx,
     ]
   );
+
+  // ============================================================================
+  // Sound Initialization
+  // ============================================================================
+
+  useEffect(() => {
+    initializeSpaceInvadersSounds(sfx);
+  }, [sfx]);
+
+  // UFO flyby sound management
+  useEffect(() => {
+    const ufo = gameState.gameSpecific.ufo;
+    const isUFOActive = ufo !== null && ufo.alive;
+
+    if (isUFOActive && !prevUFOActiveRef.current) {
+      // UFO just spawned - start flyby sound
+      playUFOFlybySound(sfx);
+    } else if (!isUFOActive && prevUFOActiveRef.current) {
+      // UFO just disappeared or died - stop flyby sound
+      stopUFOFlybySound(sfx);
+    }
+
+    prevUFOActiveRef.current = isUFOActive;
+  }, [gameState.gameSpecific.ufo, sfx]);
 
   // ============================================================================
   // Rendering
