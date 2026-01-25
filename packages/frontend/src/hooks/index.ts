@@ -194,3 +194,10 @@ export {
   type UseNetworkRequestResult,
   type UseFetchOptions,
 } from './useNetworkRequest';
+
+export {
+  useAudio,
+  useSound,
+  useBackgroundMusic,
+  useUISounds,
+} from './useAudio';
