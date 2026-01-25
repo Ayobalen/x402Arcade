@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { BackgroundEffects, NoiseOverlay } from '@/components/layout/BackgroundEffects';
+import { SkipLink } from '@/components/ui/SkipLink';
 import { usePerformanceScaling } from '@/hooks/usePerformanceScaling';
 import type { LayoutProps } from './Layout.types';
 
@@ -86,6 +87,9 @@ export function Layout({
         'relative'
       )}
     >
+      {/* Skip to Content Link - First focusable element for accessibility */}
+      <SkipLink href="#main-content" />
+
       {/* Background Effects - positioned behind all content */}
       {showBackgroundEffects && settings.backgroundGlows && (
         <BackgroundEffects glowIntensity={glowIntensity} animateGlows={settings.animateGlows} />
@@ -99,8 +103,9 @@ export function Layout({
       {/* Header */}
       {showHeader && (customHeader || <Header showBalance={showBalance} />)}
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Landmark with ID for skip link */}
       <main
+        id="main-content"
         className={cn(
           // Flex grow to push footer to bottom
           'flex-1',

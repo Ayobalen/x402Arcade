@@ -102,3 +102,5 @@ export {
   type SubmissionError,
   type UseScoreSubmissionReturn,
 } from './useScoreSubmission';
+
+export { useFocusTrap, FOCUSABLE_SELECTORS, type UseFocusTrapOptions } from './useFocusTrap';
