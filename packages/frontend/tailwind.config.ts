@@ -21,6 +21,8 @@ import { borderRadius, borderWidth } from './src/styles/tokens/borders';
 import { elevationShadows, glowShadows, combinedShadows } from './src/styles/tokens/shadows';
 import { durations, easings, keyframes as animKeyframes } from './src/styles/tokens/animations';
 import { zIndex } from './src/styles/tokens/zIndex';
+import { containerWidths, aspectRatios, maxWidths, minHeights } from './src/styles/tokens/layout';
+import { opacity } from './src/styles/tokens/opacity';
 
 const config: Config = {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -298,6 +300,23 @@ const config: Config = {
         tooltip: zIndex.tooltip,
         toast: zIndex.toast,
         debug: zIndex.debug,
+      },
+      // Container widths
+      maxWidth: {
+        ...maxWidths,
+        ...containerWidths,
+      },
+      // Aspect ratios
+      aspectRatio: {
+        ...aspectRatios,
+      },
+      // Min heights
+      minHeight: {
+        ...minHeights,
+      },
+      // Opacity scale
+      opacity: {
+        ...opacity,
       },
       keyframes: {
         'glow-pulse': {
