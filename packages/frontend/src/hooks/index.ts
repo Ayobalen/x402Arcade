@@ -134,3 +134,10 @@ export {
   type UseGameLoaderOptions,
   type UseGamePreloadOptions,
 } from './useGameLoader';
+
+export {
+  useServiceWorker,
+  type ServiceWorkerState,
+  type UseServiceWorkerOptions,
+  type UseServiceWorkerReturn,
+} from './useServiceWorker';
