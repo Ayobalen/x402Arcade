@@ -424,7 +424,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
       newState.gameSpecific.balls.forEach((ball) => {
         if (!ball.isActive) return;
 
-        let updatedBall = updateBall(ball, deltaTime);
+        let updatedBall = updateBall(ball, newState.gameSpecific.paddle, deltaTime);
 
         // Check paddle collision
         const paddleCollision = checkBallPaddleCollision(updatedBall, newState.gameSpecific.paddle);
@@ -464,17 +464,17 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
               playBrickBreakSound(sfx, brick.type);
 
               // Add score
-              newState.gameSpecific.score = addScore(
-                newState.gameSpecific.score,
+              newState.score = addScore(
+                newState.score,
                 brick.points,
-                newState.gameSpecific.currentMultiplier
+                newState.gameSpecific.scoreState.multiplier
               );
 
               // Play combo sound if applicable
-              playComboSound(sfx, newState.gameSpecific.currentCombo);
+              playComboSound(sfx, newState.gameSpecific.scoreState.combo);
 
               // Check if power-up should drop
-              const powerUpChance = getLevelPowerUpChance(newState.gameSpecific.level);
+              const powerUpChance = getLevelPowerUpChance(newState.level);
               if (shouldDropPowerUp(brick, powerUpChance)) {
                 const powerUpId = `powerup-${Date.now()}-${Math.random()}`;
                 const powerUp = createPowerUpDrop(brick, powerUpId);
@@ -565,17 +565,17 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
               playBrickBreakSound(sfx, brick.type);
 
               // Add score
-              newState.gameSpecific.score = addScore(
-                newState.gameSpecific.score,
+              newState.score = addScore(
+                newState.score,
                 brick.points,
-                newState.gameSpecific.currentMultiplier
+                newState.gameSpecific.scoreState.multiplier
               );
 
               // Play combo sound if applicable
-              playComboSound(sfx, newState.gameSpecific.currentCombo);
+              playComboSound(sfx, newState.gameSpecific.scoreState.combo);
 
               // Check if power-up should drop
-              const powerUpChance = getLevelPowerUpChance(newState.gameSpecific.level);
+              const powerUpChance = getLevelPowerUpChance(newState.level);
               if (shouldDropPowerUp(brick, powerUpChance)) {
                 const powerUpId = `powerup-laser-${Date.now()}-${Math.random()}`;
                 const powerUp = createPowerUpDrop(brick, powerUpId);
@@ -615,7 +615,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
         playGameOverSound(sfx);
         setIsGameOverState(true);
         if (onGameOver) {
-          onGameOver(newState.gameSpecific.score.points, newState.gameSpecific.level, sessionId);
+          onGameOver(newState.score, newState.level, sessionId);
         }
       }
 
@@ -803,7 +803,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
     } else if (isPaused) {
       renderOverlay(ctx, 'PAUSED', 'Press P to resume');
     } else if (isGameOverState) {
-      renderOverlay(ctx, 'GAME OVER', `Final Score: ${gameState.gameSpecific.score.points}`);
+      renderOverlay(ctx, 'GAME OVER', `Final Score: ${gameState.score}`);
     }
   }, [gameState, particles, countdown, isPaused, isGameOverState]);
 

@@ -277,9 +277,10 @@ function drawOctopusAlien(
  * Draws the UFO (mystery ship).
  */
 function drawUFO(ctx: CanvasRenderingContext2D, ufo: UFOState): void {
-  if (!ufo.isActive || ufo.isExploding) return;
+  if (!ufo || !ufo.isActive || ufo.isExploding) return;
 
   const { position, width, height } = ufo;
+  if (!position) return;
 
   ctx.save();
   ctx.fillStyle = COLOR_UFO;
