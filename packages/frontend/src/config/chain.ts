@@ -2,14 +2,34 @@
  * Chain Configuration
  *
  * Centralized chain configuration for the x402Arcade frontend.
- * Uses viem's chain definitions with environment variable support
+ * Provides chain definitions with environment variable support
  * for flexible deployment across different networks.
  *
  * @module config/chain
  */
 
-import { cronosTestnet } from 'viem/chains'
-import { defineChain, type Chain } from 'viem'
+/**
+ * Chain configuration interface
+ */
+export interface Chain {
+  id: number;
+  name: string;
+  network: string;
+  nativeCurrency: {
+    name: string;
+    symbol: string;
+    decimals: number;
+  };
+  rpcUrls: {
+    default: { http: string[] };
+  };
+  blockExplorers: {
+    default: {
+      name: string;
+      url: string;
+    };
+  };
+}
 
 // ============================================================================
 // Environment Variables
@@ -22,12 +42,12 @@ import { defineChain, type Chain } from 'viem'
  * Default: 338 (Cronos Testnet)
  */
 export function getChainId(): number {
-  const envChainId = import.meta.env.VITE_CHAIN_ID
+  const envChainId = import.meta.env.VITE_CHAIN_ID;
   if (envChainId) {
-    const parsed = parseInt(envChainId, 10)
-    if (!isNaN(parsed)) return parsed
+    const parsed = parseInt(envChainId, 10);
+    if (!isNaN(parsed)) return parsed;
   }
-  return 338 // Cronos Testnet
+  return 338; // Cronos Testnet
 }
 
 /**
@@ -37,7 +57,7 @@ export function getChainId(): number {
  * Default: https://evm-t3.cronos.org/
  */
 export function getRpcUrl(): string {
-  return import.meta.env.VITE_RPC_URL || 'https://evm-t3.cronos.org/'
+  return import.meta.env.VITE_RPC_URL || 'https://evm-t3.cronos.org/';
 }
 
 /**
@@ -47,7 +67,7 @@ export function getRpcUrl(): string {
  * Default: https://explorer.cronos.org/testnet
  */
 export function getExplorerUrl(): string {
-  return import.meta.env.VITE_EXPLORER_URL || 'https://explorer.cronos.org/testnet'
+  return import.meta.env.VITE_EXPLORER_URL || 'https://explorer.cronos.org/testnet';
 }
 
 /**
@@ -56,8 +76,7 @@ export function getExplorerUrl(): string {
  * devUSDC.e token with EIP-3009 support for gasless payments.
  * @see https://explorer.cronos.org/testnet/token/0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
  */
-export const DEFAULT_USDC_ADDRESS =
-  '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0' as `0x${string}`
+export const DEFAULT_USDC_ADDRESS = '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0' as `0x${string}`;
 
 /**
  * Validate Ethereum address format
@@ -66,7 +85,7 @@ export const DEFAULT_USDC_ADDRESS =
  * @returns true if address matches 0x + 40 hex chars format
  */
 function isValidAddress(address: string): address is `0x${string}` {
-  return /^0x[a-fA-F0-9]{40}$/.test(address)
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
 /**
@@ -79,17 +98,17 @@ function isValidAddress(address: string): address is `0x${string}` {
  * @throws Error if VITE_USDC_ADDRESS is set but invalid
  */
 export function getUsdcContractAddress(): `0x${string}` {
-  const envAddress = import.meta.env.VITE_USDC_ADDRESS
+  const envAddress = import.meta.env.VITE_USDC_ADDRESS;
   if (envAddress) {
     if (!isValidAddress(envAddress)) {
       throw new Error(
         `Invalid VITE_USDC_ADDRESS format: ${envAddress}. ` +
           'Expected format: 0x + 40 hex characters (e.g., 0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0)'
-      )
+      );
     }
-    return envAddress
+    return envAddress;
   }
-  return DEFAULT_USDC_ADDRESS
+  return DEFAULT_USDC_ADDRESS;
 }
 
 // ============================================================================
@@ -99,17 +118,17 @@ export function getUsdcContractAddress(): `0x${string}` {
 /**
  * Cronos Testnet Chain ID
  */
-export const CRONOS_TESTNET_CHAIN_ID = 338 as const
+export const CRONOS_TESTNET_CHAIN_ID = 338 as const;
 
 /**
  * Default RPC URL for Cronos Testnet
  */
-export const DEFAULT_RPC_URL = 'https://evm-t3.cronos.org/'
+export const DEFAULT_RPC_URL = 'https://evm-t3.cronos.org/';
 
 /**
  * Default Block Explorer URL for Cronos Testnet
  */
-export const DEFAULT_EXPLORER_URL = 'https://explorer.cronos.org/testnet'
+export const DEFAULT_EXPLORER_URL = 'https://explorer.cronos.org/testnet';
 
 // ============================================================================
 // Chain Configuration
@@ -118,38 +137,36 @@ export const DEFAULT_EXPLORER_URL = 'https://explorer.cronos.org/testnet'
 /**
  * Supported chain configurations
  */
-export type SupportedChainId = typeof CRONOS_TESTNET_CHAIN_ID
+export type SupportedChainId = typeof CRONOS_TESTNET_CHAIN_ID;
 
 /**
  * Check if a chain ID is supported
  */
 export function isSupportedChain(chainId: number): chainId is SupportedChainId {
-  return chainId === CRONOS_TESTNET_CHAIN_ID
+  return chainId === CRONOS_TESTNET_CHAIN_ID;
 }
 
 /**
  * Create a custom chain configuration with environment overrides
  *
- * Extends viem's cronosTestnet chain with custom RPC and explorer URLs
+ * Creates Cronos Testnet chain config with custom RPC and explorer URLs
  * from environment variables, allowing flexible deployment configuration.
  *
  * @returns Chain configuration with environment variable support
  */
 export function createChainConfig(): Chain {
-  const rpcUrl = getRpcUrl()
-  const explorerUrl = getExplorerUrl()
+  const rpcUrl = getRpcUrl();
+  const explorerUrl = getExplorerUrl();
 
-  // If using default values, just return the standard chain
-  if (
-    rpcUrl === DEFAULT_RPC_URL &&
-    explorerUrl === DEFAULT_EXPLORER_URL
-  ) {
-    return cronosTestnet
-  }
-
-  // Create custom chain with overridden values
-  return defineChain({
-    ...cronosTestnet,
+  return {
+    id: CRONOS_TESTNET_CHAIN_ID,
+    name: 'Cronos Testnet',
+    network: 'cronos-testnet',
+    nativeCurrency: {
+      name: 'Cronos',
+      symbol: 'CRO',
+      decimals: 18,
+    },
     rpcUrls: {
       default: { http: [rpcUrl] },
     },
@@ -159,7 +176,7 @@ export function createChainConfig(): Chain {
         url: explorerUrl,
       },
     },
-  })
+  };
 }
 
 /**
@@ -168,12 +185,12 @@ export function createChainConfig(): Chain {
  * Uses Cronos Testnet with optional environment variable overrides
  * for RPC URL and block explorer URL.
  */
-export const defaultChain: Chain = createChainConfig()
+export const defaultChain: Chain = createChainConfig();
 
 /**
  * Supported chains array for wagmi/viem configuration
  */
-export const supportedChains: readonly [Chain, ...Chain[]] = [defaultChain]
+export const supportedChains: readonly [Chain, ...Chain[]] = [defaultChain];
 
 // ============================================================================
 // Contract Addresses
@@ -190,7 +207,7 @@ export const supportedChains: readonly [Chain, ...Chain[]] = [defaultChain]
  *
  * @see https://explorer.cronos.org/testnet/token/0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
  */
-export const USDC_CONTRACT_ADDRESS: `0x${string}` = getUsdcContractAddress()
+export const USDC_CONTRACT_ADDRESS: `0x${string}` = getUsdcContractAddress();
 
 /**
  * USDC Token Configuration
@@ -200,7 +217,7 @@ export const USDC_CONFIG = {
   decimals: 6,
   symbol: 'USDC',
   name: 'USD Coin (testnet)',
-} as const
+} as const;
 
 /**
  * Get USDC contract address for a chain
@@ -210,9 +227,9 @@ export const USDC_CONFIG = {
  */
 export function getUsdcAddress(chainId: number): `0x${string}` | undefined {
   if (chainId === CRONOS_TESTNET_CHAIN_ID) {
-    return USDC_CONTRACT_ADDRESS
+    return USDC_CONTRACT_ADDRESS;
   }
-  return undefined
+  return undefined;
 }
 
 // ============================================================================
@@ -225,7 +242,7 @@ export function getUsdcAddress(chainId: number): `0x${string}` | undefined {
  * The facilitator service that processes x402 payment settlements.
  * This service handles the on-chain execution of EIP-3009 authorizations.
  */
-export const DEFAULT_FACILITATOR_URL = 'https://facilitator.cronoslabs.org'
+export const DEFAULT_FACILITATOR_URL = 'https://facilitator.cronoslabs.org';
 
 /**
  * Get facilitator URL from environment or use default
@@ -234,7 +251,7 @@ export const DEFAULT_FACILITATOR_URL = 'https://facilitator.cronoslabs.org'
  * Default: https://facilitator.cronoslabs.org
  */
 export function getFacilitatorUrl(): string {
-  return import.meta.env.VITE_FACILITATOR_URL || DEFAULT_FACILITATOR_URL
+  return import.meta.env.VITE_FACILITATOR_URL || DEFAULT_FACILITATOR_URL;
 }
 
 // ============================================================================
@@ -248,8 +265,8 @@ export function getFacilitatorUrl(): string {
  * @returns Full URL to the transaction on the block explorer
  */
 export function getTxUrl(txHash: string): string {
-  const baseUrl = getExplorerUrl()
-  return `${baseUrl}/tx/${txHash}`
+  const baseUrl = getExplorerUrl();
+  return `${baseUrl}/tx/${txHash}`;
 }
 
 /**
@@ -259,8 +276,8 @@ export function getTxUrl(txHash: string): string {
  * @returns Full URL to the address on the block explorer
  */
 export function getAddressUrl(address: string): string {
-  const baseUrl = getExplorerUrl()
-  return `${baseUrl}/address/${address}`
+  const baseUrl = getExplorerUrl();
+  return `${baseUrl}/address/${address}`;
 }
 
 /**
@@ -270,12 +287,12 @@ export function getAddressUrl(address: string): string {
  * @returns Full URL to the token on the block explorer
  */
 export function getTokenUrl(tokenAddress: string): string {
-  const baseUrl = getExplorerUrl()
-  return `${baseUrl}/token/${tokenAddress}`
+  const baseUrl = getExplorerUrl();
+  return `${baseUrl}/token/${tokenAddress}`;
 }
 
 // ============================================================================
 // Type Exports
 // ============================================================================
 
-export type { Chain }
+// Chain type is already exported at the top of the file
