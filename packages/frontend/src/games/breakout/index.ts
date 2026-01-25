@@ -174,3 +174,28 @@ export {
 
 export { BreakoutGame } from './BreakoutGame';
 export type { BreakoutGameProps } from './BreakoutGame';
+
+// ============================================================================
+// Sound System Exports
+// ============================================================================
+
+export {
+  BreakoutSoundType,
+  BREAKOUT_SOUND_ASSETS,
+  initializeBreakoutSounds,
+  playBrickBreakSound,
+  playBrickDamageSound,
+  playPaddleHitSound,
+  playWallBounceSound,
+  playPowerUpDropSound,
+  playPowerUpCollectSound,
+  playLaserFireSound,
+  playLaserHitSound,
+  playBallLaunchSound,
+  playBallLostSound,
+  playLifeLostSound,
+  playLevelCompleteSound,
+  playGameOverSound,
+  playComboSound,
+  playAllClearSound,
+} from './BreakoutSounds';

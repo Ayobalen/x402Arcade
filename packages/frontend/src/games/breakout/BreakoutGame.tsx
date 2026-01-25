@@ -38,6 +38,8 @@ import {
   applyPowerUpEffect,
   damageBrick,
   addScore,
+  shouldDropPowerUp,
+  createPowerUpDrop,
 } from './logic';
 import {
   GAME_WIDTH,
@@ -48,7 +50,26 @@ import {
   POWERUP_COLORS,
   POWERUP_ICONS,
   LASER_COLOR,
+  getLevelPowerUpChance,
 } from './constants';
+import { useSFX } from '../../hooks/useSFX';
+import {
+  initializeBreakoutSounds,
+  playBrickBreakSound,
+  playBrickDamageSound,
+  playPaddleHitSound,
+  playWallBounceSound,
+  playPowerUpDropSound,
+  playPowerUpCollectSound,
+  playLaserFireSound,
+  playLaserHitSound,
+  playBallLaunchSound,
+  playBallLostSound,
+  playLifeLostSound,
+  playLevelCompleteSound,
+  playGameOverSound,
+  playComboSound,
+} from './BreakoutSounds';
 
 // ============================================================================
 // Component Props
@@ -363,6 +384,17 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
   const lastTimeRef = useRef<number>(performance.now());
 
   // ============================================================================
+  // Audio System
+  // ============================================================================
+
+  const sfx = useSFX();
+
+  // Initialize Breakout sounds on mount
+  useEffect(() => {
+    initializeBreakoutSounds(sfx);
+  }, [sfx]);
+
+  // ============================================================================
   // Game Loop
   // ============================================================================
 
@@ -395,13 +427,17 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
         const paddleCollision = checkBallPaddleCollision(updatedBall, newState.gameSpecific.paddle);
         if (paddleCollision.hasCollision) {
           updatedBall = paddleCollision.ball!;
-          // Play sound effect here if needed
+          // Play paddle hit sound with velocity-based variation
+          const ballSpeed = Math.sqrt(updatedBall.velocity.vx ** 2 + updatedBall.velocity.vy ** 2);
+          playPaddleHitSound(sfx, ballSpeed);
         }
 
         // Check wall collisions
         const wallCollision = checkBallWallCollision(updatedBall);
         if (wallCollision.hasCollision) {
           updatedBall = wallCollision.ball!;
+          // Play wall bounce sound
+          playWallBounceSound(sfx);
         }
 
         // Check brick collisions
@@ -417,9 +453,12 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
             const brickIndex = newState.gameSpecific.bricks.indexOf(brick);
             newState.gameSpecific.bricks[brickIndex] = damagedBrick;
 
-            // Create particles if brick destroyed
+            // Create particles and play sound if brick destroyed
             if (!damagedBrick.isActive) {
               setParticles((prev) => [...prev, ...createBrickParticles(brick)]);
+
+              // Play brick break sound with type-specific variation
+              playBrickBreakSound(sfx, brick.type);
 
               // Add score
               newState.gameSpecific.score = addScore(
@@ -427,6 +466,23 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
                 brick.points,
                 newState.gameSpecific.currentMultiplier
               );
+
+              // Play combo sound if applicable
+              playComboSound(sfx, newState.gameSpecific.currentCombo);
+
+              // Check if power-up should drop
+              const powerUpChance = getLevelPowerUpChance(newState.gameSpecific.level);
+              if (shouldDropPowerUp(brick, powerUpChance)) {
+                const powerUpId = `powerup-${Date.now()}-${Math.random()}`;
+                const powerUp = createPowerUpDrop(brick, powerUpId);
+                newState.gameSpecific.powerUps.push(powerUp);
+
+                // Play power-up drop sound
+                playPowerUpDropSound(sfx);
+              }
+            } else {
+              // Play brick damage sound (multi-hit brick damaged but not destroyed)
+              playBrickDamageSound(sfx);
             }
           }
         });
@@ -443,7 +499,17 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
 
       // Check if all balls are lost
       if (newState.gameSpecific.balls.length === 0) {
+        // Play ball lost sound
+        playBallLostSound(sfx);
+
+        const oldLives = newState.lives;
         newState = resetAfterLifeLost(newState);
+
+        // Play life lost sound if a life was actually lost
+        if (newState.lives < oldLives) {
+          playLifeLostSound(sfx);
+        }
+
         setCountdown(3);
       }
 
@@ -456,6 +522,8 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
         const collection = checkPowerUpCollection(updated, newState.gameSpecific.paddle);
 
         if (collection.hasCollision) {
+          // Play power-up collection sound
+          playPowerUpCollectSound(sfx, powerUp.type);
           // Apply power-up effect
           newState = applyPowerUpEffect(newState, powerUp.type);
         } else if (updated.position.y < GAME_HEIGHT + 50) {
@@ -489,12 +557,34 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
             if (!damagedBrick.isActive) {
               setParticles((prev) => [...prev, ...createBrickParticles(brick)]);
 
+              // Play laser hit and brick break sounds
+              playLaserHitSound(sfx);
+              playBrickBreakSound(sfx, brick.type);
+
               // Add score
               newState.gameSpecific.score = addScore(
                 newState.gameSpecific.score,
                 brick.points,
                 newState.gameSpecific.currentMultiplier
               );
+
+              // Play combo sound if applicable
+              playComboSound(sfx, newState.gameSpecific.currentCombo);
+
+              // Check if power-up should drop
+              const powerUpChance = getLevelPowerUpChance(newState.gameSpecific.level);
+              if (shouldDropPowerUp(brick, powerUpChance)) {
+                const powerUpId = `powerup-laser-${Date.now()}-${Math.random()}`;
+                const powerUp = createPowerUpDrop(brick, powerUpId);
+                newState.gameSpecific.powerUps.push(powerUp);
+
+                // Play power-up drop sound
+                playPowerUpDropSound(sfx);
+              }
+            } else {
+              // Play laser hit and brick damage sounds
+              playLaserHitSound(sfx);
+              playBrickDamageSound(sfx);
             }
           }
         });
@@ -512,12 +602,14 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
 
       // Check level complete
       if (isLevelComplete(newState)) {
+        playLevelCompleteSound(sfx);
         newState = advanceToNextLevel(newState);
         setCountdown(3);
       }
 
       // Check game over
       if (isGameOver(newState)) {
+        playGameOverSound(sfx);
         setIsGameOverState(true);
         if (onGameOver) {
           onGameOver(newState.gameSpecific.score.points, newState.gameSpecific.level, sessionId);
@@ -598,6 +690,8 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
             setGameState((prev) => {
               const ball = prev.gameSpecific.balls[0];
               if (ball && !ball.isLaunched) {
+                // Play ball launch sound
+                playBallLaunchSound(sfx);
                 return {
                   ...prev,
                   gameSpecific: {
@@ -617,6 +711,8 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
           if (countdown === null && !isPaused && !isGameOverState) {
             setGameState((prev) => {
               if (prev.gameSpecific.hasLaser && prev.gameSpecific.laserCooldown <= 0) {
+                // Play laser fire sound
+                playLaserFireSound(sfx);
                 const newLasers = fireLaser(prev.gameSpecific.paddle, prev.gameSpecific.lasers);
                 return {
                   ...prev,
