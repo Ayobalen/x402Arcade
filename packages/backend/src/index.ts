@@ -51,11 +51,29 @@ if (!validationResult.success) {
 const env = getEnv();
 
 // Initialize database before importing app (routes depend on db)
-import { initDatabase } from './db/index.js';
+import { initDatabase, getDatabase } from './db/index.js';
 initDatabase();
+
+// Import services for background jobs
+import { PrizePoolService } from './services/prizePool.js';
+import { LeaderboardService } from './services/leaderboard.js';
+
+// Import and initialize job scheduler
+import { JobScheduler } from './jobs/scheduler.js';
+
+const db = getDatabase();
+const prizePoolService = new PrizePoolService(db);
+const leaderboardService = new LeaderboardService(db);
+
+// Create scheduler instance
+export const scheduler = new JobScheduler(db, prizePoolService, leaderboardService);
 
 // Import the configured Express app
 import { app } from './app.js';
+
+// Import and mount jobs routes
+import { createJobsRouter } from './routes/jobs.routes.js';
+app.use('/api/v1/jobs', createJobsRouter(scheduler));
 
 const PORT = env.PORT;
 
@@ -66,6 +84,10 @@ if (env.NODE_ENV !== 'test') {
     console.log(`🎮 x402Arcade server running on port ${PORT}`);
     console.log(`📍 Health check: http://localhost:${PORT}/health`);
     console.log(`🌍 Environment: ${env.NODE_ENV}`);
+
+    // Start background job scheduler
+    console.log('\n');
+    scheduler.start();
     /* eslint-enable no-console */
   });
 }

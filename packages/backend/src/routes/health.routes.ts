@@ -31,8 +31,6 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'
   name: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _APP_NAME = packageJson.name;
 const APP_VERSION = packageJson.version;
 
 // Build info (set by CI/CD)
