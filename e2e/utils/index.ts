@@ -24,8 +24,20 @@ export {
 } from './visual-utils';
 
 // Type exports
+export type { VisualConfig, ScreenshotOptions, ComparisonResult } from './visual-utils';
+
+// USDC contract mock utilities
+export {
+  MockUSDCContract,
+  USDCMockManager,
+  createMockBalances,
+  generateTestNonce,
+  createTestTransferParams,
+} from './usdc-mock';
+
+// USDC mock type exports
 export type {
-  VisualConfig,
-  ScreenshotOptions,
-  ComparisonResult,
-} from './visual-utils';
+  TransferWithAuthorizationParams,
+  TransferEvent,
+  AuthorizationUsedEvent,
+} from './usdc-mock';
