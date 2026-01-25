@@ -909,3 +909,469 @@ describe('State-Level Game Functions', () => {
     });
   });
 });
+
+// ============================================================================
+// Edge Case Tests (Feature #725)
+// ============================================================================
+
+describe('Edge Case Tests', () => {
+  // Helper to create a full SnakeState for testing
+  function createEdgeTestState(overrides: Partial<SnakeState> = {}): SnakeState {
+    const gameSpecific = createInitialSnakeState();
+    return {
+      score: 0,
+      isPlaying: true,
+      isPaused: false,
+      isGameOver: false,
+      level: 1,
+      lives: 3,
+      highScore: 0,
+      startTime: Date.now(),
+      elapsedTime: 0,
+      gameSpecific,
+      ...overrides,
+    };
+  }
+
+  describe('Snake at grid boundaries', () => {
+    it('should handle snake at top boundary without wrapping', () => {
+      const state = createEdgeTestState();
+      // Place snake at top edge
+      state.gameSpecific!.segments = [
+        { x: 10, y: 0, isHead: true, isTail: false },
+        { x: 10, y: 1, isHead: false, isTail: false },
+        { x: 10, y: 2, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'up';
+
+      const result = processSnakeMove(state);
+
+      expect(result.isGameOver).toBe(true);
+      expect(result.isPlaying).toBe(false);
+    });
+
+    it('should handle snake at bottom boundary without wrapping', () => {
+      const state = createEdgeTestState();
+      state.gameSpecific!.segments = [
+        { x: 10, y: GRID_SIZE - 1, isHead: true, isTail: false },
+        { x: 10, y: GRID_SIZE - 2, isHead: false, isTail: false },
+        { x: 10, y: GRID_SIZE - 3, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'down';
+
+      const result = processSnakeMove(state);
+
+      expect(result.isGameOver).toBe(true);
+    });
+
+    it('should handle snake at left boundary without wrapping', () => {
+      const state = createEdgeTestState();
+      state.gameSpecific!.segments = [
+        { x: 0, y: 10, isHead: true, isTail: false },
+        { x: 1, y: 10, isHead: false, isTail: false },
+        { x: 2, y: 10, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'left';
+
+      const result = processSnakeMove(state);
+
+      expect(result.isGameOver).toBe(true);
+    });
+
+    it('should handle snake at right boundary without wrapping', () => {
+      const state = createEdgeTestState();
+      state.gameSpecific!.segments = [
+        { x: GRID_SIZE - 1, y: 10, isHead: true, isTail: false },
+        { x: GRID_SIZE - 2, y: 10, isHead: false, isTail: false },
+        { x: GRID_SIZE - 3, y: 10, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'right';
+
+      const result = processSnakeMove(state);
+
+      expect(result.isGameOver).toBe(true);
+    });
+
+    it('should wrap at all boundaries when wallsWrap is enabled', () => {
+      const state = createEdgeTestState();
+      state.gameSpecific!.wallsWrap = true;
+
+      // Test top wrap
+      state.gameSpecific!.segments = [
+        { x: 10, y: 0, isHead: true, isTail: false },
+        { x: 10, y: 1, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'up';
+      let result = processSnakeMove(state);
+      expect(result.isGameOver).toBe(false);
+      expect(result.gameSpecific!.segments[0].y).toBe(GRID_SIZE - 1);
+
+      // Test bottom wrap
+      state.gameSpecific!.segments = [
+        { x: 10, y: GRID_SIZE - 1, isHead: true, isTail: false },
+        { x: 10, y: GRID_SIZE - 2, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'down';
+      result = processSnakeMove(state);
+      expect(result.isGameOver).toBe(false);
+      expect(result.gameSpecific!.segments[0].y).toBe(0);
+
+      // Test left wrap
+      state.gameSpecific!.segments = [
+        { x: 0, y: 10, isHead: true, isTail: false },
+        { x: 1, y: 10, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'left';
+      result = processSnakeMove(state);
+      expect(result.isGameOver).toBe(false);
+      expect(result.gameSpecific!.segments[0].x).toBe(GRID_SIZE - 1);
+
+      // Test right wrap
+      state.gameSpecific!.segments = [
+        { x: GRID_SIZE - 1, y: 10, isHead: true, isTail: false },
+        { x: GRID_SIZE - 2, y: 10, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'right';
+      result = processSnakeMove(state);
+      expect(result.isGameOver).toBe(false);
+      expect(result.gameSpecific!.segments[0].x).toBe(0);
+    });
+
+    it('should handle corner positions correctly', () => {
+      const state = createEdgeTestState();
+
+      // Top-left corner
+      state.gameSpecific!.segments = [
+        { x: 0, y: 0, isHead: true, isTail: false },
+        { x: 1, y: 0, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'up';
+      let result = processSnakeMove(state);
+      expect(result.isGameOver).toBe(true);
+
+      // Top-right corner
+      state.gameSpecific!.segments = [
+        { x: GRID_SIZE - 1, y: 0, isHead: true, isTail: false },
+        { x: GRID_SIZE - 2, y: 0, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'right';
+      result = processSnakeMove(state);
+      expect(result.isGameOver).toBe(true);
+    });
+  });
+
+  describe('Food generation with long snake', () => {
+    it('should generate food when snake fills most of the grid', () => {
+      // Create a very long snake (80% of grid)
+      const gridArea = GRID_SIZE * GRID_SIZE;
+      const snakeLength = Math.floor(gridArea * 0.8);
+      const segments: SnakeSegment[] = [];
+
+      // Create a spiral snake pattern
+      for (let i = 0; i < snakeLength; i++) {
+        segments.push({
+          x: i % GRID_SIZE,
+          y: Math.floor(i / GRID_SIZE),
+          isHead: i === 0,
+          isTail: i === snakeLength - 1,
+        });
+      }
+
+      const food = spawnFood(segments, GRID_SIZE);
+
+      // Food should not collide with any segment
+      const collidesWithSnake = segments.some(
+        (segment) => segment.x === food.x && segment.y === food.y
+      );
+      expect(collidesWithSnake).toBe(false);
+
+      // Food should be within bounds
+      expect(food.x).toBeGreaterThanOrEqual(0);
+      expect(food.x).toBeLessThan(GRID_SIZE);
+      expect(food.y).toBeGreaterThanOrEqual(0);
+      expect(food.y).toBeLessThan(GRID_SIZE);
+    });
+
+    it('should handle food generation when snake is maximum length minus one', () => {
+      const gridArea = GRID_SIZE * GRID_SIZE;
+      const segments: SnakeSegment[] = [];
+
+      // Fill all but one cell
+      for (let i = 0; i < gridArea - 1; i++) {
+        segments.push({
+          x: i % GRID_SIZE,
+          y: Math.floor(i / GRID_SIZE),
+          isHead: i === 0,
+          isTail: i === gridArea - 2,
+        });
+      }
+
+      const food = spawnFood(segments, GRID_SIZE);
+
+      // Should find the one remaining cell
+      const collidesWithSnake = segments.some(
+        (segment) => segment.x === food.x && segment.y === food.y
+      );
+      expect(collidesWithSnake).toBe(false);
+    });
+  });
+
+  describe('Rapid direction changes', () => {
+    it('should buffer direction change until next move', () => {
+      const state = createEdgeTestState();
+      state.gameSpecific!.direction = 'right';
+      state.gameSpecific!.nextDirection = 'right';
+
+      // Change direction to up
+      const changed = changeDirection(state, 'up');
+      expect(changed.gameSpecific!.direction).toBe('right'); // Still moving right
+      expect(changed.gameSpecific!.nextDirection).toBe('up'); // Buffered
+
+      // After move, direction should update
+      const moved = processSnakeMove(changed);
+      expect(moved.gameSpecific!.direction).toBe('up'); // Now moving up
+    });
+
+    it('should prevent rapid direction reversal', () => {
+      const state = createEdgeTestState();
+      state.gameSpecific!.direction = 'right';
+      state.gameSpecific!.nextDirection = 'right';
+
+      // Try to reverse direction (should be blocked)
+      const changed = changeDirection(state, 'left');
+      expect(changed.gameSpecific!.nextDirection).toBe('right'); // Unchanged
+
+      // Should still move right
+      const moved = processSnakeMove(changed);
+      expect(moved.gameSpecific!.direction).toBe('right');
+    });
+
+    it('should allow two perpendicular direction changes in sequence', () => {
+      const state = createEdgeTestState();
+      state.gameSpecific!.direction = 'right';
+      state.gameSpecific!.nextDirection = 'right';
+
+      // First change: right -> up
+      const firstChange = changeDirection(state, 'up');
+      expect(firstChange.gameSpecific!.nextDirection).toBe('up');
+
+      // Second change: up -> left (before move)
+      // Note: This validates against the *current* direction (right), not buffered (up)
+      // So left is opposite of right and should be blocked
+      const secondChange = changeDirection(firstChange, 'down');
+      // This should work since down is perpendicular to current direction (right)
+      expect(secondChange.gameSpecific!.nextDirection).toBe('down');
+    });
+
+    it('should handle direction change on the same frame as food eating', () => {
+      const state = createEdgeTestState();
+      // Set snake to specific position for predictable test
+      state.gameSpecific!.segments = [
+        { x: 10, y: 10, isHead: true, isTail: false },
+        { x: 9, y: 10, isHead: false, isTail: false },
+        { x: 8, y: 10, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.direction = 'right';
+      state.gameSpecific!.nextDirection = 'right';
+
+      // Place food directly in front of snake
+      state.gameSpecific!.food = {
+        x: 11,
+        y: 10,
+        type: 'standard',
+        points: 10,
+        hasEffect: false,
+      };
+
+      // First verify food is positioned correctly
+      const headPos = state.gameSpecific!.segments[0];
+      expect(headPos.x).toBe(10);
+      expect(headPos.y).toBe(10);
+
+      // Move once to eat food (moving right)
+      const movedRight = processSnakeMove(state);
+      expect(movedRight.score).toBeGreaterThan(0); // Should have eaten
+      expect(movedRight.gameSpecific!.segments.length).toBe(4); // Should have grown
+
+      // Now change direction to up
+      const changed = changeDirection(movedRight, 'up');
+      expect(changed.gameSpecific!.nextDirection).toBe('up');
+
+      // Move again (now moving up)
+      const movedUp = processSnakeMove(changed);
+      expect(movedUp.gameSpecific!.direction).toBe('up');
+    });
+  });
+
+  describe('Pause during movement', () => {
+    it('should stop processing moves when paused', () => {
+      const state = createEdgeTestState({ isPaused: false });
+      const originalHead = state.gameSpecific!.segments[0];
+
+      // Pause the game
+      const paused = togglePause(state);
+      expect(paused.isPaused).toBe(true);
+
+      // Try to move while paused (should not move)
+      const moved = processSnakeMove(paused);
+      expect(moved.gameSpecific!.segments[0]).toEqual(originalHead);
+      expect(moved).toBe(paused); // Should return same reference (no change)
+    });
+
+    it('should resume movement after unpausing', () => {
+      const state = createEdgeTestState({ isPaused: false });
+
+      // Pause
+      const paused = togglePause(state);
+      expect(paused.isPaused).toBe(true);
+
+      // Try to move (should not move)
+      const attemptedMove = processSnakeMove(paused);
+      expect(attemptedMove).toBe(paused);
+
+      // Unpause
+      const unpaused = togglePause(paused);
+      expect(unpaused.isPaused).toBe(false);
+
+      // Now should move
+      const moved = processSnakeMove(unpaused);
+      expect(moved).not.toBe(unpaused);
+      expect(moved.gameSpecific!.segments[0].x).not.toBe(unpaused.gameSpecific!.segments[0].x);
+    });
+
+    it('should preserve direction changes made while paused', () => {
+      const state = createEdgeTestState({ isPaused: false });
+      state.gameSpecific!.direction = 'right';
+      state.gameSpecific!.nextDirection = 'right';
+
+      // Change direction before pausing
+      const changed = changeDirection(state, 'up');
+      expect(changed.gameSpecific!.nextDirection).toBe('up');
+
+      // Pause
+      const paused = togglePause(changed);
+      expect(paused.isPaused).toBe(true);
+
+      // The direction change is already buffered
+      expect(paused.gameSpecific!.nextDirection).toBe('up');
+
+      // Unpause and move
+      const unpaused = togglePause(paused);
+      const moved = processSnakeMove(unpaused);
+
+      // Should move in the new direction
+      expect(moved.gameSpecific!.direction).toBe('up');
+    });
+
+    it('should not allow eating food while paused', () => {
+      const state = createEdgeTestState({ isPaused: false });
+      const head = state.gameSpecific!.segments[0];
+
+      // Place food in front
+      state.gameSpecific!.food = {
+        x: head.x + 1,
+        y: head.y,
+        type: 'standard',
+        points: 10,
+        hasEffect: false,
+      };
+
+      // Pause before eating
+      const paused = togglePause(state);
+      const moved = processSnakeMove(paused);
+
+      // Should not eat food or gain score
+      expect(moved.score).toBe(0);
+      expect(moved.gameSpecific!.segments.length).toBe(state.gameSpecific!.segments.length);
+    });
+  });
+
+  describe('Game over state transitions', () => {
+    it('should prevent movement after game over', () => {
+      const state = createEdgeTestState({ isGameOver: true, isPlaying: false });
+      const originalHead = state.gameSpecific!.segments[0];
+
+      const result = processSnakeMove(state);
+
+      expect(result).toBe(state); // Should return same reference
+      expect(result.gameSpecific!.segments[0]).toEqual(originalHead);
+    });
+
+    it('should prevent direction changes after game over', () => {
+      const state = createEdgeTestState({ isGameOver: true, isPlaying: false });
+      state.gameSpecific!.direction = 'right';
+
+      const result = changeDirection(state, 'up');
+
+      expect(result).toBe(state); // Should return same reference
+      expect(result.gameSpecific!.nextDirection).toBe('right');
+    });
+
+    it('should not allow toggling pause after game over', () => {
+      const state = createEdgeTestState({ isGameOver: true, isPlaying: true, isPaused: false });
+
+      const result = togglePause(state);
+
+      expect(result).toBe(state); // Should return same reference
+      expect(result.isPaused).toBe(false);
+    });
+
+    it('should update high score when game ends', () => {
+      const state = createEdgeTestState({ highScore: 50 });
+      state.score = 100;
+
+      // Position snake to hit wall
+      state.gameSpecific!.segments[0] = {
+        x: GRID_SIZE - 1,
+        y: 10,
+        isHead: true,
+        isTail: false,
+      };
+      state.gameSpecific!.nextDirection = 'right';
+
+      const result = processSnakeMove(state);
+
+      expect(result.isGameOver).toBe(true);
+      expect(result.highScore).toBe(100);
+    });
+
+    it('should preserve high score when current score is lower', () => {
+      const state = createEdgeTestState({ highScore: 200 });
+      state.score = 50;
+
+      // Position snake to hit wall
+      state.gameSpecific!.segments[0] = {
+        x: GRID_SIZE - 1,
+        y: 10,
+        isHead: true,
+        isTail: false,
+      };
+      state.gameSpecific!.nextDirection = 'right';
+
+      const result = processSnakeMove(state);
+
+      expect(result.isGameOver).toBe(true);
+      expect(result.highScore).toBe(200);
+    });
+
+    it('should transition from playing to game over in one frame', () => {
+      const state = createEdgeTestState({ isPlaying: true, isGameOver: false });
+
+      // Position snake to collide with self
+      state.gameSpecific!.segments = [
+        { x: 5, y: 5, isHead: true, isTail: false },
+        { x: 6, y: 5, isHead: false, isTail: false },
+        { x: 6, y: 4, isHead: false, isTail: false },
+        { x: 5, y: 4, isHead: false, isTail: false },
+        { x: 4, y: 4, isHead: false, isTail: false },
+        { x: 4, y: 5, isHead: false, isTail: true },
+      ];
+      state.gameSpecific!.nextDirection = 'left';
+
+      const result = processSnakeMove(state);
+
+      expect(result.isPlaying).toBe(false);
+      expect(result.isGameOver).toBe(true);
+    });
+  });
+});
