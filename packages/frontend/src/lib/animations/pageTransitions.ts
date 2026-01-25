@@ -1,0 +1,497 @@
+/**
+ * Page Transition Variants
+ *
+ * Provides animation variants for page/route transitions using framer-motion.
+ * Use with AnimatePresence and motion components to create smooth page changes.
+ *
+ * @example
+ * ```tsx
+ * import { AnimatePresence } from 'framer-motion';
+ * import { fadeTransition, slideTransition } from '@/lib/animations/pageTransitions';
+ *
+ * // Fade transition
+ * <AnimatePresence mode="wait">
+ *   <motion.div
+ *     key={location.pathname}
+ *     variants={fadeTransition}
+ *     initial="initial"
+ *     animate="animate"
+ *     exit="exit"
+ *   >
+ *     {children}
+ *   </motion.div>
+ * </AnimatePresence>
+ *
+ * // Slide transition with direction
+ * <AnimatePresence mode="wait">
+ *   <motion.div
+ *     key={location.pathname}
+ *     variants={slideTransition('left')}
+ *     initial="initial"
+ *     animate="animate"
+ *     exit="exit"
+ *   >
+ *     {children}
+ *   </motion.div>
+ * </AnimatePresence>
+ * ```
+ */
+
+import type { Variants } from 'framer-motion';
+
+/**
+ * Direction for slide transitions
+ */
+export type SlideDirection = 'left' | 'right' | 'up' | 'down';
+
+/**
+ * Direction for scale transitions
+ */
+export type ScaleDirection = 'center' | 'top' | 'bottom' | 'left' | 'right';
+
+/**
+ * Page transition variant interface
+ */
+export interface PageTransitionVariants extends Variants {
+  initial: Record<string, unknown>;
+  animate: Record<string, unknown>;
+  exit: Record<string, unknown>;
+}
+
+/**
+ * Fade Transition
+ *
+ * Simple opacity fade in/out.
+ * Best for: Simple page changes, modals, overlays
+ *
+ * Duration: 300ms (normal)
+ * Easing: easeInOut
+ */
+export const fadeTransition: PageTransitionVariants = {
+  initial: {
+    opacity: 0,
+  },
+  animate: {
+    opacity: 1,
+    transition: {
+      duration: 0.3,
+      ease: [0.645, 0.045, 0.355, 1], // easeInOut
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.645, 0.045, 0.355, 1], // easeInOut
+    },
+  },
+};
+
+/**
+ * Fast Fade Transition
+ *
+ * Quick opacity fade (200ms).
+ * Best for: Rapid page changes, loading states
+ */
+export const fadeFastTransition: PageTransitionVariants = {
+  initial: {
+    opacity: 0,
+  },
+  animate: {
+    opacity: 1,
+    transition: {
+      duration: 0.2,
+      ease: [0.215, 0.61, 0.355, 1], // easeOut
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      duration: 0.2,
+      ease: [0.55, 0.055, 0.675, 0.19], // easeIn
+    },
+  },
+};
+
+/**
+ * Slide Transition
+ *
+ * Slide in from specified direction with fade.
+ * Best for: Sequential pages, wizards, carousels
+ *
+ * @param direction - Direction to slide from ('left' | 'right' | 'up' | 'down')
+ * @param distance - Distance to slide (default: 100px)
+ * @returns Page transition variants
+ *
+ * @example
+ * ```tsx
+ * // Slide in from right (next page)
+ * variants={slideTransition('right')}
+ *
+ * // Slide in from left (previous page)
+ * variants={slideTransition('left')}
+ *
+ * // Slide in from bottom with custom distance
+ * variants={slideTransition('down', 200)}
+ * ```
+ */
+export function slideTransition(
+  direction: SlideDirection = 'right',
+  distance = 100
+): PageTransitionVariants {
+  // Calculate initial/exit positions based on direction
+  const getOffset = (dir: SlideDirection, exitDirection = false) => {
+    const multiplier = exitDirection ? -1 : 1;
+    switch (dir) {
+      case 'left':
+        return { x: -distance * multiplier, y: 0 };
+      case 'right':
+        return { x: distance * multiplier, y: 0 };
+      case 'up':
+        return { x: 0, y: -distance * multiplier };
+      case 'down':
+        return { x: 0, y: distance * multiplier };
+      default:
+        return { x: distance * multiplier, y: 0 };
+    }
+  };
+
+  const initialOffset = getOffset(direction);
+  const exitOffset = getOffset(direction, true);
+
+  return {
+    initial: {
+      ...initialOffset,
+      opacity: 0,
+    },
+    animate: {
+      x: 0,
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.3,
+        ease: [0.215, 0.61, 0.355, 1], // easeOut
+      },
+    },
+    exit: {
+      ...exitOffset,
+      opacity: 0,
+      transition: {
+        duration: 0.3,
+        ease: [0.55, 0.055, 0.675, 0.19], // easeIn
+      },
+    },
+  };
+}
+
+/**
+ * Scale Transition
+ *
+ * Scale in/out with fade from specified origin.
+ * Best for: Modal dialogs, popups, detail views
+ *
+ * @param origin - Scale origin point ('center' | 'top' | 'bottom' | 'left' | 'right')
+ * @param scale - Initial/exit scale (default: 0.95)
+ * @returns Page transition variants
+ *
+ * @example
+ * ```tsx
+ * // Scale from center
+ * variants={scaleTransition('center')}
+ *
+ * // Scale from bottom (mobile sheet)
+ * variants={scaleTransition('bottom', 0.9)}
+ * ```
+ */
+export function scaleTransition(
+  origin: ScaleDirection = 'center',
+  scale = 0.95
+): PageTransitionVariants {
+  // Transform origin mapping
+  const transformOrigin = {
+    center: 'center center',
+    top: 'center top',
+    bottom: 'center bottom',
+    left: 'left center',
+    right: 'right center',
+  }[origin];
+
+  return {
+    initial: {
+      scale,
+      opacity: 0,
+      transformOrigin,
+    },
+    animate: {
+      scale: 1,
+      opacity: 1,
+      transformOrigin,
+      transition: {
+        duration: 0.3,
+        ease: [0.215, 0.61, 0.355, 1], // easeOut
+      },
+    },
+    exit: {
+      scale,
+      opacity: 0,
+      transformOrigin,
+      transition: {
+        duration: 0.2,
+        ease: [0.55, 0.055, 0.675, 0.19], // easeIn
+      },
+    },
+  };
+}
+
+/**
+ * Slide and Scale Transition
+ *
+ * Combined slide and scale for dramatic effect.
+ * Best for: Game screens, hero sections, featured content
+ *
+ * @param direction - Direction to slide from
+ * @param distance - Distance to slide (default: 50px)
+ * @param scale - Initial/exit scale (default: 0.9)
+ * @returns Page transition variants
+ */
+export function slideScaleTransition(
+  direction: SlideDirection = 'right',
+  distance = 50,
+  scale = 0.9
+): PageTransitionVariants {
+  const getOffset = (dir: SlideDirection, exitDirection = false) => {
+    const multiplier = exitDirection ? -1 : 1;
+    switch (dir) {
+      case 'left':
+        return { x: -distance * multiplier, y: 0 };
+      case 'right':
+        return { x: distance * multiplier, y: 0 };
+      case 'up':
+        return { x: 0, y: -distance * multiplier };
+      case 'down':
+        return { x: 0, y: distance * multiplier };
+      default:
+        return { x: distance * multiplier, y: 0 };
+    }
+  };
+
+  const initialOffset = getOffset(direction);
+  const exitOffset = getOffset(direction, true);
+
+  return {
+    initial: {
+      ...initialOffset,
+      scale,
+      opacity: 0,
+    },
+    animate: {
+      x: 0,
+      y: 0,
+      scale: 1,
+      opacity: 1,
+      transition: {
+        duration: 0.4,
+        ease: [0.215, 0.61, 0.355, 1], // easeOut
+      },
+    },
+    exit: {
+      ...exitOffset,
+      scale,
+      opacity: 0,
+      transition: {
+        duration: 0.3,
+        ease: [0.55, 0.055, 0.675, 0.19], // easeIn
+      },
+    },
+  };
+}
+
+/**
+ * Blur Transition
+ *
+ * Fade with blur effect (Apple-style).
+ * Best for: Premium feel, iOS-like transitions, backgrounds
+ *
+ * @param blurAmount - Blur amount in pixels (default: 10)
+ * @returns Page transition variants
+ */
+export function blurTransition(blurAmount = 10): PageTransitionVariants {
+  return {
+    initial: {
+      opacity: 0,
+      filter: `blur(${blurAmount}px)`,
+    },
+    animate: {
+      opacity: 1,
+      filter: 'blur(0px)',
+      transition: {
+        duration: 0.4,
+        ease: [0.215, 0.61, 0.355, 1], // easeOut
+      },
+    },
+    exit: {
+      opacity: 0,
+      filter: `blur(${blurAmount}px)`,
+      transition: {
+        duration: 0.3,
+        ease: [0.55, 0.055, 0.675, 0.19], // easeIn
+      },
+    },
+  };
+}
+
+/**
+ * Rotate Transition
+ *
+ * Rotate in/out with fade (3D effect).
+ * Best for: Playful transitions, card flips, game screens
+ *
+ * @param axis - Rotation axis ('x' | 'y')
+ * @param degrees - Rotation degrees (default: 90)
+ * @returns Page transition variants
+ */
+export function rotateTransition(
+  axis: 'x' | 'y' = 'y',
+  degrees = 90
+): PageTransitionVariants {
+  const rotateProperty = axis === 'x' ? 'rotateX' : 'rotateY';
+
+  return {
+    initial: {
+      opacity: 0,
+      [rotateProperty]: degrees,
+    },
+    animate: {
+      opacity: 1,
+      [rotateProperty]: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.215, 0.61, 0.355, 1], // easeOut
+      },
+    },
+    exit: {
+      opacity: 0,
+      [rotateProperty]: -degrees,
+      transition: {
+        duration: 0.4,
+        ease: [0.55, 0.055, 0.675, 0.19], // easeIn
+      },
+    },
+  };
+}
+
+/**
+ * Zoom Transition
+ *
+ * Dramatic zoom in/out with fade.
+ * Best for: Game start screens, level transitions, splash screens
+ *
+ * @param zoomScale - Initial/exit scale (default: 1.2)
+ * @returns Page transition variants
+ */
+export function zoomTransition(zoomScale = 1.2): PageTransitionVariants {
+  return {
+    initial: {
+      scale: zoomScale,
+      opacity: 0,
+    },
+    animate: {
+      scale: 1,
+      opacity: 1,
+      transition: {
+        duration: 0.5,
+        ease: [0.215, 0.61, 0.355, 1], // easeOut
+      },
+    },
+    exit: {
+      scale: zoomScale,
+      opacity: 0,
+      transition: {
+        duration: 0.4,
+        ease: [0.55, 0.055, 0.675, 0.19], // easeIn
+      },
+    },
+  };
+}
+
+/**
+ * Neon Glow Transition (Arcade Theme)
+ *
+ * Fade with glow effect for retro arcade aesthetic.
+ * Best for: Game pages, arcade UI, neon-themed sections
+ *
+ * @returns Page transition variants
+ */
+export const neonGlowTransition: PageTransitionVariants = {
+  initial: {
+    opacity: 0,
+    filter: 'brightness(0.5)',
+  },
+  animate: {
+    opacity: 1,
+    filter: 'brightness(1)',
+    transition: {
+      duration: 0.4,
+      ease: [0.215, 0.61, 0.355, 1], // easeOut
+    },
+  },
+  exit: {
+    opacity: 0,
+    filter: 'brightness(0.5)',
+    transition: {
+      duration: 0.3,
+      ease: [0.55, 0.055, 0.675, 0.19], // easeIn
+    },
+  },
+};
+
+/**
+ * Page Transition Presets
+ *
+ * Pre-configured page transitions for common use cases.
+ */
+export const PAGE_TRANSITION_PRESETS = {
+  /** Fade - simple opacity transition */
+  fade: fadeTransition,
+  /** Fade Fast - quick opacity transition */
+  fadeFast: fadeFastTransition,
+  /** Slide Right - slide in from right, exit to left */
+  slideRight: slideTransition('right'),
+  /** Slide Left - slide in from left, exit to right */
+  slideLeft: slideTransition('left'),
+  /** Slide Up - slide in from top, exit to bottom */
+  slideUp: slideTransition('up'),
+  /** Slide Down - slide in from bottom, exit to top */
+  slideDown: slideTransition('down'),
+  /** Scale Center - scale from center */
+  scaleCenter: scaleTransition('center'),
+  /** Scale Bottom - scale from bottom (mobile sheet) */
+  scaleBottom: scaleTransition('bottom', 0.9),
+  /** Slide Scale - slide right with scale */
+  slideScale: slideScaleTransition('right'),
+  /** Blur - fade with blur effect */
+  blur: blurTransition(),
+  /** Rotate Y - 3D rotate on Y axis */
+  rotateY: rotateTransition('y'),
+  /** Zoom - dramatic zoom effect */
+  zoom: zoomTransition(),
+  /** Neon Glow - arcade-style glow effect */
+  neonGlow: neonGlowTransition,
+} as const;
+
+/**
+ * Get a page transition preset by name
+ *
+ * @param preset - Preset name
+ * @returns Page transition variants
+ */
+export function getPageTransitionPreset(
+  preset: keyof typeof PAGE_TRANSITION_PRESETS
+): PageTransitionVariants {
+  return PAGE_TRANSITION_PRESETS[preset];
+}
+
+/**
+ * Type exports
+ */
+export type PageTransitionPreset = keyof typeof PAGE_TRANSITION_PRESETS;

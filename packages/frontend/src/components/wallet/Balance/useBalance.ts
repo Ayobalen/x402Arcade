@@ -91,7 +91,7 @@ export function useBalance(address?: string, tokenAddress: string = USDC_ADDRESS
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch balance');
       setError(error);
-      // eslint-disable-next-line no-console
+       
       console.error('Error fetching balance:', error);
     } finally {
       setIsLoading(false);

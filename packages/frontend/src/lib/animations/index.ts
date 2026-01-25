@@ -61,3 +61,22 @@ export {
   type DragElasticPreset,
   type ButtonGesturePreset,
 } from './gestures';
+
+// Page transitions
+export {
+  fadeTransition,
+  fadeFastTransition,
+  slideTransition,
+  scaleTransition,
+  slideScaleTransition,
+  blurTransition,
+  rotateTransition,
+  zoomTransition,
+  neonGlowTransition,
+  PAGE_TRANSITION_PRESETS,
+  getPageTransitionPreset,
+  type SlideDirection,
+  type ScaleDirection,
+  type PageTransitionVariants,
+  type PageTransitionPreset,
+} from './pageTransitions';
