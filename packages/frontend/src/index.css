@@ -525,6 +525,62 @@ textarea:focus-visible,
 }
 
 /* ============================================
+   SKELETON SHIMMER ANIMATION
+   Loading placeholder with gradient shimmer
+   ============================================ */
+
+/* Shimmer keyframes - gradient moves left to right */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Shimmer animation class */
+.skeleton-shimmer .skeleton-shimmer-overlay {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Speed variants */
+.skeleton-slow .skeleton-shimmer-overlay {
+  animation-duration: 2.5s;
+}
+
+.skeleton-normal .skeleton-shimmer-overlay {
+  animation-duration: 1.5s;
+}
+
+.skeleton-fast .skeleton-shimmer-overlay {
+  animation-duration: 1s;
+}
+
+/* ============================================
+   LOADING PULSE ANIMATION
+   Subtle pulse for loading states
+   ============================================ */
+
+/* Loading pulse - scale + opacity */
+@keyframes loadingPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+/* Loading pulse utility class */
+.loading-pulse {
+  animation: loadingPulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================
    ACCESSIBILITY
    Reduced motion preference
    ============================================ */

@@ -268,6 +268,16 @@ export const LOOP_PRESETS = {
     ease: 'easeInOut',
     repeat: 1,
   }),
+
+  /**
+   * Loading pulse (scale + opacity combined)
+   * Best for: Loading states, processing indicators, data fetching
+   */
+  loadingPulse: createLoop({
+    keyframes: { scale: [1, 1.05, 1], opacity: [1, 0.8, 1] },
+    duration: 1.5,
+    ease: 'easeInOut',
+  }),
 } as const;
 
 /**
