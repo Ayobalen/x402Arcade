@@ -18,6 +18,8 @@ import {
   renderPauseOverlay,
   renderGameOverOverlay,
   renderScore,
+  applyNeonGlow,
+  resetGlow,
   RENDER_COLORS,
 } from './renderer';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, CELL_SIZE } from './constants';
@@ -1244,5 +1246,138 @@ describe('renderScore', () => {
     const textX = fillTextCalls[0].args[1];
 
     expect(bgWidth).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
+// Neon Glow Effects Tests
+// ============================================================================
+
+describe('applyNeonGlow', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+  });
+
+  it('should set shadowBlur to intensity value', () => {
+    applyNeonGlow(ctx, '#00ff00', 15);
+    expect(ctx.shadowBlur).toBe(15);
+  });
+
+  it('should set shadowColor to specified color', () => {
+    applyNeonGlow(ctx, '#00ff00', 15);
+    expect(ctx.shadowColor).toBe('#00ff00');
+  });
+
+  it('should use default intensity of 10 when not specified', () => {
+    applyNeonGlow(ctx, '#ff0000');
+    expect(ctx.shadowBlur).toBe(10);
+  });
+
+  it('should handle different colors', () => {
+    applyNeonGlow(ctx, '#ff00ff', 12);
+    expect(ctx.shadowColor).toBe('#ff00ff');
+    expect(ctx.shadowBlur).toBe(12);
+  });
+
+  it('should handle intensity of 0', () => {
+    applyNeonGlow(ctx, '#00ff00', 0);
+    expect(ctx.shadowBlur).toBe(0);
+  });
+
+  it('should handle high intensity values', () => {
+    applyNeonGlow(ctx, '#00ff00', 20);
+    expect(ctx.shadowBlur).toBe(20);
+  });
+
+  it('should handle rgba colors', () => {
+    applyNeonGlow(ctx, 'rgba(255, 0, 0, 0.5)', 10);
+    expect(ctx.shadowColor).toBe('rgba(255, 0, 0, 0.5)');
+  });
+});
+
+describe('resetGlow', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+  });
+
+  it('should reset shadowBlur to 0', () => {
+    // Set glow first
+    applyNeonGlow(ctx, '#00ff00', 15);
+    expect(ctx.shadowBlur).toBe(15);
+
+    // Reset
+    resetGlow(ctx);
+    expect(ctx.shadowBlur).toBe(0);
+  });
+
+  it('should reset shadowColor to transparent', () => {
+    // Set glow first
+    applyNeonGlow(ctx, '#00ff00', 15);
+    expect(ctx.shadowColor).toBe('#00ff00');
+
+    // Reset
+    resetGlow(ctx);
+    expect(ctx.shadowColor).toBe('transparent');
+  });
+
+  it('should work when called without prior glow', () => {
+    expect(() => resetGlow(ctx)).not.toThrow();
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowColor).toBe('transparent');
+  });
+});
+
+describe('Glow Integration Tests', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+  });
+
+  it('should apply glow to snake head', () => {
+    const head = { x: 10, y: 10 };
+    renderSnakeHead(ctx, head, 'right');
+
+    // Check that shadowBlur was set (glow was applied)
+    // After rendering, it should be reset to 0
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowColor).toBe('transparent');
+  });
+
+  it('should apply glow to food', () => {
+    const food = { x: 5, y: 5, type: 'standard' };
+    renderFood(ctx, food);
+
+    // After rendering, glow should be reset
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowColor).toBe('transparent');
+  });
+
+  it('should apply stronger glow to bonus food', () => {
+    const bonusFood = { x: 5, y: 5, type: 'bonus' };
+    renderFood(ctx, bonusFood);
+
+    // After rendering, glow should be reset
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowColor).toBe('transparent');
+  });
+
+  it('should allow multiple glow applications in sequence', () => {
+    // Apply and reset multiple times
+    applyNeonGlow(ctx, '#00ff00', 10);
+    expect(ctx.shadowBlur).toBe(10);
+
+    resetGlow(ctx);
+    expect(ctx.shadowBlur).toBe(0);
+
+    applyNeonGlow(ctx, '#ff0000', 15);
+    expect(ctx.shadowBlur).toBe(15);
+
+    resetGlow(ctx);
+    expect(ctx.shadowBlur).toBe(0);
   });
 });

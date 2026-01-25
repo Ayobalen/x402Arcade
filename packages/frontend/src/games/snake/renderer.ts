@@ -177,9 +177,9 @@ export function renderFood(
   // Determine color based on food type
   const foodColor = food.type === 'bonus' ? RENDER_COLORS.bonusFood : RENDER_COLORS.food;
 
-  // Apply glow effect
-  ctx.shadowBlur = 10;
-  ctx.shadowColor = foodColor;
+  // Apply neon glow effect (stronger for bonus food)
+  const glowIntensity = food.type === 'bonus' ? 15 : 10;
+  applyNeonGlow(ctx, foodColor, glowIntensity);
 
   // Draw food circle
   ctx.fillStyle = foodColor;
@@ -187,7 +187,59 @@ export function renderFood(
   ctx.arc(pixelX, pixelY, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Reset shadow properties
+  // Reset glow effect
+  resetGlow(ctx);
+}
+
+// ============================================================================
+// Glow Effects
+// ============================================================================
+
+/**
+ * Applies neon glow effect to canvas context.
+ *
+ * This helper function sets shadow properties to create a neon glow effect
+ * matching the retro arcade aesthetic. The glow color should match the
+ * element being drawn.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param color - Hex color for the glow (e.g., '#00ff00' for green)
+ * @param intensity - Glow intensity (0-20, default: 10)
+ *
+ * @description
+ * - Sets shadowBlur to intensity value
+ * - Sets shadowColor to match element color
+ * - Creates soft neon glow around rendered shapes
+ * - Should be reset after rendering with resetGlow()
+ *
+ * @example
+ * ```ts
+ * applyNeonGlow(ctx, '#00ff00', 15) // Bright green glow
+ * ctx.fillRect(x, y, w, h) // Element will have glow
+ * resetGlow(ctx) // Clean up for next element
+ * ```
+ */
+export function applyNeonGlow(ctx: CanvasRenderingContext2D, color: string, intensity = 10): void {
+  ctx.shadowBlur = intensity;
+  ctx.shadowColor = color;
+}
+
+/**
+ * Resets glow effects on canvas context.
+ *
+ * This helper function clears shadow properties after rendering
+ * glowing elements to prevent glow from affecting other elements.
+ *
+ * @param ctx - Canvas 2D rendering context
+ *
+ * @example
+ * ```ts
+ * applyNeonGlow(ctx, '#00ff00', 15)
+ * ctx.fillRect(x, y, w, h)
+ * resetGlow(ctx) // Clear shadow properties
+ * ```
+ */
+export function resetGlow(ctx: CanvasRenderingContext2D): void {
   ctx.shadowBlur = 0;
   ctx.shadowColor = 'transparent';
 }
@@ -275,9 +327,15 @@ export function renderSnakeHead(
   const pixelX = head.x * CELL_SIZE;
   const pixelY = head.y * CELL_SIZE;
 
+  // Apply neon glow effect to head
+  applyNeonGlow(ctx, RENDER_COLORS.snakeHead, 12);
+
   // Draw head
   ctx.fillStyle = RENDER_COLORS.snakeHead;
   ctx.fillRect(pixelX + 1, pixelY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+
+  // Reset glow before drawing eyes
+  resetGlow(ctx);
 
   // Draw eyes
   ctx.fillStyle = '#000000'; // Black eyes
