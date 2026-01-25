@@ -77,3 +77,28 @@ export {
   type Breadcrumb,
   type BreadcrumbType,
 } from './sentry';
+
+export {
+  NetworkError,
+  createNetworkErrorFromFetch,
+  createNetworkErrorFromResponse,
+  isOffline,
+  isRetryableError,
+  isNetworkError,
+  getNetworkErrorMessage,
+  waitForOnline,
+  type NetworkErrorType,
+  type NetworkErrorSeverity,
+  type NetworkErrorMetadata,
+} from './networkErrors';
+
+export {
+  calculateBackoff,
+  retryAsync,
+  withRetry,
+  fetchWithRetry,
+  RetryController,
+  type RetryOptions,
+  type RetryState,
+  type RetryResult,
+} from './retry';
