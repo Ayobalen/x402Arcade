@@ -22,3 +22,13 @@ export type {
   QualityPreset,
   WebGLQualityPreset,
 } from './WebGLContext';
+
+// Animation Context
+export {
+  AnimationContext,
+  AnimationProvider,
+  useAnimationContext,
+  useAnimationDuration,
+} from './AnimationContext';
+
+export type { AnimationContextType, AnimationProviderProps } from './AnimationContext';
