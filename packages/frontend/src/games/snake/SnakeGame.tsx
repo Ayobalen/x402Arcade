@@ -247,7 +247,7 @@ export function SnakeGame({
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .snake-game {
           display: flex;
           flex-direction: column;

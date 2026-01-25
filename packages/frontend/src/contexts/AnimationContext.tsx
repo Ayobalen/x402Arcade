@@ -16,7 +16,7 @@
  * ```
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 /**

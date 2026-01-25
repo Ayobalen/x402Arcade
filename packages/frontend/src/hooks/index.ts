@@ -205,3 +205,11 @@ export {
   useSoundVariants,
   useUISound,
 } from './useSFX';
+
+export {
+  useMusic,
+  useMusicTrack,
+  usePlaylist,
+  useGameStateMusic,
+  useMusicStats,
+} from './useMusic';

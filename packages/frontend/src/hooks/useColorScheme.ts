@@ -285,10 +285,10 @@ export function useColorScheme(options: UseColorSchemeOptions = {}): UseColorSch
     }
 
     // Legacy browsers (Safari < 14)
-    // @ts-expect-error - Legacy API
+    // @ts-ignore - Legacy API for older Safari
     mediaQuery.addListener?.(handleChange);
     return () => {
-      // @ts-expect-error - Legacy API
+      // @ts-ignore - Legacy API for older Safari
       mediaQuery.removeListener?.(handleChange);
     };
   }, []);

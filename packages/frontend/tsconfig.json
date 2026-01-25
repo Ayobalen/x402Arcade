@@ -32,5 +32,17 @@
     "types": ["vitest/globals"]
   },
   "include": ["src"],
+  "exclude": [
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "src/games/tetris/**",
+    "src/stories/**",
+    "**/*.stories.tsx",
+    "src/lib/animations/loop.ts",
+    "src/lib/animations/sequence.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

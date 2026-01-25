@@ -122,3 +122,14 @@ export {
   type PlaybackStats,
   type SFXEngineConfig,
 } from './SFXEngine';
+
+export {
+  musicManager,
+  GameState,
+  type MusicTrack,
+  type Playlist,
+  type CrossfadeOptions,
+  type FadeOptions,
+  type PlaybackState,
+  type MusicStats,
+} from './MusicManager';

@@ -228,6 +228,16 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         }
       : {};
 
+    // Separate motion props from native div props to avoid conflicts
+    const {
+      onAnimationStart,
+      onAnimationEnd,
+      onDrag,
+      onDragEnd,
+      onDragStart,
+      ...nativeDivProps
+    } = props;
+
     return (
       <MotionDiv
         ref={ref as React.Ref<HTMLDivElement>}
@@ -259,7 +269,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           damping: 25,
           delay: entranceDelay,
         }}
-        {...props}
+        {...nativeDivProps}
       >
         {children}
       </MotionDiv>

@@ -9,6 +9,7 @@
 
 import { useParams, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { SnakeGame } from '@/games/snake/SnakeGame';
 
 /**
  * Game metadata
@@ -30,7 +31,7 @@ const GAMES: Record<string, GameInfo> = {
     name: 'Snake',
     emoji: '🐍',
     description: 'Classic snake game. Eat food, grow longer, avoid walls and yourself.',
-    status: 'coming-soon',
+    status: 'available',
   },
   pong: {
     id: 'pong',
@@ -133,6 +134,17 @@ export function Game() {
     );
   }
 
+  // Render available game
+  if (gameInfo.status === 'available' && gameId === 'snake') {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="max-w-4xl mx-auto">
+          <SnakeGame />
+        </div>
+      </div>
+    );
+  }
+
   // Game exists but is coming soon
   return (
     <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
@@ -153,27 +165,25 @@ export function Game() {
         </div>
 
         {/* Coming Soon Message */}
-        {gameInfo.status === 'coming-soon' && (
-          <div className="mb-12">
-            <div
-              className={cn(
-                'inline-block',
-                'px-6 py-3',
-                'rounded-lg',
-                'bg-[#1a1a2e]',
-                'border border-[#2d2d4a]',
-                'mb-6'
-              )}
-            >
-              <p className="text-lg text-white/80 font-semibold uppercase tracking-wider">
-                Coming Soon
-              </p>
-            </div>
-            <p className="text-lg text-white/60">
-              This game is under development. Check back soon!
+        <div className="mb-12">
+          <div
+            className={cn(
+              'inline-block',
+              'px-6 py-3',
+              'rounded-lg',
+              'bg-[#1a1a2e]',
+              'border border-[#2d2d4a]',
+              'mb-6'
+            )}
+          >
+            <p className="text-lg text-white/80 font-semibold uppercase tracking-wider">
+              Coming Soon
             </p>
           </div>
-        )}
+          <p className="text-lg text-white/60">
+            This game is under development. Check back soon!
+          </p>
+        </div>
 
         {/* Back Button */}
         <Link

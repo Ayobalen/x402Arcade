@@ -36,7 +36,7 @@ const GAMES: Game[] = [
     emoji: '🐍',
     description: 'Classic snake game. Eat food, grow longer, avoid walls and yourself.',
     price: '$0.01',
-    status: 'coming-soon',
+    status: 'available',
     route: '/play/snake',
   },
   {
