@@ -144,3 +144,28 @@ export {
   type ParticlePoolStats,
   type ParticleLODConfig,
 } from './ParticlePool';
+
+// ============================================================================
+// LOD (Level of Detail) System
+// ============================================================================
+
+export {
+  LODManager,
+  getLODManager,
+  resetLODManager,
+  useLOD,
+  useLODModel,
+  useAdaptiveLOD,
+  useAutoQuality,
+  createBillboardLevel,
+  calculateLODDistances,
+  getLODPreset,
+  LOD_PRESETS,
+  DEFAULT_DISTANCE_MULTIPLIERS,
+  DEFAULT_DETAIL_MULTIPLIERS,
+  type LODLevel,
+  type LODConfig,
+  type LODState,
+  type QualityLevel,
+  type PerformanceLODConfig,
+} from './LODSystem';
