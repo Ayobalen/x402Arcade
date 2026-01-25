@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: x402arcade-backend
+    ports:
+      - '8000:8000'
+    environment:
+      # Server configuration
+      - NODE_ENV=production
+      - PORT=8000
+      - HOST=0.0.0.0
+
+      # Blockchain configuration (override with your values)
+      - CHAIN_ID=338
+      - RPC_URL=https://evm-t3.cronos.org
+      - FACILITATOR_URL=https://x402.cronos.org/v1
+      - USDC_ADDRESS=0x0000000000000000000000000000000000000000
+
+      # Application configuration
+      - GAME_COST_USD=0.01
+      - PRIZE_POOL_PERCENTAGE=70
+
+      # Security
+      - CORS_ORIGIN=http://localhost:3000
+    volumes:
+      # Mount data directory for SQLite database persistence
+      - ./data:/app/data
+
+      # Mount .env file (for development - remove in production)
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:8000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - x402arcade-network
+
+  # Optional: Add a development service with hot reload
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dependencies
+    container_name: x402arcade-backend-dev
+    ports:
+      - '8001:8000'
+    environment:
+      - NODE_ENV=development
+      - PORT=8000
+      - HOST=0.0.0.0
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./.env:/app/.env:ro
+      - ./data:/app/data
+    command: npm run dev
+    networks:
+      - x402arcade-network
+    profiles:
+      - dev
+
+networks:
+  x402arcade-network:
+    driver: bridge
+
+volumes:
+  backend-data:
+    driver: local
