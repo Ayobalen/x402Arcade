@@ -6,6 +6,7 @@
  * @module config
  */
 
-export * from './chain'
-export * from './eip3009'
-export * from './x402Client'
+export * from './chain';
+export * from './eip3009';
+export * from './x402Client';
+export * from './performanceBudget';
