@@ -18,12 +18,7 @@
 
 import { motion } from 'framer-motion';
 import React from 'react';
-import {
-  staggerContainer,
-  staggerChild,
-  type StaggerPreset,
-  getStaggerPreset,
-} from '../../../lib/animations/stagger';
+import { staggerContainer, staggerChild, getStaggerPreset } from '../../../lib/animations/stagger';
 import type { AnimatedListProps, AnimatedListItemProps } from './AnimatedList.types';
 
 /**

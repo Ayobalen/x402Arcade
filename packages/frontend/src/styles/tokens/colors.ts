@@ -234,10 +234,10 @@ export const text = {
   secondary: '#e0e0e0',
   /** Medium gray - captions, labels, less prominent text (#a0a0a0) */
   tertiary: '#a0a0a0',
-  /** Muted gray - hints, placeholder text, subtle content (#606060) */
-  muted: '#606060',
-  /** Disabled text - inactive states, unavailable options (#404040) */
-  disabled: '#404040',
+  /** Muted gray - hints, placeholder text, subtle content (#808080) - WCAG AA compliant */
+  muted: '#808080',
+  /** Disabled text - inactive states, unavailable options (#7a7a7a) - WCAG AA compliant */
+  disabled: '#7a7a7a',
   /** Inverse text - for use on light/accent backgrounds (#0a0a0f) */
   inverse: '#0a0a0f',
 } as const;

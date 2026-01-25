@@ -7,8 +7,8 @@
  * @module games/tetris/types
  */
 
-import type { GameState } from '../types'
-import type { TetrominoType } from './constants'
+import type { GameState } from '../types';
+import type { TetrominoType } from './constants';
 
 // ============================================================================
 // Position Types
@@ -19,9 +19,9 @@ import type { TetrominoType } from './constants'
  */
 export interface Position {
   /** X coordinate (column, 0-indexed from left) */
-  x: number
+  x: number;
   /** Y coordinate (row, 0-indexed from top) */
-  y: number
+  y: number;
 }
 
 /**
@@ -33,7 +33,7 @@ export interface Position {
  * - 2: 180° rotation from spawn
  * - 3: Counter-clockwise rotation from spawn (90° CCW / 270° CW)
  */
-export type RotationState = 0 | 1 | 2 | 3
+export type RotationState = 0 | 1 | 2 | 3;
 
 // ============================================================================
 // Piece Types
@@ -46,11 +46,11 @@ export type RotationState = 0 | 1 | 2 | 3
  */
 export interface Piece {
   /** Type of tetromino (I, O, T, S, Z, J, L) */
-  type: TetrominoType
+  type: TetrominoType;
   /** Position on the board (top-left of bounding box) */
-  position: Position
+  position: Position;
   /** Current rotation state (0-3) */
-  rotation: RotationState
+  rotation: RotationState;
 }
 
 /**
@@ -58,11 +58,11 @@ export interface Piece {
  */
 export interface GhostPiece {
   /** Type of tetromino (same as current piece) */
-  type: TetrominoType
+  type: TetrominoType;
   /** Position where piece will land */
-  position: Position
+  position: Position;
   /** Current rotation state (same as current piece) */
-  rotation: RotationState
+  rotation: RotationState;
 }
 
 // ============================================================================
@@ -75,7 +75,7 @@ export interface GhostPiece {
  * null = empty cell
  * TetrominoType = filled cell with that piece's color
  */
-export type Cell = TetrominoType | null
+export type Cell = TetrominoType | null;
 
 /**
  * The game board represented as a 2D array of cells.
@@ -86,7 +86,7 @@ export type Cell = TetrominoType | null
  * - col 0 is the left
  * - col BOARD_WIDTH-1 is the right
  */
-export type Board = Cell[][]
+export type Board = Cell[][];
 
 // ============================================================================
 // Movement Types
@@ -95,27 +95,27 @@ export type Board = Cell[][]
 /**
  * Direction for piece movement.
  */
-export type MoveDirection = 'left' | 'right' | 'down'
+export type MoveDirection = 'left' | 'right' | 'down';
 
 /**
  * Rotation direction.
  */
-export type RotateDirection = 'cw' | 'ccw' | '180'
+export type RotateDirection = 'cw' | 'ccw' | '180';
 
 /**
  * Movement input from the player.
  */
 export interface MovementInput {
   /** Move piece in a direction */
-  move?: MoveDirection
+  move?: MoveDirection;
   /** Rotate piece */
-  rotate?: RotateDirection
+  rotate?: RotateDirection;
   /** Hard drop (instant drop to bottom) */
-  hardDrop?: boolean
+  hardDrop?: boolean;
   /** Soft drop (accelerated drop) */
-  softDrop?: boolean
+  softDrop?: boolean;
   /** Hold current piece */
-  hold?: boolean
+  hold?: boolean;
 }
 
 // ============================================================================
@@ -127,17 +127,17 @@ export interface MovementInput {
  */
 export interface LineClearResult {
   /** Number of lines cleared (1-4) */
-  linesCleared: number
+  linesCleared: number;
   /** Whether this was a back-to-back Tetris/T-Spin */
-  isBackToBack: boolean
+  isBackToBack: boolean;
   /** Whether this involved a T-Spin */
-  isTSpin: boolean
+  isTSpin: boolean;
   /** Whether this was a mini T-Spin */
-  isMiniTSpin: boolean
+  isMiniTSpin: boolean;
   /** Points earned from this clear */
-  points: number
+  points: number;
   /** Combo count (consecutive line clears) */
-  combo: number
+  combo: number;
 }
 
 /**
@@ -145,23 +145,23 @@ export interface LineClearResult {
  */
 export interface TetrisStats {
   /** Total lines cleared */
-  linesCleared: number
+  linesCleared: number;
   /** Single line clears */
-  singles: number
+  singles: number;
   /** Double line clears */
-  doubles: number
+  doubles: number;
   /** Triple line clears */
-  triples: number
+  triples: number;
   /** Tetris (4-line) clears */
-  tetrises: number
+  tetrises: number;
   /** T-Spin clears */
-  tSpins: number
+  tSpins: number;
   /** Total pieces placed */
-  piecesPlaced: number
+  piecesPlaced: number;
   /** Max combo achieved */
-  maxCombo: number
+  maxCombo: number;
   /** Current combo count */
-  currentCombo: number
+  currentCombo: number;
 }
 
 // ============================================================================
@@ -175,39 +175,43 @@ export interface TetrisStats {
  */
 export interface TetrisSpecificState {
   /** The game board grid */
-  board: Board
+  board: Board;
   /** Currently active piece being controlled */
-  currentPiece: Piece | null
+  currentPiece: Piece | null;
   /** Ghost piece showing landing position */
-  ghostPiece: GhostPiece | null
+  ghostPiece: GhostPiece | null;
   /** Queue of upcoming pieces */
-  nextPieces: TetrominoType[]
+  nextPieces: TetrominoType[];
   /** Held piece (can be swapped once per drop) */
-  heldPiece: TetrominoType | null
+  heldPiece: TetrominoType | null;
   /** Whether hold has been used for current piece */
-  canHold: boolean
+  canHold: boolean;
   /** Current drop speed in milliseconds */
-  dropSpeed: number
+  dropSpeed: number;
   /** Time since last automatic drop */
-  dropTimer: number
+  dropTimer: number;
   /** Lock delay timer (time until piece locks after landing) */
-  lockTimer: number
+  lockTimer: number;
   /** Number of lock delay resets used */
-  lockResets: number
+  lockResets: number;
   /** Whether piece is on the ground */
-  isOnGround: boolean
+  isOnGround: boolean;
   /** DAS (Delayed Auto Shift) timer for horizontal movement */
-  dasTimer: number
+  dasTimer: number;
   /** ARR (Auto Repeat Rate) timer */
-  arrTimer: number
+  arrTimer: number;
   /** Direction currently held for DAS */
-  dasDirection: 'left' | 'right' | null
+  dasDirection: 'left' | 'right' | null;
   /** Total lines cleared in current game */
-  totalLines: number
+  totalLines: number;
   /** Game statistics */
-  stats: TetrisStats
+  stats: TetrisStats;
   /** Last line clear result (for displaying combos/back-to-back) */
-  lastClear: LineClearResult | null
+  lastClear: LineClearResult | null;
+  /** Row indices currently being cleared (for animation) */
+  clearingLines: number[];
+  /** Timer for line clear animation */
+  clearingTimer: number;
 }
 
 // ============================================================================
@@ -244,7 +248,7 @@ export interface TetrisSpecificState {
  */
 export interface TetrisState extends GameState<TetrisSpecificState> {
   /** Tetris games don't use traditional lives */
-  lives: -1
+  lives: -1;
 }
 
 // ============================================================================
@@ -256,15 +260,15 @@ export interface TetrisState extends GameState<TetrisSpecificState> {
  */
 export interface TetrisGameOptions {
   /** Starting level (1-15) */
-  startLevel?: number
+  startLevel?: number;
   /** Difficulty preset */
-  difficulty?: 'easy' | 'normal' | 'hard' | 'expert'
+  difficulty?: 'easy' | 'normal' | 'hard' | 'expert';
   /** Enable ghost piece preview */
-  ghostEnabled?: boolean
+  ghostEnabled?: boolean;
   /** Enable hold piece feature */
-  holdEnabled?: boolean
+  holdEnabled?: boolean;
   /** Number of next pieces to show */
-  previewCount?: number
+  previewCount?: number;
 }
 
 // ============================================================================
@@ -284,12 +288,10 @@ export type TetrisEvent =
   | { type: 'SOFT_DROP'; cells: number }
   | { type: 'LINES_CLEARED'; result: LineClearResult }
   | { type: 'LEVEL_UP'; newLevel: number }
-  | { type: 'TOP_OUT' } // Game over by reaching top
+  | { type: 'TOP_OUT' }; // Game over by reaching top
 
 // ============================================================================
 // Type Exports
 // ============================================================================
 
-export type {
-  TetrominoType
-} from './constants'
+export type { TetrominoType } from './constants';

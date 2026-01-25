@@ -31,6 +31,9 @@ import {
   movePiece,
   rotatePiece,
   hardDrop,
+  startLineClear,
+  completeLineClear,
+  isClearing,
 } from '../logic';
 import {
   BOARD_WIDTH,
@@ -1002,6 +1005,276 @@ describe('Tetris Logic', () => {
 
       // After 4 rotations, should be back to rotation 0
       expect(current.gameSpecific.currentPiece?.rotation).toBe(0);
+    });
+  });
+
+  describe('Line Clear Animation', () => {
+    describe('startLineClear', () => {
+      it('should mark lines for clearing when lines are full', () => {
+        const state = createInitialState();
+        const board = createEmptyBoard();
+
+        // Fill bottom row
+        for (let col = 0; col < BOARD_WIDTH; col++) {
+          board[TOTAL_BOARD_HEIGHT - 1][col] = 'I';
+        }
+        state.gameSpecific.board = board;
+
+        const result = startLineClear(state);
+
+        expect(result.gameSpecific.clearingLines).toEqual([TOTAL_BOARD_HEIGHT - 1]);
+        expect(result.gameSpecific.clearingTimer).toBe(0);
+      });
+
+      it('should mark multiple lines for clearing', () => {
+        const state = createInitialState();
+        const board = createEmptyBoard();
+
+        // Fill bottom two rows
+        for (let row = TOTAL_BOARD_HEIGHT - 2; row < TOTAL_BOARD_HEIGHT; row++) {
+          for (let col = 0; col < BOARD_WIDTH; col++) {
+            board[row][col] = 'T';
+          }
+        }
+        state.gameSpecific.board = board;
+
+        const result = startLineClear(state);
+
+        expect(result.gameSpecific.clearingLines).toEqual([
+          TOTAL_BOARD_HEIGHT - 2,
+          TOTAL_BOARD_HEIGHT - 1,
+        ]);
+      });
+
+      it('should return original state when no lines are full', () => {
+        const state = createInitialState();
+        const board = createEmptyBoard();
+
+        // Fill bottom row except one cell
+        for (let col = 0; col < BOARD_WIDTH - 1; col++) {
+          board[TOTAL_BOARD_HEIGHT - 1][col] = 'I';
+        }
+        state.gameSpecific.board = board;
+
+        const result = startLineClear(state);
+
+        expect(result.gameSpecific.clearingLines).toEqual([]);
+        expect(result).toBe(state);
+      });
+
+      it('should handle empty board', () => {
+        const state = createInitialState();
+
+        const result = startLineClear(state);
+
+        expect(result.gameSpecific.clearingLines).toEqual([]);
+        expect(result).toBe(state);
+      });
+
+      it('should reset clearing timer', () => {
+        const state = createInitialState();
+        const board = createEmptyBoard();
+
+        // Fill bottom row
+        for (let col = 0; col < BOARD_WIDTH; col++) {
+          board[TOTAL_BOARD_HEIGHT - 1][col] = 'Z';
+        }
+        state.gameSpecific.board = board;
+        state.gameSpecific.clearingTimer = 500; // Set non-zero timer
+
+        const result = startLineClear(state);
+
+        expect(result.gameSpecific.clearingTimer).toBe(0);
+      });
+    });
+
+    describe('completeLineClear', () => {
+      it('should remove marked lines and update score', () => {
+        const state = createInitialState();
+        const board = createEmptyBoard();
+
+        // Fill bottom row
+        for (let col = 0; col < BOARD_WIDTH; col++) {
+          board[TOTAL_BOARD_HEIGHT - 1][col] = 'I';
+        }
+        state.gameSpecific.board = board;
+        state.gameSpecific.clearingLines = [TOTAL_BOARD_HEIGHT - 1];
+
+        const result = completeLineClear(state);
+
+        // Board should have line removed
+        expect(
+          result.gameSpecific.board[TOTAL_BOARD_HEIGHT - 1].every((cell) => cell === null)
+        ).toBe(true);
+
+        // Score should be updated (100 points × level 1 for single line)
+        expect(result.score).toBe(100);
+
+        // Clearing state should be reset
+        expect(result.gameSpecific.clearingLines).toEqual([]);
+        expect(result.gameSpecific.clearingTimer).toBe(0);
+      });
+
+      it('should update statistics for single line clear', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [19];
+
+        const result = completeLineClear(state);
+
+        expect(result.gameSpecific.stats.linesCleared).toBe(1);
+        expect(result.gameSpecific.stats.singles).toBe(1);
+        expect(result.gameSpecific.totalLines).toBe(1);
+      });
+
+      it('should update statistics for double line clear', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [18, 19];
+
+        const result = completeLineClear(state);
+
+        expect(result.gameSpecific.stats.linesCleared).toBe(2);
+        expect(result.gameSpecific.stats.doubles).toBe(1);
+        expect(result.gameSpecific.totalLines).toBe(2);
+        expect(result.score).toBe(300); // 300 points × level 1
+      });
+
+      it('should update statistics for triple line clear', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [17, 18, 19];
+
+        const result = completeLineClear(state);
+
+        expect(result.gameSpecific.stats.linesCleared).toBe(3);
+        expect(result.gameSpecific.stats.triples).toBe(1);
+        expect(result.score).toBe(500); // 500 points × level 1
+      });
+
+      it('should update statistics for tetris (4 lines)', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [16, 17, 18, 19];
+
+        const result = completeLineClear(state);
+
+        expect(result.gameSpecific.stats.linesCleared).toBe(4);
+        expect(result.gameSpecific.stats.tetrises).toBe(1);
+        expect(result.score).toBe(800); // 800 points × level 1
+      });
+
+      it('should multiply score by level', () => {
+        const state = createInitialState();
+        state.level = 5;
+        state.gameSpecific.clearingLines = [19];
+
+        const result = completeLineClear(state);
+
+        expect(result.score).toBe(500); // 100 points × level 5
+      });
+
+      it('should update combo counter', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [19];
+        state.gameSpecific.stats.currentCombo = 0;
+
+        const result = completeLineClear(state);
+
+        expect(result.gameSpecific.stats.currentCombo).toBe(1);
+      });
+
+      it('should update max combo', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [19];
+        state.gameSpecific.stats.currentCombo = 5;
+        state.gameSpecific.stats.maxCombo = 3;
+
+        const result = completeLineClear(state);
+
+        expect(result.gameSpecific.stats.currentCombo).toBe(6);
+        expect(result.gameSpecific.stats.maxCombo).toBe(6);
+      });
+
+      it('should not update max combo if current is lower', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [19];
+        state.gameSpecific.stats.currentCombo = 2;
+        state.gameSpecific.stats.maxCombo = 10;
+
+        const result = completeLineClear(state);
+
+        expect(result.gameSpecific.stats.currentCombo).toBe(3);
+        expect(result.gameSpecific.stats.maxCombo).toBe(10);
+      });
+
+      it('should return original state when no lines are being cleared', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [];
+
+        const result = completeLineClear(state);
+
+        expect(result).toBe(state);
+      });
+
+      it('should handle clearing multiple non-consecutive lines', () => {
+        const state = createInitialState();
+        const board = createEmptyBoard();
+
+        // Fill rows 17 and 19 (skip 18)
+        for (let col = 0; col < BOARD_WIDTH; col++) {
+          board[17][col] = 'J';
+          board[19][col] = 'L';
+        }
+        state.gameSpecific.board = board;
+        state.gameSpecific.clearingLines = [17, 19];
+
+        const result = completeLineClear(state);
+
+        expect(result.gameSpecific.stats.linesCleared).toBe(2);
+        expect(result.gameSpecific.clearingLines).toEqual([]);
+      });
+
+      it('should shift rows down correctly after clear', () => {
+        const state = createInitialState();
+        const board = createEmptyBoard();
+
+        // Place a marker cell at row 18
+        board[18][5] = 'I';
+
+        // Fill bottom row
+        for (let col = 0; col < BOARD_WIDTH; col++) {
+          board[TOTAL_BOARD_HEIGHT - 1][col] = 'Z';
+        }
+
+        state.gameSpecific.board = board;
+        state.gameSpecific.clearingLines = [TOTAL_BOARD_HEIGHT - 1];
+
+        const result = completeLineClear(state);
+
+        // The marker should have moved down one row
+        expect(result.gameSpecific.board[19][5]).toBe('I');
+        expect(result.gameSpecific.board[18][5]).toBe(null);
+      });
+    });
+
+    describe('isClearing', () => {
+      it('should return true when lines are being cleared', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [19];
+
+        expect(isClearing(state)).toBe(true);
+      });
+
+      it('should return false when no lines are being cleared', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [];
+
+        expect(isClearing(state)).toBe(false);
+      });
+
+      it('should return true for multiple clearing lines', () => {
+        const state = createInitialState();
+        state.gameSpecific.clearingLines = [17, 18, 19];
+
+        expect(isClearing(state)).toBe(true);
+      });
     });
   });
 });
