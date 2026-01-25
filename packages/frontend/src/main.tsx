@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { ErrorBoundary } from '@/components/errors';
+import { WalletProvider } from '@/providers/WalletProvider';
 
 // Validate environment variables at startup
 import { validateEnv, getEnv } from '@/lib/env';
@@ -39,8 +40,10 @@ if (import.meta.env.DEV) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <WalletProvider>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </WalletProvider>
   </React.StrictMode>
 );

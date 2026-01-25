@@ -42,7 +42,6 @@ import {
   isGameOver as checkGameOver,
   advanceWave,
   updateParticles,
-  getDifficultyConfig,
 } from './logic';
 import {
   CANVAS_WIDTH,
@@ -57,6 +56,7 @@ import {
   COLOR_BACKGROUND,
   COLOR_TEXT,
   COLOR_TEXT_MUTED,
+  getDifficultyConfig,
   PLAYER_WIDTH,
   ALIEN_WIDTH,
   UFO_WIDTH,
