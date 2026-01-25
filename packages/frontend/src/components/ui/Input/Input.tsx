@@ -22,9 +22,10 @@
  * />
  */
 
-import { forwardRef, useId } from 'react'
-import { cn } from '@/lib/utils'
-import type { InputProps, InputSize, InputVariant } from './Input.types'
+import { forwardRef, useId, useEffect, useRef } from 'react';
+import { motion, useAnimation } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import type { InputProps, InputSize, InputVariant } from './Input.types';
 
 /**
  * Error Icon Component
@@ -47,7 +48,7 @@ function ErrorIcon({ className }: { className?: string }) {
       <line x1="12" y1="8" x2="12" y2="12" />
       <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -66,7 +67,7 @@ const baseStyles = [
   'disabled:cursor-not-allowed disabled:opacity-50',
   // Placeholder
   'placeholder:text-text-muted',
-]
+];
 
 /**
  * Variant-specific styles with neon glow on focus
@@ -81,7 +82,7 @@ const variantStyles: Record<InputVariant, string> = {
     'focus:border-primary focus-visible:border-primary',
     'focus:shadow-glow-cyan focus-visible:shadow-glow-cyan',
     // Text
-    'text-text-primary',
+    'text-text-primary'
   ),
   filled: cn(
     // Background - lighter for more presence
@@ -93,7 +94,7 @@ const variantStyles: Record<InputVariant, string> = {
     'focus:bg-surface-primary focus-visible:bg-surface-primary',
     'focus:shadow-glow-cyan focus-visible:shadow-glow-cyan',
     // Text
-    'text-text-primary',
+    'text-text-primary'
   ),
   outline: cn(
     // Background
@@ -104,9 +105,9 @@ const variantStyles: Record<InputVariant, string> = {
     'focus:border-primary focus-visible:border-primary',
     'focus:shadow-glow-cyan focus-visible:shadow-glow-cyan',
     // Text
-    'text-text-primary',
+    'text-text-primary'
   ),
-}
+};
 
 /**
  * Size-specific styles
@@ -115,7 +116,7 @@ const sizeStyles: Record<InputSize, string> = {
   sm: 'px-3 py-1.5 text-sm rounded-md',
   md: 'px-4 py-2 text-base rounded-lg',
   lg: 'px-5 py-3 text-lg rounded-lg',
-}
+};
 
 /**
  * Icon container styles
@@ -124,7 +125,7 @@ const iconSizeStyles: Record<InputSize, string> = {
   sm: 'h-4 w-4',
   md: 'h-5 w-5',
   lg: 'h-6 w-6',
-}
+};
 
 /**
  * Error state styles with red glow
@@ -133,8 +134,8 @@ const errorStyles = cn(
   'border-error',
   'focus:border-error focus-visible:border-error',
   'focus:shadow-glow-red focus-visible:shadow-glow-red',
-  'text-text-primary',
-)
+  'text-text-primary'
+);
 
 /**
  * Success state styles with green glow
@@ -143,8 +144,20 @@ const successStyles = cn(
   'border-success',
   'focus:border-success focus-visible:border-success',
   'focus:shadow-glow-green focus-visible:shadow-glow-green',
-  'text-text-primary',
-)
+  'text-text-primary'
+);
+
+/**
+ * Shake animation variant for error states
+ * Triggers when error state changes to true
+ */
+const shakeAnimation = {
+  x: [0, -10, 10, -10, 10, 0],
+  transition: {
+    duration: 0.4,
+    ease: 'easeInOut',
+  },
+};
 
 /**
  * Input Component
@@ -173,16 +186,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     // Generate unique ID for accessibility
-    const generatedId = useId()
-    const inputId = providedId || generatedId
-    const errorId = `${inputId}-error`
-    const helperId = `${inputId}-helper`
+    const generatedId = useId();
+    const inputId = providedId || generatedId;
+    const errorId = `${inputId}-error`;
+    const helperId = `${inputId}-helper`;
+
+    // Animation controls for shake effect
+    const controls = useAnimation();
+    const previousError = useRef(error);
+
+    // Trigger shake animation when error state changes to true
+    useEffect(() => {
+      if (error && !previousError.current) {
+        controls.start(shakeAnimation);
+      }
+      previousError.current = error;
+    }, [error, controls]);
 
     // Calculate padding adjustments for icons
-    const hasLeftIcon = !!leftIcon
+    const hasLeftIcon = !!leftIcon;
     // Show error icon when in error state and no custom right icon is provided
-    const showErrorIcon = error && !rightIcon
-    const hasRightIcon = !!rightIcon || showErrorIcon
+    const showErrorIcon = error && !rightIcon;
+    const hasRightIcon = !!rightIcon || showErrorIcon;
 
     const iconPaddingStyles = cn(
       hasLeftIcon && size === 'sm' && 'pl-9',
@@ -190,30 +215,27 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       hasLeftIcon && size === 'lg' && 'pl-13',
       hasRightIcon && size === 'sm' && 'pr-9',
       hasRightIcon && size === 'md' && 'pr-11',
-      hasRightIcon && size === 'lg' && 'pr-13',
-    )
+      hasRightIcon && size === 'lg' && 'pr-13'
+    );
 
     return (
       <div className={cn('flex flex-col gap-1.5', fullWidth && 'w-full', containerClassName)}>
         {/* Label */}
         {label && (
-          <label
-            htmlFor={inputId}
-            className="text-sm font-medium text-text-secondary"
-          >
+          <label htmlFor={inputId} className="text-sm font-medium text-text-secondary">
             {label}
           </label>
         )}
 
-        {/* Input Container (for icons) */}
-        <div className="relative">
+        {/* Input Container (for icons) - wrapped in motion.div for shake animation */}
+        <motion.div className="relative" animate={controls}>
           {/* Left Icon */}
           {leftIcon && (
             <div
               className={cn(
                 'absolute left-3 top-1/2 -translate-y-1/2',
                 'text-text-muted pointer-events-none',
-                iconSizeStyles[size],
+                iconSizeStyles[size]
               )}
             >
               {leftIcon}
@@ -226,13 +248,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             disabled={disabled}
             aria-invalid={error}
-            aria-describedby={
-              error && errorMessage
-                ? errorId
-                : helperText
-                ? helperId
-                : undefined
-            }
+            aria-describedby={error && errorMessage ? errorId : helperText ? helperId : undefined}
             className={cn(
               baseStyles,
               variantStyles[variant],
@@ -240,7 +256,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               iconPaddingStyles,
               error && errorStyles,
               success && !error && successStyles,
-              className,
+              className
             )}
             {...props}
           />
@@ -251,7 +267,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               className={cn(
                 'absolute right-3 top-1/2 -translate-y-1/2',
                 'text-text-muted pointer-events-none',
-                iconSizeStyles[size],
+                iconSizeStyles[size]
               )}
             >
               {rightIcon}
@@ -264,13 +280,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               className={cn(
                 'absolute right-3 top-1/2 -translate-y-1/2',
                 'text-error pointer-events-none',
-                iconSizeStyles[size],
+                iconSizeStyles[size]
               )}
             >
               <ErrorIcon className="h-full w-full" />
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Error Message */}
         {error && errorMessage && (
@@ -286,10 +302,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </p>
         )}
       </div>
-    )
+    );
   }
-)
+);
 
-Input.displayName = 'Input'
+Input.displayName = 'Input';
 
-export default Input
+export default Input;
