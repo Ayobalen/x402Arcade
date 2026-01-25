@@ -428,7 +428,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
 
         // Check paddle collision
         const paddleCollision = checkBallPaddleCollision(updatedBall, newState.gameSpecific.paddle);
-        if (paddleCollision.hasCollision) {
+        if (paddleCollision && paddleCollision.hasCollision) {
           updatedBall = paddleCollision.ball!;
           // Play paddle hit sound with velocity-based variation
           const ballSpeed = Math.sqrt(updatedBall.velocity.vx ** 2 + updatedBall.velocity.vy ** 2);
@@ -437,7 +437,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
 
         // Check wall collisions
         const wallCollision = checkBallWallCollision(updatedBall);
-        if (wallCollision.hasCollision) {
+        if (wallCollision && wallCollision.hasCollision) {
           updatedBall = wallCollision.ball!;
           // Play wall bounce sound
           playWallBounceSound(sfx);
@@ -448,7 +448,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
           if (!brick.isActive) return;
 
           const brickCollision = checkBallBrickCollision(updatedBall, brick);
-          if (brickCollision.hasCollision) {
+          if (brickCollision && brickCollision.hasCollision) {
             updatedBall = brickCollision.ball!;
 
             // Damage brick
@@ -548,7 +548,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
           if (!brick.isActive || laserHit) return;
 
           const collision = checkLaserBrickCollision(updated, brick);
-          if (collision.hasCollision) {
+          if (collision && collision.hasCollision) {
             laserHit = true;
 
             // Damage brick
@@ -604,7 +604,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
       }
 
       // Check level complete
-      if (isLevelComplete(newState)) {
+      if (isLevelComplete(newState.gameSpecific.bricks)) {
         playLevelCompleteSound(sfx);
         newState = advanceToNextLevel(newState);
         setCountdown(3);
