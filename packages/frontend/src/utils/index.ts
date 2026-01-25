@@ -133,3 +133,5 @@ export {
   type PlaybackState,
   type MusicStats,
 } from './MusicManager';
+
+export { default as UISounds, UISoundType } from './UISounds';
