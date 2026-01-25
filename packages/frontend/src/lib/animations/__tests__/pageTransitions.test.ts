@@ -17,9 +17,15 @@ import {
   neonGlowTransition,
   PAGE_TRANSITION_PRESETS,
   getPageTransitionPreset,
+  createOrchestration,
+  pageChildVariants,
+  PAGE_ORCHESTRATION_PRESETS,
+  getPageOrchestrationPreset,
+  createOrchestrated,
   type PageTransitionVariants,
   type SlideDirection,
   type ScaleDirection,
+  type PageOrchestrationOptions,
 } from '../pageTransitions';
 
 describe('PageTransitions', () => {
@@ -159,12 +165,7 @@ describe('PageTransitions', () => {
 
     it('should set transformOrigin based on direction', () => {
       const directions: ScaleDirection[] = ['top', 'bottom', 'left', 'right'];
-      const expectedOrigins = [
-        'center top',
-        'center bottom',
-        'left center',
-        'right center',
-      ];
+      const expectedOrigins = ['center top', 'center bottom', 'left center', 'right center'];
 
       directions.forEach((direction, index) => {
         const result = scaleTransition(direction);
@@ -513,6 +514,294 @@ describe('PageTransitions', () => {
       expect(variant.initial).toBeDefined();
       expect(variant.animate).toBeDefined();
       expect(variant.exit).toBeDefined();
+    });
+  });
+
+  describe('Orchestration', () => {
+    describe('createOrchestration', () => {
+      it('should preserve base transition properties', () => {
+        const orchestrated = createOrchestration(fadeTransition);
+        expect(orchestrated.initial).toEqual(fadeTransition.initial);
+      });
+
+      it('should add delayChildren to animate transition', () => {
+        const orchestrated = createOrchestration(fadeTransition, {
+          delayChildren: 0.3,
+        });
+        expect(orchestrated.animate.transition).toHaveProperty('delayChildren', 0.3);
+      });
+
+      it('should add staggerChildren to animate transition', () => {
+        const orchestrated = createOrchestration(fadeTransition, {
+          staggerChildren: 0.1,
+        });
+        expect(orchestrated.animate.transition).toHaveProperty('staggerChildren', 0.1);
+      });
+
+      it('should default staggerChildren to 0.05', () => {
+        const orchestrated = createOrchestration(fadeTransition);
+        expect(orchestrated.animate.transition).toHaveProperty('staggerChildren', 0.05);
+      });
+
+      it('should add when="beforeChildren" for afterParent timing', () => {
+        const orchestrated = createOrchestration(fadeTransition, {
+          when: 'afterParent',
+        });
+        expect(orchestrated.animate.transition).toHaveProperty('when', 'beforeChildren');
+      });
+
+      it('should not add when property for withParent timing', () => {
+        const orchestrated = createOrchestration(fadeTransition, {
+          when: 'withParent',
+        });
+        expect(orchestrated.animate.transition).not.toHaveProperty('when');
+      });
+
+      it('should add when="afterChildren" to exit transition', () => {
+        const orchestrated = createOrchestration(fadeTransition);
+        expect(orchestrated.exit.transition).toHaveProperty('when', 'afterChildren');
+      });
+
+      it('should halve staggerChildren for exit', () => {
+        const orchestrated = createOrchestration(fadeTransition, {
+          staggerChildren: 0.1,
+        });
+        expect(orchestrated.exit.transition).toHaveProperty('staggerChildren', 0.05);
+      });
+
+      it('should work with slide transitions', () => {
+        const orchestrated = createOrchestration(slideTransition('right'), {
+          delayChildren: 0.2,
+          staggerChildren: 0.08,
+        });
+        expect(orchestrated.animate.transition).toHaveProperty('delayChildren', 0.2);
+        expect(orchestrated.animate.transition).toHaveProperty('staggerChildren', 0.08);
+      });
+
+      it('should work with scale transitions', () => {
+        const orchestrated = createOrchestration(scaleTransition('center'), {
+          delayChildren: 0.15,
+        });
+        expect(orchestrated.animate.transition).toHaveProperty('delayChildren', 0.15);
+      });
+
+      it('should work with blur transitions', () => {
+        const orchestrated = createOrchestration(blurTransition(), {
+          staggerChildren: 0.06,
+        });
+        expect(orchestrated.animate.transition).toHaveProperty('staggerChildren', 0.06);
+      });
+
+      it('should handle beforeParent timing', () => {
+        const orchestrated = createOrchestration(fadeTransition, {
+          when: 'beforeParent',
+          delayChildren: 0.5,
+        });
+        // beforeParent should reduce delay (0.5 - 0.2 = 0.3)
+        expect(orchestrated.animate.transition).toHaveProperty('delayChildren', 0.3);
+        expect(orchestrated.animate.transition).not.toHaveProperty('when');
+      });
+
+      it('should not have negative delay for beforeParent', () => {
+        const orchestrated = createOrchestration(fadeTransition, {
+          when: 'beforeParent',
+          delayChildren: 0.1, // Less than 0.2 offset
+        });
+        // Should clamp to 0
+        expect(orchestrated.animate.transition).toHaveProperty('delayChildren', 0);
+      });
+    });
+
+    describe('pageChildVariants', () => {
+      it('should create fade child variants', () => {
+        const variants = pageChildVariants('fade');
+        expect(variants.initial).toEqual({ opacity: 0 });
+        expect(variants.animate).toMatchObject({ opacity: 1 });
+        expect(variants.exit).toMatchObject({ opacity: 0 });
+      });
+
+      it('should create slideUp child variants', () => {
+        const variants = pageChildVariants('slideUp');
+        expect(variants.initial).toEqual({ opacity: 0, y: 20 });
+        expect(variants.animate).toMatchObject({ opacity: 1, y: 0 });
+        expect(variants.exit).toMatchObject({ opacity: 0, y: -10 });
+      });
+
+      it('should create slideDown child variants', () => {
+        const variants = pageChildVariants('slideDown');
+        expect(variants.initial).toEqual({ opacity: 0, y: -20 });
+        expect(variants.animate).toMatchObject({ opacity: 1, y: 0 });
+        expect(variants.exit).toMatchObject({ opacity: 0, y: 10 });
+      });
+
+      it('should create scale child variants', () => {
+        const variants = pageChildVariants('scale');
+        expect(variants.initial).toEqual({ opacity: 0, scale: 0.95 });
+        expect(variants.animate).toMatchObject({ opacity: 1, scale: 1 });
+        expect(variants.exit).toMatchObject({ opacity: 0, scale: 0.95 });
+      });
+
+      it('should default to fade', () => {
+        const variants = pageChildVariants();
+        expect(variants.initial).toEqual({ opacity: 0 });
+      });
+
+      it('should have transition durations', () => {
+        const variants = pageChildVariants('fade');
+        expect(variants.animate.transition).toHaveProperty('duration', 0.4);
+        expect(variants.exit.transition).toHaveProperty('duration', 0.2);
+      });
+
+      it('should have faster exit than enter', () => {
+        const variants = pageChildVariants('slideUp');
+        const enterDuration = variants.animate.transition?.duration;
+        const exitDuration = variants.exit.transition?.duration;
+        expect(exitDuration).toBeLessThan(enterDuration!);
+      });
+    });
+
+    describe('PAGE_ORCHESTRATION_PRESETS', () => {
+      it('should have quick preset', () => {
+        expect(PAGE_ORCHESTRATION_PRESETS.quick).toBeDefined();
+        expect(PAGE_ORCHESTRATION_PRESETS.quick.delayChildren).toBe(0.1);
+        expect(PAGE_ORCHESTRATION_PRESETS.quick.staggerChildren).toBe(0.03);
+        expect(PAGE_ORCHESTRATION_PRESETS.quick.when).toBe('afterParent');
+      });
+
+      it('should have normal preset', () => {
+        expect(PAGE_ORCHESTRATION_PRESETS.normal).toBeDefined();
+        expect(PAGE_ORCHESTRATION_PRESETS.normal.delayChildren).toBe(0.2);
+        expect(PAGE_ORCHESTRATION_PRESETS.normal.staggerChildren).toBe(0.05);
+      });
+
+      it('should have slow preset', () => {
+        expect(PAGE_ORCHESTRATION_PRESETS.slow).toBeDefined();
+        expect(PAGE_ORCHESTRATION_PRESETS.slow.delayChildren).toBe(0.3);
+        expect(PAGE_ORCHESTRATION_PRESETS.slow.staggerChildren).toBe(0.1);
+      });
+
+      it('should have simultaneous preset', () => {
+        expect(PAGE_ORCHESTRATION_PRESETS.simultaneous).toBeDefined();
+        expect(PAGE_ORCHESTRATION_PRESETS.simultaneous.when).toBe('withParent');
+      });
+
+      it('should have dramatic preset', () => {
+        expect(PAGE_ORCHESTRATION_PRESETS.dramatic).toBeDefined();
+        expect(PAGE_ORCHESTRATION_PRESETS.dramatic.delayChildren).toBe(0.5);
+        expect(PAGE_ORCHESTRATION_PRESETS.dramatic.staggerChildren).toBe(0.15);
+      });
+
+      it('should have all presets with required properties', () => {
+        const presets = Object.values(PAGE_ORCHESTRATION_PRESETS);
+        presets.forEach((preset) => {
+          expect(preset).toHaveProperty('delayChildren');
+          expect(preset).toHaveProperty('staggerChildren');
+          expect(preset).toHaveProperty('when');
+        });
+      });
+
+      it('should have increasing delays from quick to slow', () => {
+        const { quick, normal, slow } = PAGE_ORCHESTRATION_PRESETS;
+        expect(quick.delayChildren).toBeLessThan(normal.delayChildren);
+        expect(normal.delayChildren).toBeLessThan(slow.delayChildren);
+      });
+
+      it('should have increasing staggers from quick to slow', () => {
+        const { quick, normal, slow } = PAGE_ORCHESTRATION_PRESETS;
+        expect(quick.staggerChildren).toBeLessThan(normal.staggerChildren);
+        expect(normal.staggerChildren).toBeLessThan(slow.staggerChildren);
+      });
+    });
+
+    describe('getPageOrchestrationPreset', () => {
+      it('should return quick preset', () => {
+        const preset = getPageOrchestrationPreset('quick');
+        expect(preset).toEqual(PAGE_ORCHESTRATION_PRESETS.quick);
+      });
+
+      it('should return normal preset', () => {
+        const preset = getPageOrchestrationPreset('normal');
+        expect(preset).toEqual(PAGE_ORCHESTRATION_PRESETS.normal);
+      });
+
+      it('should return slow preset', () => {
+        const preset = getPageOrchestrationPreset('slow');
+        expect(preset).toEqual(PAGE_ORCHESTRATION_PRESETS.slow);
+      });
+
+      it('should return simultaneous preset', () => {
+        const preset = getPageOrchestrationPreset('simultaneous');
+        expect(preset).toEqual(PAGE_ORCHESTRATION_PRESETS.simultaneous);
+      });
+
+      it('should return dramatic preset', () => {
+        const preset = getPageOrchestrationPreset('dramatic');
+        expect(preset).toEqual(PAGE_ORCHESTRATION_PRESETS.dramatic);
+      });
+    });
+
+    describe('createOrchestrated', () => {
+      it('should combine transition and orchestration presets', () => {
+        const result = createOrchestrated('fade', 'normal');
+        expect(result.initial).toEqual(fadeTransition.initial);
+        expect(result.animate.transition).toHaveProperty('delayChildren', 0.2);
+        expect(result.animate.transition).toHaveProperty('staggerChildren', 0.05);
+      });
+
+      it('should work with fade + quick', () => {
+        const result = createOrchestrated('fade', 'quick');
+        expect(result.animate.transition).toHaveProperty('delayChildren', 0.1);
+        expect(result.animate.transition).toHaveProperty('staggerChildren', 0.03);
+      });
+
+      it('should work with slideRight + slow', () => {
+        const result = createOrchestrated('slideRight', 'slow');
+        expect(result.animate.transition).toHaveProperty('delayChildren', 0.3);
+        expect(result.animate.transition).toHaveProperty('staggerChildren', 0.1);
+      });
+
+      it('should work with blur + simultaneous', () => {
+        const result = createOrchestrated('blur', 'simultaneous');
+        expect(result.animate.transition).not.toHaveProperty('when');
+        expect(result.animate.transition).toHaveProperty('staggerChildren', 0.02);
+      });
+
+      it('should work with zoom + dramatic', () => {
+        const result = createOrchestrated('zoom', 'dramatic');
+        expect(result.animate.transition).toHaveProperty('delayChildren', 0.5);
+        expect(result.animate.transition).toHaveProperty('staggerChildren', 0.15);
+      });
+
+      it('should preserve base transition exit properties', () => {
+        const result = createOrchestrated('neonGlow', 'normal');
+        expect(result.exit).toMatchObject({
+          opacity: 0,
+          filter: 'brightness(0.5)',
+        });
+      });
+    });
+
+    describe('Type Safety', () => {
+      it('should support PageOrchestrationOptions type', () => {
+        const options: PageOrchestrationOptions = {
+          delayChildren: 0.2,
+          staggerChildren: 0.05,
+          when: 'afterParent',
+        };
+        expect(options.delayChildren).toBe(0.2);
+      });
+
+      it('should allow partial options', () => {
+        const options: PageOrchestrationOptions = {
+          delayChildren: 0.1,
+        };
+        expect(options.delayChildren).toBe(0.1);
+      });
+
+      it('should allow empty options', () => {
+        const options: PageOrchestrationOptions = {};
+        expect(options).toEqual({});
+      });
     });
   });
 });
