@@ -985,3 +985,116 @@ describe('useSnakeGame - Time-Based Updates', () => {
     expect(typeof initialSpeed).toBe('number');
   });
 });
+
+// ============================================================================
+// Exposed Control Methods Tests
+// ============================================================================
+
+describe('useSnakeGame - Exposed Control Methods', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should expose start function', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    expect(result.current.start).toBeDefined();
+    expect(typeof result.current.start).toBe('function');
+  });
+
+  it('should start game when start() is called', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Initially in menu state
+    expect(result.current.state.isPlaying).toBe(false);
+
+    // Call start function
+    act(() => {
+      result.current.start();
+    });
+
+    // Should now be playing
+    expect(result.current.state.isPlaying).toBe(true);
+  });
+
+  it('should expose pause function', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    expect(result.current.pause).toBeDefined();
+    expect(typeof result.current.pause).toBe('function');
+  });
+
+  it('should toggle pause when pause() is called', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Start the game first
+    act(() => {
+      result.current.start();
+    });
+
+    expect(result.current.state.isPaused).toBe(false);
+
+    // Call pause function
+    act(() => {
+      result.current.pause();
+    });
+
+    // Should now be paused
+    expect(result.current.state.isPaused).toBe(true);
+
+    // Call pause again
+    act(() => {
+      result.current.pause();
+    });
+
+    // Should be unpaused
+    expect(result.current.state.isPaused).toBe(false);
+  });
+
+  it('should expose restart function', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    expect(result.current.restart).toBeDefined();
+    expect(typeof result.current.restart).toBe('function');
+  });
+
+  it('should restart game when restart() is called', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Start the game
+    act(() => {
+      result.current.start();
+    });
+
+    expect(result.current.state.isPlaying).toBe(true);
+
+    // Call restart function
+    act(() => {
+      result.current.restart();
+    });
+
+    // Should be back in menu state
+    expect(result.current.state.isPlaying).toBe(false);
+    expect(result.current.state.score).toBe(0);
+  });
+
+  it('should expose all required return values', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Check all return values are present
+    expect(result.current).toHaveProperty('state');
+    expect(result.current).toHaveProperty('canvasRef');
+    expect(result.current).toHaveProperty('context');
+    expect(result.current).toHaveProperty('reset');
+    expect(result.current).toHaveProperty('start');
+    expect(result.current).toHaveProperty('pause');
+    expect(result.current).toHaveProperty('restart');
+  });
+
+  it('should have restart as alias for reset', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // restart and reset should be the same function
+    expect(result.current.restart).toBe(result.current.reset);
+  });
+});

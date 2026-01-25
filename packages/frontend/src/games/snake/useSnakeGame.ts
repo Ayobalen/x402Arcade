@@ -58,6 +58,12 @@ export interface UseSnakeGameReturn {
   context: CanvasRenderingContext2D | null;
   /** Reset game to initial state */
   reset: () => void;
+  /** Start the game from menu state */
+  start: () => void;
+  /** Toggle pause state during gameplay */
+  pause: () => void;
+  /** Restart the game (alias for reset) */
+  restart: () => void;
 }
 
 // ============================================================================
@@ -379,6 +385,28 @@ export function useSnakeGame(
     setState(createMenuState(currentDifficulty));
   }, [state.gameSpecific.difficulty, difficulty]);
 
+  /**
+   * Start the game from menu state.
+   * Transitions from menu to playing state.
+   */
+  const start = useCallback(() => {
+    setState((prevState) => startGame(prevState));
+  }, []);
+
+  /**
+   * Toggle pause state during gameplay.
+   * Only works when game is playing and not game over.
+   */
+  const pause = useCallback(() => {
+    setState((prevState) => togglePause(prevState));
+  }, []);
+
+  /**
+   * Restart the game.
+   * Alias for reset() - resets to menu state.
+   */
+  const restart = reset;
+
   // ============================================================================
   // Return Hook Interface
   // ============================================================================
@@ -388,5 +416,8 @@ export function useSnakeGame(
     canvasRef,
     context: contextRef.current,
     reset,
+    start,
+    pause,
+    restart,
   };
 }
