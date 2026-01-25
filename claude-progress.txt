@@ -15586,3 +15586,77 @@ Tailwind breakpoints (sm/md/lg/xl), responsive layouts, hamburger menu, rem-base
 
 ## Session Summary - Jan 25, 2026 21:15
 Verified 5 features (Backend Infrastructure, Auth/Security, Leaderboard/Scoring, Session API, Responsive Design). Progress: 219/317 -> 224/317 (70.7%). All features fully implemented with proper security, caching, and responsive design.
+
+---
+
+## Session Log - January 25, 2026 21:10 UTC
+
+### Feature #1252: Design System Foundation - COMPLETED ✅
+
+**Implementation Summary:**
+
+Implemented comprehensive design tokens for layout constraints, aspect ratios, and opacity:
+
+**1. Layout Tokens (layout.ts) - ~130 lines**
+- Container Widths: 13 tokens (xs=20rem to 7xl=80rem, full, screen)
+- Aspect Ratios: 10 tokens (square, portrait, landscape, video, ultrawide, golden, wide, superwide, tall, auto)
+- Max Widths: 9 tokens (prose-narrow/prose/prose-wide in ch units, screen-sm to screen-2xl in px)
+- Min Heights: 5 tokens (screen, screen-half, screen-third, screen-quarter, screen-dynamic for mobile-safe 100dvh)
+
+**2. Opacity Tokens (opacity.ts) - ~130 lines**
+- Base Opacity Scale: 21 values (0-100 in 5% increments, aligned with Tailwind)
+- Semantic Opacity: 10 named values (invisible, ghost, whisper, faint, disabled, muted, dimmed, visible, active, solid)
+- Overlay Opacity: 6 levels (subtle, light, medium, dark, heavy, solid)
+- Glow Opacity: 6 intensities (subtle, soft, medium, bright, intense, maximum)
+
+**3. Tailwind Integration**
+- Updated tailwind.config.ts with imports
+- Added to theme.extend:
+  - maxWidth: merged maxWidths + containerWidths
+  - aspectRatio: all aspect ratio tokens
+  - minHeight: all min height tokens
+  - opacity: full opacity scale
+- Proper TypeScript typing for all tokens
+
+**4. Documentation (README.md) - ~440 lines**
+- Complete token reference with examples
+- Best practices and usage guidelines
+- Section for each token category:
+  - Colors, Typography, Spacing, Borders, Shadows
+  - Animations, Layout (NEW), Opacity (NEW), Z-Index, Focus
+- Real-world usage examples
+- Contributing guidelines
+
+**5. Unit Tests**
+- layout.test.ts: 11 tests - validates all layout token values and formats
+- opacity.test.ts: 14 tests - validates opacity scale and semantic values
+- All 72 token tests passing (including existing animations, etc.)
+
+**6. Demo Component (DesignTokensDemo.tsx) - ~270 lines**
+- Visual showcase of all new tokens
+- Container width examples
+- Aspect ratio grid
+- Opacity scale visualization (numeric, semantic, overlay, glow)
+- Min height demonstrations
+- Real-world composition example
+
+**Testing:**
+- ✅ npm run test:frontend -- tokens: 72/72 tests passing
+- ✅ npm run build:frontend: Build successful (only harmless CSS import warnings)
+- ✅ All ESLint checks passing
+- ✅ Pre-commit hooks passing
+
+**Git Commit:** f9c65941
+
+**Requirements Verification:**
+- ✅ Define container width tokens - 13 tokens created
+- ✅ Create aspect ratio utilities - 10 aspect ratios implemented
+- ✅ Add opacity scale tokens - 21-value scale + 22 semantic values
+- ✅ Implement design token documentation - Comprehensive README.md
+
+**Marked as Passing:** Feature #1252 ✅
+
+**Progress:** 224/317 → 225/317 (71.0%)
+
+**Next:** Continue with remaining features
+
