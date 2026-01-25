@@ -20,6 +20,18 @@ import type { GameInput } from '../types';
 import { createInitialGameState } from '../types';
 import { createInitialPongState, updateGameState } from './logic';
 import { renderGame } from './renderer';
+import { useSFX } from '../../hooks/useSFX';
+import {
+  initializePongSounds,
+  playPaddleHitSound,
+  playWallBounceSound,
+  playScoreSound,
+  playOpponentScoreSound,
+  playServeSound,
+  playGameStartSound,
+  playGameEndSound,
+  playRallySound,
+} from './PongSounds';
 
 // ============================================================================
 // Hook Interface
@@ -141,6 +153,116 @@ export function usePongGame(options: UsePongGameOptions = {}): UsePongGameReturn
 
   // Track if game over callback was called
   const gameOverCalledRef = useRef(false);
+
+  // ============================================================================
+  // Audio System
+  // ============================================================================
+
+  /**
+   * SFX Engine for playing sound effects.
+   */
+  const sfx = useSFX();
+
+  /**
+   * Previous state ref for detecting changes (for audio triggers).
+   */
+  const prevStateRef = useRef<PongState | null>(null);
+
+  /**
+   * Initialize Pong sounds on mount.
+   */
+  useEffect(() => {
+    initializePongSounds(sfx);
+  }, [sfx]);
+
+  /**
+   * Track state changes and play appropriate sounds.
+   */
+  useEffect(() => {
+    const prevState = prevStateRef.current;
+    prevStateRef.current = state;
+
+    // Skip if no previous state (first render)
+    if (!prevState || !prevState.gameSpecific || !state.gameSpecific) {
+      return;
+    }
+
+    const prev = prevState.gameSpecific;
+    const curr = state.gameSpecific;
+
+    // Detect game start (ball served)
+    const ballJustServed = !prev.ballInPlay && curr.ballInPlay;
+    if (ballJustServed && state.isPlaying && !state.isGameOver) {
+      playServeSound(sfx);
+    }
+
+    // Detect collisions (use lastCollision from state)
+    if (curr.lastCollision && curr.lastCollision !== prev.lastCollision) {
+      const collisionType = curr.lastCollision.type;
+
+      if (collisionType === 'paddle-left' || collisionType === 'paddle-right') {
+        // Paddle hit - use speed multiplier for intensity
+        playPaddleHitSound(sfx, curr.ball.speedMultiplier);
+
+        // Play rally milestone sounds
+        playRallySound(sfx, curr.currentRally);
+      } else if (collisionType === 'wall-top' || collisionType === 'wall-bottom') {
+        // Wall bounce
+        playWallBounceSound(sfx);
+      }
+    }
+
+    // Detect scoring events
+    const leftScoreChanged = curr.leftScore.score !== prev.leftScore.score;
+    const rightScoreChanged = curr.rightScore.score !== prev.rightScore.score;
+
+    if (leftScoreChanged) {
+      // Left player (human) scored
+      if (curr.leftScore.score > prev.leftScore.score) {
+        playScoreSound(sfx);
+      }
+    }
+
+    if (rightScoreChanged) {
+      // Right player scored
+      if (curr.rightScore.score > prev.rightScore.score) {
+        // If right is AI (single-player), this is opponent scoring
+        if (curr.mode === 'single-player') {
+          playOpponentScoreSound(sfx);
+        } else {
+          // Two-player mode - also a score
+          playScoreSound(sfx);
+        }
+      }
+    }
+
+    // Detect game over
+    const justGameOver = state.isGameOver && !prevState.isGameOver;
+    if (justGameOver) {
+      // Determine if player won (left player in single-player mode)
+      const playerWon =
+        curr.mode === 'single-player' ? curr.leftScore.score > curr.rightScore.score : false; // In two-player, use score comparison
+
+      playGameEndSound(sfx, playerWon);
+    }
+
+    // Detect game start
+    const justStarted = state.isPlaying && !prevState.isPlaying;
+    if (justStarted && !prevState.isGameOver) {
+      playGameStartSound(sfx);
+    }
+  }, [
+    state.isPlaying,
+    state.isGameOver,
+    state.gameSpecific?.ballInPlay,
+    state.gameSpecific?.lastCollision,
+    state.gameSpecific?.leftScore.score,
+    state.gameSpecific?.rightScore.score,
+    state.gameSpecific?.ball.speedMultiplier,
+    state.gameSpecific?.currentRally,
+    state.gameSpecific?.mode,
+    sfx,
+  ]);
 
   // ============================================================================
   // Canvas Initialization
