@@ -2,15 +2,18 @@
  * Leaderboard Page Component
  *
  * Displays high scores and rankings across all games with:
- * - Game filter tabs (All Games, Snake, Pong, Tetris)
+ * - Game filter tabs (All Games, Snake, Pong, Tetris, Breakout, Space Invaders)
  * - Time period filter tabs (Daily, Weekly, All Time)
- * - Leaderboard table with rankings
- * - Player addresses and scores
+ * - Real-time updates via polling
+ * - Rank change animations
+ * - User highlight in leaderboard
  * - Retro arcade theme with neon accents
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useWalletStore } from '@/stores/walletStore';
 
 /**
  * Trophy icon for top rankings
@@ -61,7 +64,7 @@ function MedalIcon({ className }: { className?: string }) {
 /**
  * Game type for filtering
  */
-type GameType = 'all' | 'snake' | 'pong' | 'tetris';
+type GameType = 'all' | 'snake' | 'pong' | 'tetris' | 'breakout' | 'space-invaders';
 
 /**
  * Time period for filtering
@@ -77,83 +80,118 @@ interface LeaderboardEntry {
   score: number;
   gameType: string;
   timestamp: string;
+  previousRank?: number; // For rank change animations
 }
 
 /**
- * Mock leaderboard data (will be replaced with API calls)
+ * API response interface
  */
-const mockLeaderboardData: LeaderboardEntry[] = [
-  {
-    rank: 1,
-    playerAddress: '0x1234...5678',
-    score: 15420,
-    gameType: 'Snake',
-    timestamp: '2024-01-24T10:30:00Z',
-  },
-  {
-    rank: 2,
-    playerAddress: '0xabcd...ef12',
-    score: 14200,
-    gameType: 'Snake',
-    timestamp: '2024-01-24T09:15:00Z',
-  },
-  {
-    rank: 3,
-    playerAddress: '0x9876...4321',
-    score: 13800,
-    gameType: 'Tetris',
-    timestamp: '2024-01-24T08:45:00Z',
-  },
-  {
-    rank: 4,
-    playerAddress: '0xdef0...9abc',
-    score: 12500,
-    gameType: 'Pong',
-    timestamp: '2024-01-23T22:10:00Z',
-  },
-  {
-    rank: 5,
-    playerAddress: '0x5555...6666',
-    score: 11900,
-    gameType: 'Snake',
-    timestamp: '2024-01-23T20:30:00Z',
-  },
-  {
-    rank: 6,
-    playerAddress: '0x7777...8888',
-    score: 10800,
-    gameType: 'Tetris',
-    timestamp: '2024-01-23T18:20:00Z',
-  },
-  {
-    rank: 7,
-    playerAddress: '0x9999...0000',
-    score: 9500,
-    gameType: 'Pong',
-    timestamp: '2024-01-23T16:45:00Z',
-  },
-  {
-    rank: 8,
-    playerAddress: '0xaaaa...bbbb',
-    score: 8700,
-    gameType: 'Snake',
-    timestamp: '2024-01-23T14:30:00Z',
-  },
-  {
-    rank: 9,
-    playerAddress: '0xcccc...dddd',
-    score: 7900,
-    gameType: 'Tetris',
-    timestamp: '2024-01-23T12:15:00Z',
-  },
-  {
-    rank: 10,
-    playerAddress: '0xeeee...ffff',
-    score: 7200,
-    gameType: 'Pong',
-    timestamp: '2024-01-23T10:00:00Z',
-  },
-];
+interface LeaderboardResponse {
+  gameType: string;
+  periodType: string;
+  limit: number;
+  offset: number;
+  count: number;
+  entries: Array<{
+    rank: number;
+    player_address: string;
+    score: number;
+    game_type: string;
+    created_at: string;
+  }>;
+}
+
+/**
+ * Polling interval for real-time updates (30 seconds)
+ */
+const POLL_INTERVAL_MS = 30000;
+
+/**
+ * API base URL from environment
+ */
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+/**
+ * Fetch leaderboard data from API
+ */
+async function fetchLeaderboard(
+  gameType: GameType,
+  periodType: TimePeriod
+): Promise<LeaderboardEntry[]> {
+  // Handle "all" game type - fetch all games and merge
+  if (gameType === 'all') {
+    const gameTypes: Array<Exclude<GameType, 'all'>> = [
+      'snake',
+      'pong',
+      'tetris',
+      'breakout',
+      'space-invaders',
+    ];
+    const allEntries: LeaderboardEntry[] = [];
+
+    // Fetch each game type in parallel
+    const promises = gameTypes.map(async (gt) => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/v1/leaderboard/${gt}/${periodType}?limit=100`
+        );
+        if (!response.ok) return [];
+
+        const data: LeaderboardResponse = await response.json();
+        return data.entries.map((entry) => ({
+          rank: entry.rank,
+          playerAddress: entry.player_address,
+          score: entry.score,
+          gameType: entry.game_type,
+          timestamp: entry.created_at,
+        }));
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(`Error fetching ${gt} leaderboard:`, error);
+        return [];
+      }
+    });
+
+    const results = await Promise.all(promises);
+    results.forEach((entries) => allEntries.push(...entries));
+
+    // Sort by score descending and reassign ranks
+    allEntries.sort((a, b) => b.score - a.score);
+    allEntries.forEach((entry, index) => {
+      entry.rank = index + 1;
+    });
+
+    // Return top 100
+    return allEntries.slice(0, 100);
+  }
+
+  // Fetch specific game type
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/leaderboard/${gameType}/${periodType}?limit=100`
+    );
+
+    if (!response.ok) {
+      // eslint-disable-next-line no-console
+      console.error(`Leaderboard API error: ${response.status} ${response.statusText}`);
+      return [];
+    }
+
+    const data: LeaderboardResponse = await response.json();
+
+    return data.entries.map((entry) => ({
+      rank: entry.rank,
+      playerAddress: entry.player_address,
+      score: entry.score,
+      gameType: entry.game_type,
+      timestamp: entry.created_at,
+    }));
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error fetching leaderboard:', error);
+    return [];
+  }
+}
 
 /**
  * Get rank icon based on position
@@ -174,7 +212,10 @@ function getRankIcon(rank: number) {
 /**
  * Get rank background color
  */
-function getRankBgClass(rank: number) {
+function getRankBgClass(rank: number, isCurrentUser: boolean) {
+  if (isCurrentUser) {
+    return 'bg-gradient-to-r from-[#00ffff]/20 to-[#ff00ff]/10 border-l-2 border-[#00ffff]';
+  }
   if (rank === 1) return 'bg-gradient-to-r from-[#FFD700]/20 to-transparent';
   if (rank === 2) return 'bg-gradient-to-r from-[#C0C0C0]/20 to-transparent';
   if (rank === 3) return 'bg-gradient-to-r from-[#CD7F32]/20 to-transparent';
@@ -182,17 +223,100 @@ function getRankBgClass(rank: number) {
 }
 
 /**
+ * Rank Change Indicator Component
+ */
+function RankChangeIndicator({ previous, current }: { previous?: number; current: number }) {
+  if (!previous || previous === current) return null;
+
+  const isUp = previous > current; // Lower rank number = higher position
+  const change = Math.abs(previous - current);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: isUp ? 10 : -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className={cn(
+        'flex items-center gap-1 text-xs font-bold',
+        isUp ? 'text-[#00ff00]' : 'text-[#ff4444]'
+      )}
+    >
+      <span>{isUp ? '↑' : '↓'}</span>
+      <span>{change}</span>
+    </motion.div>
+  );
+}
+
+/**
  * Leaderboard Page Component
  */
 export function Leaderboard() {
+  // Wallet state
+  const address = useWalletStore((state) => state.address);
+
+  // Filter state
   const [selectedGame, setSelectedGame] = useState<GameType>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('daily');
 
-  // Filter data based on selections (mock implementation)
-  const filteredData = mockLeaderboardData.filter((entry) => {
-    if (selectedGame === 'all') return true;
-    return entry.gameType.toLowerCase() === selectedGame;
-  });
+  // Data state
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Previous data ref for rank change detection
+  const previousDataRef = useRef<Map<string, number>>(new Map());
+
+  // Fetch leaderboard data
+  const loadLeaderboard = async () => {
+    try {
+      setError(null);
+      const data = await fetchLeaderboard(selectedGame, selectedPeriod);
+
+      // Store previous ranks for animation
+      const previousRanks = previousDataRef.current;
+
+      // Add previousRank to entries for animation
+      const dataWithPreviousRanks = data.map((entry) => {
+        const key = `${entry.playerAddress}-${entry.gameType}`;
+        const previousRank = previousRanks.get(key);
+        return {
+          ...entry,
+          previousRank,
+        };
+      });
+
+      // Update previous ranks map
+      const newRanks = new Map<string, number>();
+      data.forEach((entry) => {
+        const key = `${entry.playerAddress}-${entry.gameType}`;
+        newRanks.set(key, entry.rank);
+      });
+      previousDataRef.current = newRanks;
+
+      setLeaderboardData(dataWithPreviousRanks);
+      setIsLoading(false);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to load leaderboard:', err);
+      setError('Failed to load leaderboard. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  // Initial load and polling
+  useEffect(() => {
+    // Load immediately
+    void loadLeaderboard();
+
+    // Set up polling interval
+    const intervalId = setInterval(() => {
+      void loadLeaderboard();
+    }, POLL_INTERVAL_MS);
+
+    // Clean up on unmount or filter change
+    return () => clearInterval(intervalId);
+  }, [selectedGame, selectedPeriod]);
 
   return (
     <div className="w-full min-h-screen py-12 px-4">
@@ -224,6 +348,8 @@ export function Leaderboard() {
               { value: 'snake' as const, label: 'Snake', emoji: '🐍' },
               { value: 'pong' as const, label: 'Pong', emoji: '🏓' },
               { value: 'tetris' as const, label: 'Tetris', emoji: '🟦' },
+              { value: 'breakout' as const, label: 'Breakout', emoji: '🧱' },
+              { value: 'space-invaders' as const, label: 'Space Invaders', emoji: '👾' },
             ].map((game) => (
               <button
                 key={game.value}
@@ -302,49 +428,111 @@ export function Leaderboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredData.map((entry) => (
-                  <tr
-                    key={`${entry.rank}-${entry.playerAddress}`}
-                    className={cn(
-                      'border-b border-[#2d2d4a]/50 transition-colors duration-200',
-                      getRankBgClass(entry.rank)
-                    )}
-                  >
-                    {/* Rank */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">{getRankIcon(entry.rank)}</div>
-                    </td>
+                {isLoading ? (
+                  // Loading skeleton
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={`skeleton-${i}`} className="border-b border-[#2d2d4a]/50">
+                      <td className="px-6 py-4">
+                        <div className="w-8 h-8 bg-[#2d2d4a]/50 rounded animate-pulse" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="w-32 h-6 bg-[#2d2d4a]/50 rounded animate-pulse" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="w-20 h-6 bg-[#2d2d4a]/50 rounded animate-pulse" />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="w-24 h-6 bg-[#2d2d4a]/50 rounded animate-pulse ml-auto" />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <AnimatePresence mode="popLayout">
+                    {leaderboardData.map((entry) => {
+                      const isCurrentUser =
+                        address && entry.playerAddress.toLowerCase() === address.toLowerCase();
 
-                    {/* Player Address */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <code className="font-mono text-sm text-white bg-[#0a0a0a] px-3 py-1 rounded border border-[#2d2d4a]">
-                          {entry.playerAddress}
-                        </code>
-                      </div>
-                    </td>
+                      return (
+                        <motion.tr
+                          key={`${entry.rank}-${entry.playerAddress}`}
+                          layout
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3 }}
+                          className={cn(
+                            'border-b border-[#2d2d4a]/50 transition-colors duration-200',
+                            getRankBgClass(entry.rank, !!isCurrentUser)
+                          )}
+                        >
+                          {/* Rank */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              {getRankIcon(entry.rank)}
+                              <RankChangeIndicator
+                                previous={entry.previousRank}
+                                current={entry.rank}
+                              />
+                            </div>
+                          </td>
 
-                    {/* Game Type */}
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0a0a0a] border border-[#2d2d4a] text-sm text-white/80">
-                        {entry.gameType}
-                      </span>
-                    </td>
+                          {/* Player Address */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <code
+                                className={cn(
+                                  'font-mono text-sm px-3 py-1 rounded border',
+                                  isCurrentUser
+                                    ? 'text-[#00ffff] bg-[#00ffff]/10 border-[#00ffff] font-bold'
+                                    : 'text-white bg-[#0a0a0a] border-[#2d2d4a]'
+                                )}
+                              >
+                                {entry.playerAddress}
+                              </code>
+                              {isCurrentUser && (
+                                <span className="text-xs text-[#00ffff] font-bold">(You)</span>
+                              )}
+                            </div>
+                          </td>
 
-                    {/* Score */}
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-lg font-bold text-[#00ffff] font-mono">
-                        {entry.score.toLocaleString()}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                          {/* Game Type */}
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0a0a0a] border border-[#2d2d4a] text-sm text-white/80">
+                              {entry.gameType}
+                            </span>
+                          </td>
+
+                          {/* Score */}
+                          <td className="px-6 py-4 text-right">
+                            <span className="text-lg font-bold text-[#00ffff] font-mono">
+                              {entry.score.toLocaleString()}
+                            </span>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </AnimatePresence>
+                )}
               </tbody>
             </table>
           </div>
 
+          {/* Error State */}
+          {error && !isLoading && (
+            <div className="px-6 py-12 text-center">
+              <div className="w-12 h-12 mx-auto mb-4 text-[#ff4444]">⚠️</div>
+              <p className="text-[#ff4444] text-lg">{error}</p>
+              <button
+                onClick={() => loadLeaderboard()}
+                className="mt-4 px-6 py-2 bg-[#00ffff] text-black rounded-lg font-semibold hover:bg-[#00ffff]/80 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* Empty State */}
-          {filteredData.length === 0 && (
+          {!isLoading && !error && leaderboardData.length === 0 && (
             <div className="px-6 py-12 text-center">
               <TrophyIcon className="w-12 h-12 text-white/20 mx-auto mb-4" />
               <p className="text-white/60 text-lg">No scores yet for this game.</p>
@@ -353,6 +541,19 @@ export function Leaderboard() {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Real-time Update Indicator */}
+        <div className="mt-6 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#16162a] border border-[#2d2d4a] rounded-lg">
+            <div className="relative">
+              <div className="w-2 h-2 bg-[#00ff00] rounded-full animate-pulse" />
+              <div className="absolute inset-0 w-2 h-2 bg-[#00ff00] rounded-full animate-ping" />
+            </div>
+            <span className="text-sm text-white/70">
+              Auto-updating every {POLL_INTERVAL_MS / 1000} seconds
+            </span>
+          </div>
         </div>
 
         {/* Prize Pool Info */}
