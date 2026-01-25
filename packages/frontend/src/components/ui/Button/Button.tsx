@@ -19,9 +19,10 @@
  * </Button>
  */
 
-import React, { forwardRef } from 'react'
-import { cn } from '@/lib/utils'
-import type { ButtonProps, ButtonSize, ButtonVariant } from './Button.types'
+import React, { forwardRef } from 'react';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import type { ButtonProps, ButtonSize, ButtonVariant } from './Button.types';
 
 /**
  * Base styles applied to all buttons
@@ -39,7 +40,7 @@ const baseStyles = [
   'disabled:cursor-not-allowed disabled:opacity-50',
   // Text selection
   'select-none',
-]
+];
 
 /**
  * Variant-specific styles
@@ -119,7 +120,7 @@ const variantStyles: Record<ButtonVariant, string> = {
     // Focus ring
     'focus-visible:ring-success'
   ),
-}
+};
 
 /**
  * Size-specific styles
@@ -130,7 +131,7 @@ const sizeStyles: Record<ButtonSize, string> = {
   md: 'px-4 py-2 text-base rounded-lg',
   lg: 'px-6 py-3 text-lg rounded-lg',
   xl: 'px-8 py-4 text-xl rounded-xl',
-}
+};
 
 /**
  * Icon-only button size styles (square buttons)
@@ -141,7 +142,7 @@ const iconOnlySizeStyles: Record<ButtonSize, string> = {
   md: 'p-2 rounded-lg',
   lg: 'p-3 rounded-lg',
   xl: 'p-4 rounded-xl',
-}
+};
 
 /**
  * Icon size classes for each button size
@@ -153,35 +154,42 @@ const iconSizeStyles: Record<ButtonSize, string> = {
   md: 'h-4 w-4',
   lg: 'h-5 w-5',
   xl: 'h-6 w-6',
-}
+};
 
 /**
- * Loading spinner component
+ * Animation variants for button press
+ */
+const pressVariants = {
+  initial: { scale: 1, y: 0 },
+  pressed: { scale: 0.98, y: 1 },
+};
+
+/**
+ * Loading spinner component with rotation animation
  */
 function LoadingSpinner({ className }: { className?: string }) {
   return (
-    <svg
-      className={cn('animate-spin', className)}
+    <motion.svg
+      className={cn(className)}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
       aria-hidden="true"
+      animate={{ rotate: 360 }}
+      transition={{
+        duration: 1,
+        repeat: Infinity,
+        ease: 'linear',
+      }}
     >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path
         className="opacity-75"
         fill="currentColor"
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
       />
-    </svg>
-  )
+    </motion.svg>
+  );
 }
 
 /**
@@ -195,11 +203,11 @@ function LoadingSpinner({ className }: { className?: string }) {
 function IconWrapper({
   children,
   sizeClass,
-  className
+  className,
 }: {
-  children: React.ReactNode
-  sizeClass: string
-  className?: string
+  children: React.ReactNode;
+  sizeClass: string;
+  className?: string;
 }) {
   return (
     <span
@@ -213,7 +221,7 @@ function IconWrapper({
     >
       {children}
     </span>
-  )
+  );
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -236,18 +244,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     // Determine if button should be disabled
-    const isDisabled = disabled || isLoading
+    const isDisabled = disabled || isLoading;
 
     // Get icon size based on button size
-    const iconSize = iconSizeStyles[size]
+    const iconSize = iconSizeStyles[size];
 
     // Determine if this is effectively an icon-only button
     // (explicitly set, or has icon(s) but no children)
-    const isIconOnlyButton = iconOnly || (!children && (leftIcon || rightIcon))
+    const isIconOnlyButton = iconOnly || (!children && (leftIcon || rightIcon));
+
+    // Create motion component as button
+    const MotionButton = motion.button;
 
     return (
-      <button
-        ref={ref}
+      <MotionButton
+        ref={ref as React.Ref<HTMLButtonElement>}
         type={type}
         disabled={isDisabled}
         className={cn(
@@ -259,33 +270,61 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         aria-busy={isLoading}
         aria-disabled={isDisabled}
+        // Press animation
+        whileTap={isDisabled ? undefined : pressVariants.pressed}
+        // Hover glow animation (subtle purple glow)
+        whileHover={
+          isDisabled
+            ? undefined
+            : {
+                boxShadow:
+                  variant === 'primary'
+                    ? '0 0 20px rgba(139, 92, 246, 0.6)'
+                    : variant === 'secondary'
+                      ? '0 0 20px rgba(236, 72, 153, 0.6)'
+                      : variant === 'outline'
+                        ? '0 0 15px rgba(139, 92, 246, 0.4)'
+                        : '0 0 12px rgba(139, 92, 246, 0.3)',
+              }
+        }
+        transition={{
+          type: 'spring',
+          stiffness: 400,
+          damping: 25,
+        }}
         {...props}
       >
         {isLoading ? (
           <>
-            <LoadingSpinner className={iconSize} />
-            {!isIconOnlyButton && <span>{loadingText}</span>}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            >
+              <LoadingSpinner className={iconSize} />
+            </motion.div>
+            {!isIconOnlyButton && (
+              <motion.span
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+              >
+                {loadingText}
+              </motion.span>
+            )}
           </>
         ) : (
           <>
-            {leftIcon && (
-              <IconWrapper sizeClass={iconSize}>
-                {leftIcon}
-              </IconWrapper>
-            )}
+            {leftIcon && <IconWrapper sizeClass={iconSize}>{leftIcon}</IconWrapper>}
             {children}
-            {rightIcon && (
-              <IconWrapper sizeClass={iconSize}>
-                {rightIcon}
-              </IconWrapper>
-            )}
+            {rightIcon && <IconWrapper sizeClass={iconSize}>{rightIcon}</IconWrapper>}
           </>
         )}
-      </button>
-    )
+      </MotionButton>
+    );
   }
-)
+);
 
-Button.displayName = 'Button'
+Button.displayName = 'Button';
 
-export default Button
+export default Button;
