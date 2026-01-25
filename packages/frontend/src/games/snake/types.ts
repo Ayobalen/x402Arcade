@@ -123,6 +123,8 @@ export interface SnakeGameSpecificState {
   currentCombo: number
   /** Active power-ups */
   activePowerUps: ActivePowerUp[]
+  /** Current difficulty level */
+  difficulty?: SnakeDifficulty
 }
 
 /**

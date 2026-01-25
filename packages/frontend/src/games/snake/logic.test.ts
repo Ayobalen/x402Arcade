@@ -32,9 +32,13 @@ import {
   processSnakeMove,
   changeDirection,
   togglePause,
+  createMenuState,
+  startGame,
+  returnToMenu,
+  setDifficulty,
 } from './logic';
 import type { SnakeState } from './types';
-import { GRID_SIZE, INITIAL_SNAKE_LENGTH, INITIAL_DIRECTION } from './constants';
+import { GRID_SIZE, INITIAL_SNAKE_LENGTH, INITIAL_DIRECTION, DIFFICULTY_SETTINGS } from './constants';
 
 // ============================================================================
 // Snake Centering Logic Tests (Feature #709)
@@ -1693,6 +1697,407 @@ describe('Performance Tests', () => {
       expect(benchmarks.generateFoodFullGrid).toBeLessThan(5);
       expect(benchmarks.collisionCheck).toBeLessThan(0.1);
       expect(benchmarks.stateUpdate).toBeLessThan(1);
+    });
+  });
+});
+
+// ============================================================================
+// Menu State and Difficulty Selection Tests (Feature #728)
+// ============================================================================
+
+describe('Menu State Management', () => {
+  describe('createMenuState', () => {
+    it('should create state in menu mode (not playing)', () => {
+      const state = createMenuState();
+
+      expect(state.isPlaying).toBe(false);
+      expect(state.isPaused).toBe(false);
+      expect(state.isGameOver).toBe(false);
+    });
+
+    it('should initialize with default difficulty (normal)', () => {
+      const state = createMenuState();
+
+      expect(state.gameSpecific?.difficulty).toBe('normal');
+      expect(state.gameSpecific?.currentSpeed).toBe(DIFFICULTY_SETTINGS.normal.tickInterval);
+    });
+
+    it('should accept custom difficulty parameter', () => {
+      const easyState = createMenuState('easy');
+      const hardState = createMenuState('hard');
+
+      expect(easyState.gameSpecific?.difficulty).toBe('easy');
+      expect(easyState.gameSpecific?.currentSpeed).toBe(DIFFICULTY_SETTINGS.easy.tickInterval);
+
+      expect(hardState.gameSpecific?.difficulty).toBe('hard');
+      expect(hardState.gameSpecific?.currentSpeed).toBe(DIFFICULTY_SETTINGS.hard.tickInterval);
+    });
+
+    it('should preserve existing high score', () => {
+      const state = createMenuState('normal', 1000);
+
+      expect(state.highScore).toBe(1000);
+      expect(state.score).toBe(0);
+    });
+
+    it('should reset score to 0 in menu', () => {
+      const state = createMenuState('normal', 500);
+
+      expect(state.score).toBe(0);
+      expect(state.level).toBe(1);
+      expect(state.lives).toBe(1);
+    });
+
+    it('should initialize game-specific state based on difficulty', () => {
+      const easyState = createMenuState('easy');
+      const normalState = createMenuState('normal');
+      const hardState = createMenuState('hard');
+
+      // Easy mode settings
+      expect(easyState.gameSpecific?.wallsWrap).toBe(true); // !wallsKill
+
+      // Normal mode settings
+      expect(normalState.gameSpecific?.wallsWrap).toBe(false); // wallsKill
+
+      // Hard mode settings
+      expect(hardState.gameSpecific?.wallsWrap).toBe(false); // wallsKill
+    });
+
+    it('should create fresh snake and food', () => {
+      const state = createMenuState();
+
+      expect(state.gameSpecific?.segments).toBeDefined();
+      expect(state.gameSpecific?.segments.length).toBe(INITIAL_SNAKE_LENGTH);
+      expect(state.gameSpecific?.food).toBeDefined();
+      expect(state.gameSpecific?.direction).toBe(INITIAL_DIRECTION);
+    });
+
+    it('should initialize startTime as null', () => {
+      const state = createMenuState();
+
+      expect(state.startTime).toBeNull();
+      expect(state.elapsedTime).toBe(0);
+    });
+  });
+
+  describe('startGame', () => {
+    it('should transition from menu to playing state', () => {
+      const menuState = createMenuState();
+      const playingState = startGame(menuState);
+
+      expect(playingState.isPlaying).toBe(true);
+      expect(playingState.isPaused).toBe(false);
+      expect(playingState.isGameOver).toBe(false);
+    });
+
+    it('should set startTime when game starts', () => {
+      const menuState = createMenuState();
+      const beforeStart = Date.now();
+      const playingState = startGame(menuState);
+      const afterStart = Date.now();
+
+      expect(playingState.startTime).not.toBeNull();
+      expect(playingState.startTime!).toBeGreaterThanOrEqual(beforeStart);
+      expect(playingState.startTime!).toBeLessThanOrEqual(afterStart);
+    });
+
+    it('should reset score and level when starting', () => {
+      const menuState = createMenuState('normal', 500);
+      const playingState = startGame(menuState);
+
+      expect(playingState.score).toBe(0);
+      expect(playingState.level).toBe(1);
+      expect(playingState.lives).toBe(1);
+    });
+
+    it('should preserve difficulty from menu state', () => {
+      const hardMenu = createMenuState('hard', 200);
+      const playingState = startGame(hardMenu);
+
+      expect(playingState.gameSpecific?.difficulty).toBe('hard');
+      expect(playingState.gameSpecific?.currentSpeed).toBe(DIFFICULTY_SETTINGS.hard.tickInterval);
+    });
+
+    it('should preserve high score when starting game', () => {
+      const menuState = createMenuState('normal', 1500);
+      const playingState = startGame(menuState);
+
+      expect(playingState.highScore).toBe(1500);
+    });
+
+    it('should not start if already playing', () => {
+      const menuState = createMenuState();
+      const playingState = startGame(menuState);
+      const secondStart = startGame(playingState);
+
+      expect(secondStart).toBe(playingState); // Should return same state
+    });
+
+    it('should not start if game is over', () => {
+      const gameOverState: SnakeState = {
+        ...createMenuState(),
+        isGameOver: true,
+        isPlaying: false,
+        score: 100,
+      };
+
+      const result = startGame(gameOverState);
+
+      expect(result).toBe(gameOverState); // Unchanged
+    });
+
+    it('should create fresh game state (new snake, new food)', () => {
+      const menuState = createMenuState();
+      const playingState = startGame(menuState);
+
+      expect(playingState.gameSpecific?.segments.length).toBe(INITIAL_SNAKE_LENGTH);
+      expect(playingState.gameSpecific?.direction).toBe(INITIAL_DIRECTION);
+      expect(playingState.gameSpecific?.food).toBeDefined();
+      expect(playingState.gameSpecific?.totalFoodEaten).toBe(0);
+      expect(playingState.gameSpecific?.currentCombo).toBe(0);
+    });
+  });
+
+  describe('returnToMenu', () => {
+    it('should transition from playing to menu state', () => {
+      const menuState = createMenuState();
+      const playingState = startGame(menuState);
+      const backToMenu = returnToMenu(playingState);
+
+      expect(backToMenu.isPlaying).toBe(false);
+      expect(backToMenu.isPaused).toBe(false);
+      expect(backToMenu.isGameOver).toBe(false);
+    });
+
+    it('should transition from game over to menu state', () => {
+      const gameOverState: SnakeState = {
+        ...createMenuState(),
+        isGameOver: true,
+        isPlaying: false,
+        score: 250,
+      };
+
+      const backToMenu = returnToMenu(gameOverState);
+
+      expect(backToMenu.isPlaying).toBe(false);
+      expect(backToMenu.isGameOver).toBe(false);
+    });
+
+    it('should preserve high score', () => {
+      const menuState = createMenuState('normal', 100);
+      const playingState = { ...startGame(menuState), score: 500 };
+      const backToMenu = returnToMenu(playingState);
+
+      expect(backToMenu.highScore).toBe(500); // Updated to current score
+    });
+
+    it('should update high score if current score is higher', () => {
+      const state: SnakeState = {
+        ...createMenuState('normal', 100),
+        isPlaying: true,
+        score: 200,
+      };
+
+      const backToMenu = returnToMenu(state);
+
+      expect(backToMenu.highScore).toBe(200);
+    });
+
+    it('should not decrease high score if current score is lower', () => {
+      const state: SnakeState = {
+        ...createMenuState('normal', 500),
+        isPlaying: true,
+        score: 100,
+      };
+
+      const backToMenu = returnToMenu(state);
+
+      expect(backToMenu.highScore).toBe(500);
+    });
+
+    it('should preserve difficulty setting', () => {
+      const hardState = startGame(createMenuState('hard', 300));
+      const backToMenu = returnToMenu(hardState);
+
+      expect(backToMenu.gameSpecific?.difficulty).toBe('hard');
+    });
+
+    it('should reset score to 0', () => {
+      const state: SnakeState = {
+        ...createMenuState(),
+        isPlaying: true,
+        score: 500,
+      };
+
+      const backToMenu = returnToMenu(state);
+
+      expect(backToMenu.score).toBe(0);
+      expect(backToMenu.level).toBe(1);
+    });
+  });
+
+  describe('setDifficulty', () => {
+    it('should change difficulty in menu state', () => {
+      const menuState = createMenuState('normal');
+      const hardState = setDifficulty(menuState, 'hard');
+
+      expect(hardState.gameSpecific?.difficulty).toBe('hard');
+      expect(hardState.gameSpecific?.currentSpeed).toBe(DIFFICULTY_SETTINGS.hard.tickInterval);
+    });
+
+    it('should update grid size based on difficulty', () => {
+      const menuState = createMenuState('normal');
+
+      const easyState = setDifficulty(menuState, 'easy');
+      const hardState = setDifficulty(menuState, 'hard');
+
+      // Grid sizes are derived from DIFFICULTY_SETTINGS
+      expect(easyState.gameSpecific?.wallsWrap).toBe(true); // easy: !wallsKill
+      expect(hardState.gameSpecific?.wallsWrap).toBe(false); // hard: wallsKill
+    });
+
+    it('should update wall behavior based on difficulty', () => {
+      const menuState = createMenuState('normal');
+
+      const easyState = setDifficulty(menuState, 'easy');
+      const normalState = setDifficulty(menuState, 'normal');
+
+      expect(easyState.gameSpecific?.wallsWrap).toBe(true); // Easy wraps
+      expect(normalState.gameSpecific?.wallsWrap).toBe(false); // Normal kills
+    });
+
+    it('should preserve high score when changing difficulty', () => {
+      const menuState = createMenuState('normal', 1000);
+      const hardState = setDifficulty(menuState, 'hard');
+
+      expect(hardState.highScore).toBe(1000);
+    });
+
+    it('should not change difficulty during gameplay', () => {
+      const menuState = createMenuState('normal');
+      const playingState = startGame(menuState);
+      const attemptChange = setDifficulty(playingState, 'hard');
+
+      expect(attemptChange).toBe(playingState); // Unchanged
+      expect(attemptChange.gameSpecific?.difficulty).toBe('normal');
+    });
+
+    it('should not change difficulty when game is over', () => {
+      const gameOverState: SnakeState = {
+        ...createMenuState('normal'),
+        isGameOver: true,
+        isPlaying: false,
+      };
+
+      const attemptChange = setDifficulty(gameOverState, 'hard');
+
+      expect(attemptChange).toBe(gameOverState); // Unchanged
+    });
+
+    it('should handle all difficulty levels', () => {
+      const menuState = createMenuState();
+
+      const easyState = setDifficulty(menuState, 'easy');
+      const normalState = setDifficulty(menuState, 'normal');
+      const hardState = setDifficulty(menuState, 'hard');
+
+      expect(easyState.gameSpecific?.difficulty).toBe('easy');
+      expect(normalState.gameSpecific?.difficulty).toBe('normal');
+      expect(hardState.gameSpecific?.difficulty).toBe('hard');
+
+      expect(easyState.gameSpecific?.currentSpeed).toBe(200);
+      expect(normalState.gameSpecific?.currentSpeed).toBe(150);
+      expect(hardState.gameSpecific?.currentSpeed).toBe(100);
+    });
+
+    it('should return unchanged state for invalid difficulty', () => {
+      const menuState = createMenuState('normal');
+      const invalidChange = setDifficulty(menuState, 'invalid' as any);
+
+      expect(invalidChange).toBe(menuState); // Unchanged
+    });
+  });
+
+  describe('Difficulty settings integration', () => {
+    it('should apply easy difficulty settings correctly', () => {
+      const state = createMenuState('easy');
+
+      expect(state.gameSpecific?.currentSpeed).toBe(200); // tickInterval
+      expect(state.gameSpecific?.wallsWrap).toBe(true); // !wallsKill
+    });
+
+    it('should apply normal difficulty settings correctly', () => {
+      const state = createMenuState('normal');
+
+      expect(state.gameSpecific?.currentSpeed).toBe(150); // tickInterval
+      expect(state.gameSpecific?.wallsWrap).toBe(false); // wallsKill
+    });
+
+    it('should apply hard difficulty settings correctly', () => {
+      const state = createMenuState('hard');
+
+      expect(state.gameSpecific?.currentSpeed).toBe(100); // tickInterval
+      expect(state.gameSpecific?.wallsWrap).toBe(false); // wallsKill
+    });
+  });
+
+  describe('State transition flow', () => {
+    it('should support complete game flow: menu → play → game over → menu', () => {
+      // Start in menu
+      const menuState = createMenuState('normal', 0);
+      expect(menuState.isPlaying).toBe(false);
+      expect(menuState.isGameOver).toBe(false);
+
+      // Start game
+      const playingState = startGame(menuState);
+      expect(playingState.isPlaying).toBe(true);
+      expect(playingState.startTime).not.toBeNull();
+
+      // Simulate game over
+      const gameOverState: SnakeState = {
+        ...playingState,
+        isPlaying: false,
+        isGameOver: true,
+        score: 350,
+      };
+
+      // Return to menu
+      const backToMenu = returnToMenu(gameOverState);
+      expect(backToMenu.isPlaying).toBe(false);
+      expect(backToMenu.isGameOver).toBe(false);
+      expect(backToMenu.highScore).toBe(350);
+    });
+
+    it('should support difficulty change before game start', () => {
+      // Create menu with normal difficulty
+      const normalMenu = createMenuState('normal');
+
+      // Change to hard before starting
+      const hardMenu = setDifficulty(normalMenu, 'hard');
+      expect(hardMenu.gameSpecific?.difficulty).toBe('hard');
+
+      // Start game with hard difficulty
+      const playingState = startGame(hardMenu);
+      expect(playingState.gameSpecific?.difficulty).toBe('hard');
+      expect(playingState.gameSpecific?.currentSpeed).toBe(100);
+    });
+
+    it('should prevent difficulty change during gameplay', () => {
+      const menuState = createMenuState('normal');
+      const playingState = startGame(menuState);
+
+      // Try to change difficulty while playing (should fail)
+      const attemptChange = setDifficulty(playingState, 'hard');
+      expect(attemptChange.gameSpecific?.difficulty).toBe('normal');
+    });
+
+    it('should preserve difficulty through game over and back to menu', () => {
+      const hardMenu = createMenuState('hard');
+      const playing = startGame(hardMenu);
+      const gameOver: SnakeState = { ...playing, isPlaying: false, isGameOver: true };
+      const backToMenu = returnToMenu(gameOver);
+
+      expect(backToMenu.gameSpecific?.difficulty).toBe('hard');
     });
   });
 });
