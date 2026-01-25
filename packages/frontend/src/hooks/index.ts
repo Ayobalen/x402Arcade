@@ -110,3 +110,10 @@ export {
   type AnnouncementOptions,
   type UseLiveAnnouncerReturn,
 } from './useLiveAnnouncer';
+
+export {
+  useGameAnnouncements,
+  type GameEvent,
+  type GameAnnouncementOptions,
+  type UseGameAnnouncementsReturn,
+} from './useGameAnnouncements';
