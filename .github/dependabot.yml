@@ -1,0 +1,146 @@
+# Dependabot configuration for automated dependency updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Frontend dependencies (packages/frontend)
+  - package-ecosystem: 'npm'
+    directory: '/packages/frontend'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - '@your-org/frontend-team' # Replace with actual team
+    assignees:
+      - '@your-org/frontend-team' # Replace with actual team
+    labels:
+      - 'dependencies'
+      - 'frontend'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(deps)'
+      include: 'scope'
+    # Group related updates
+    groups:
+      react:
+        patterns:
+          - 'react*'
+          - '@types/react*'
+      vite:
+        patterns:
+          - 'vite*'
+          - '@vitejs/*'
+      testing:
+        patterns:
+          - 'vitest*'
+          - '@vitest/*'
+          - '@playwright/*'
+          - '@testing-library/*'
+      three:
+        patterns:
+          - 'three*'
+          - '@react-three/*'
+      tailwind:
+        patterns:
+          - 'tailwind*'
+          - 'autoprefixer'
+          - 'postcss'
+    # Security updates
+    versioning-strategy: increase
+    allow:
+      - dependency-type: 'all'
+    # Ignore major version updates for stable packages (opt-in)
+    ignore:
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+
+  # Backend dependencies (packages/backend)
+  - package-ecosystem: 'npm'
+    directory: '/packages/backend'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - '@your-org/backend-team' # Replace with actual team
+    assignees:
+      - '@your-org/backend-team' # Replace with actual team
+    labels:
+      - 'dependencies'
+      - 'backend'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(deps)'
+      include: 'scope'
+    groups:
+      express:
+        patterns:
+          - 'express*'
+          - '@types/express*'
+      database:
+        patterns:
+          - '*sqlite*'
+          - 'better-sqlite3'
+      blockchain:
+        patterns:
+          - 'viem*'
+          - 'ethers*'
+    versioning-strategy: increase
+    allow:
+      - dependency-type: 'all'
+
+  # Root workspace dependencies
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+    open-pull-requests-limit: 3
+    labels:
+      - 'dependencies'
+      - 'workspace'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(deps)'
+      include: 'scope'
+    groups:
+      linting:
+        patterns:
+          - 'eslint*'
+          - 'prettier*'
+          - 'lint-staged'
+      storybook:
+        patterns:
+          - 'storybook*'
+          - '@storybook/*'
+          - '@chromatic-com/*'
+      husky:
+        patterns:
+          - 'husky'
+    versioning-strategy: increase
+    allow:
+      - dependency-type: 'all'
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+    open-pull-requests-limit: 3
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(ci)'
+      include: 'scope'
+    reviewers:
+      - '@your-org/devops-team' # Replace with actual team
