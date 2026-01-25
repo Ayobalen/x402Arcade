@@ -33,6 +33,13 @@ import {
   renderGameOverOverlay,
   renderScore,
 } from './renderer';
+import { useSFX } from '../../hooks/useSFX';
+import {
+  initializeSnakeSounds,
+  playEatSound,
+  playDeathSound,
+  playLevelUpSound,
+} from './SnakeSounds';
 
 // ============================================================================
 // Hook Interface
@@ -150,6 +157,60 @@ export function useSnakeGame(
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [playerRank, setPlayerRank] = useState<number | null>(null);
   const [isLoadingRankings, setIsLoadingRankings] = useState(false);
+
+  // ============================================================================
+  // Audio System
+  // ============================================================================
+
+  /**
+   * SFX Engine for playing sound effects.
+   */
+  const sfx = useSFX();
+
+  /**
+   * Previous state ref for detecting changes (for audio triggers).
+   */
+  const prevStateRef = useRef<SnakeState | null>(null);
+
+  /**
+   * Initialize Snake sounds on mount.
+   */
+  useEffect(() => {
+    initializeSnakeSounds(sfx);
+  }, [sfx]);
+
+  /**
+   * Track state changes and play appropriate sounds.
+   */
+  useEffect(() => {
+    const prevState = prevStateRef.current;
+    prevStateRef.current = state;
+
+    // Skip if no previous state (first render)
+    if (!prevState || !prevState.gameSpecific || !state.gameSpecific) {
+      return;
+    }
+
+    // Detect food eaten (score increased but not level up)
+    const scoreIncreased = state.score > prevState.score;
+    const comboCount = state.gameSpecific.currentCombo || 0;
+
+    if (scoreIncreased) {
+      playEatSound(sfx, comboCount);
+    }
+
+    // Detect level up
+    const leveledUp = state.level > prevState.level;
+    if (leveledUp) {
+      playLevelUpSound(sfx);
+    }
+
+    // Detect death (game over triggered)
+    const justDied = state.isGameOver && !prevState.isGameOver;
+    if (justDied) {
+      playDeathSound(sfx);
+    }
+  }, [state.score, state.level, state.isGameOver, state.gameSpecific?.currentCombo, sfx]);
 
   // ============================================================================
   // Canvas Context Management
