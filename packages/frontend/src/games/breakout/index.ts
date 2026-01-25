@@ -176,6 +176,13 @@ export { BreakoutGame } from './BreakoutGame';
 export type { BreakoutGameProps } from './BreakoutGame';
 
 // ============================================================================
+// Hook Exports
+// ============================================================================
+
+export { useBreakoutGame } from './useBreakoutGame';
+export type { UseBreakoutGameOptions, UseBreakoutGameReturn } from './useBreakoutGame';
+
+// ============================================================================
 // Sound System Exports
 // ============================================================================
 
