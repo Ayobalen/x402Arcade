@@ -136,3 +136,110 @@ export function renderGrid(ctx: CanvasRenderingContext2D): void {
     ctx.stroke();
   }
 }
+
+// ============================================================================
+// Food Rendering
+// ============================================================================
+
+/**
+ * Renders a food item as a circle with glow effect.
+ *
+ * This function draws food items on the game grid using the arc() method
+ * to create circular shapes. Standard food is neon red, bonus food is gold.
+ * Food is drawn with a subtle glow effect for visual appeal.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param food - Food object with position and type
+ *
+ * @description
+ * - Calculates pixel position from grid coordinates (x * CELL_SIZE)
+ * - Centers food within cell (adds CELL_SIZE / 2 offset)
+ * - Draws circle using arc() with radius = CELL_SIZE / 3
+ * - Sets fillStyle based on food type (standard vs bonus)
+ * - Applies glow effect with shadowBlur and shadowColor
+ * - Resets shadow properties after rendering
+ *
+ * @example
+ * ```ts
+ * const food: Food = { x: 10, y: 15, type: 'standard', points: 10, hasEffect: false }
+ * renderFood(ctx, food) // Draws red circle at grid position (10, 15)
+ * ```
+ */
+export function renderFood(
+  ctx: CanvasRenderingContext2D,
+  food: { x: number; y: number; type?: string }
+): void {
+  // Calculate pixel position (center of cell)
+  const pixelX = food.x * CELL_SIZE + CELL_SIZE / 2;
+  const pixelY = food.y * CELL_SIZE + CELL_SIZE / 2;
+  const radius = CELL_SIZE / 3;
+
+  // Determine color based on food type
+  const foodColor = food.type === 'bonus' ? RENDER_COLORS.bonusFood : RENDER_COLORS.food;
+
+  // Apply glow effect
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = foodColor;
+
+  // Draw food circle
+  ctx.fillStyle = foodColor;
+  ctx.beginPath();
+  ctx.arc(pixelX, pixelY, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Reset shadow properties
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = 'transparent';
+}
+
+// ============================================================================
+// Snake Rendering
+// ============================================================================
+
+/**
+ * Renders the snake body segments.
+ *
+ * This function draws all snake segments (excluding the head) as rounded
+ * rectangles. Segments use a gradient from bright green to darker green
+ * as they approach the tail, creating a visual depth effect.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param snake - Array of snake segments, first element is head
+ *
+ * @description
+ * - Iterates through segments starting from index 1 (skips head)
+ * - Calculates pixel position for each segment
+ * - Draws rounded rectangle (using fillRect for simplicity)
+ * - Uses RENDER_COLORS.snakeBody for body segments
+ * - Head rendering is handled separately (renderSnakeHead)
+ * - Tail can use darker color (RENDER_COLORS.snakeBodyEnd)
+ *
+ * @example
+ * ```ts
+ * const snake = [
+ *   { x: 10, y: 10 }, // head
+ *   { x: 9, y: 10 },  // body
+ *   { x: 8, y: 10 }   // tail
+ * ]
+ * renderSnakeBody(ctx, snake) // Draws 2 body segments
+ * ```
+ */
+export function renderSnakeBody(
+  ctx: CanvasRenderingContext2D,
+  snake: Array<{ x: number; y: number }>
+): void {
+  // Skip head (index 0), render only body segments
+  for (let i = 1; i < snake.length; i++) {
+    const segment = snake[i];
+    const pixelX = segment.x * CELL_SIZE;
+    const pixelY = segment.y * CELL_SIZE;
+
+    // Use darker color for tail segment
+    const isTail = i === snake.length - 1;
+    const segmentColor = isTail ? RENDER_COLORS.snakeBodyEnd : RENDER_COLORS.snakeBody;
+
+    // Draw segment as rounded rectangle
+    ctx.fillStyle = segmentColor;
+    ctx.fillRect(pixelX + 1, pixelY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+  }
+}

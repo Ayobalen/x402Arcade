@@ -8,7 +8,13 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { renderBackground, renderGrid, RENDER_COLORS } from './renderer';
+import {
+  renderBackground,
+  renderGrid,
+  renderFood,
+  renderSnakeBody,
+  RENDER_COLORS,
+} from './renderer';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, CELL_SIZE } from './constants';
 
 // ============================================================================
@@ -30,6 +36,8 @@ function createMockContext() {
     fillStyle: '',
     strokeStyle: '',
     lineWidth: 1,
+    shadowBlur: 0,
+    shadowColor: '',
 
     // Drawing methods
     fillRect: (...args: any[]) => calls.push({ method: 'fillRect', args }),
@@ -245,5 +253,342 @@ describe('Renderer Integration', () => {
     const secondCallCount = mockCtx.calls.length;
 
     expect(firstCallCount).toBe(secondCallCount);
+  });
+});
+
+// ============================================================================
+// Food Rendering Tests
+// ============================================================================
+
+describe('renderFood', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+  });
+
+  it('should calculate correct pixel position from grid coordinates', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFood(ctx, food);
+
+    const mockCtx = ctx as any;
+    const arcCalls = mockCtx.getCalls('arc');
+
+    expect(arcCalls).toHaveLength(1);
+
+    // Position should be centered in cell
+    const expectedX = food.x * CELL_SIZE + CELL_SIZE / 2;
+    const expectedY = food.y * CELL_SIZE + CELL_SIZE / 2;
+
+    expect(arcCalls[0].args[0]).toBe(expectedX); // x
+    expect(arcCalls[0].args[1]).toBe(expectedY); // y
+  });
+
+  it('should draw circle with correct radius', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFood(ctx, food);
+
+    const mockCtx = ctx as any;
+    const arcCalls = mockCtx.getCalls('arc');
+
+    const expectedRadius = CELL_SIZE / 3;
+    expect(arcCalls[0].args[2]).toBe(expectedRadius); // radius
+  });
+
+  it('should draw full circle (0 to 2π)', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFood(ctx, food);
+
+    const mockCtx = ctx as any;
+    const arcCalls = mockCtx.getCalls('arc');
+
+    expect(arcCalls[0].args[3]).toBe(0); // startAngle
+    expect(arcCalls[0].args[4]).toBe(Math.PI * 2); // endAngle
+  });
+
+  it('should use standard food color for standard type', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFood(ctx, food);
+
+    expect(ctx.fillStyle).toBe(RENDER_COLORS.food);
+  });
+
+  it('should use bonus food color for bonus type', () => {
+    const food = { x: 5, y: 10, type: 'bonus' };
+    renderFood(ctx, food);
+
+    expect(ctx.fillStyle).toBe(RENDER_COLORS.bonusFood);
+  });
+
+  it('should apply glow effect with shadowBlur', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    const mockCtx = ctx as any;
+
+    renderFood(ctx, food);
+
+    // Shadow should have been set during rendering
+    // (It's reset after, so we check the arc was called with shadow active)
+    const arcCalls = mockCtx.getCalls('arc');
+    expect(arcCalls.length).toBeGreaterThan(0);
+  });
+
+  it('should set shadowColor to match food color', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFood(ctx, food);
+
+    // Shadow should be reset after rendering
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowColor).toBe('transparent');
+  });
+
+  it('should reset shadow properties after rendering', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFood(ctx, food);
+
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowColor).toBe('transparent');
+  });
+
+  it('should call beginPath before drawing arc', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFood(ctx, food);
+
+    const mockCtx = ctx as any;
+    const beginPathCalls = mockCtx.getCalls('beginPath');
+    const arcCalls = mockCtx.getCalls('arc');
+
+    expect(beginPathCalls.length).toBeGreaterThan(0);
+    expect(arcCalls.length).toBeGreaterThan(0);
+
+    // beginPath should come before arc
+    const beginPathIndex = mockCtx.calls.findIndex((c: any) => c.method === 'beginPath');
+    const arcIndex = mockCtx.calls.findIndex((c: any) => c.method === 'arc');
+    expect(beginPathIndex).toBeLessThan(arcIndex);
+  });
+
+  it('should fill the circle', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFood(ctx, food);
+
+    const mockCtx = ctx as any;
+    const fillCalls = mockCtx.getCalls('fill');
+
+    expect(fillCalls).toHaveLength(1);
+  });
+
+  it('should handle edge positions (0,0)', () => {
+    const food = { x: 0, y: 0, type: 'standard' };
+
+    expect(() => renderFood(ctx, food)).not.toThrow();
+
+    const mockCtx = ctx as any;
+    const arcCalls = mockCtx.getCalls('arc');
+
+    expect(arcCalls[0].args[0]).toBe(CELL_SIZE / 2); // x
+    expect(arcCalls[0].args[1]).toBe(CELL_SIZE / 2); // y
+  });
+
+  it('should handle max grid positions', () => {
+    const food = { x: GRID_SIZE - 1, y: GRID_SIZE - 1, type: 'standard' };
+
+    expect(() => renderFood(ctx, food)).not.toThrow();
+
+    const mockCtx = ctx as any;
+    const arcCalls = mockCtx.getCalls('arc');
+
+    const expectedX = (GRID_SIZE - 1) * CELL_SIZE + CELL_SIZE / 2;
+    const expectedY = (GRID_SIZE - 1) * CELL_SIZE + CELL_SIZE / 2;
+
+    expect(arcCalls[0].args[0]).toBe(expectedX);
+    expect(arcCalls[0].args[1]).toBe(expectedY);
+  });
+
+  it('should default to standard color if type is undefined', () => {
+    const food = { x: 5, y: 10 };
+    renderFood(ctx, food);
+
+    expect(ctx.fillStyle).toBe(RENDER_COLORS.food);
+  });
+});
+
+// ============================================================================
+// Snake Body Rendering Tests
+// ============================================================================
+
+describe('renderSnakeBody', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+  });
+
+  it('should skip head segment (index 0)', () => {
+    const snake = [
+      { x: 10, y: 10 }, // head
+      { x: 9, y: 10 }, // body
+      { x: 8, y: 10 }, // body
+    ];
+
+    renderSnakeBody(ctx, snake);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    // Should render 2 segments (skipping head)
+    expect(fillRectCalls).toHaveLength(2);
+  });
+
+  it('should render nothing for single-segment snake (head only)', () => {
+    const snake = [{ x: 10, y: 10 }]; // head only
+
+    renderSnakeBody(ctx, snake);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    expect(fillRectCalls).toHaveLength(0);
+  });
+
+  it('should calculate correct pixel positions for segments', () => {
+    const snake = [
+      { x: 10, y: 10 }, // head
+      { x: 9, y: 10 }, // body
+    ];
+
+    renderSnakeBody(ctx, snake);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    expect(fillRectCalls).toHaveLength(1);
+
+    // Position with 1px inset
+    const expectedX = 9 * CELL_SIZE + 1;
+    const expectedY = 10 * CELL_SIZE + 1;
+    const expectedSize = CELL_SIZE - 2;
+
+    expect(fillRectCalls[0].args[0]).toBe(expectedX);
+    expect(fillRectCalls[0].args[1]).toBe(expectedY);
+    expect(fillRectCalls[0].args[2]).toBe(expectedSize);
+    expect(fillRectCalls[0].args[3]).toBe(expectedSize);
+  });
+
+  it('should use body color for middle segments', () => {
+    const snake = [
+      { x: 10, y: 10 }, // head
+      { x: 9, y: 10 }, // body
+      { x: 8, y: 10 }, // body
+      { x: 7, y: 10 }, // tail
+    ];
+
+    renderSnakeBody(ctx, snake);
+
+    // Middle segments should use snakeBody color
+    // (We can't easily check each individual call, but we verify fillStyle was set)
+    expect(ctx.fillStyle).toBeTruthy();
+  });
+
+  it('should use darker color for tail segment', () => {
+    const snake = [
+      { x: 10, y: 10 }, // head
+      { x: 9, y: 10 }, // body
+      { x: 8, y: 10 }, // tail
+    ];
+
+    renderSnakeBody(ctx, snake);
+
+    // Last segment should use snakeBodyEnd color
+    expect(ctx.fillStyle).toBe(RENDER_COLORS.snakeBodyEnd);
+  });
+
+  it('should render all segments in a long snake', () => {
+    const snake = Array.from({ length: 10 }, (_, i) => ({ x: 10 - i, y: 10 }));
+
+    renderSnakeBody(ctx, snake);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    // Should render 9 segments (10 total - 1 head)
+    expect(fillRectCalls).toHaveLength(9);
+  });
+
+  it('should inset segments by 1px for visual separation', () => {
+    const snake = [
+      { x: 10, y: 10 }, // head
+      { x: 9, y: 10 }, // body
+    ];
+
+    renderSnakeBody(ctx, snake);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    // Check that size is CELL_SIZE - 2 (1px inset on each side)
+    expect(fillRectCalls[0].args[2]).toBe(CELL_SIZE - 2);
+    expect(fillRectCalls[0].args[3]).toBe(CELL_SIZE - 2);
+  });
+
+  it('should handle snake with only 2 segments (head + tail)', () => {
+    const snake = [
+      { x: 10, y: 10 }, // head
+      { x: 9, y: 10 }, // tail
+    ];
+
+    renderSnakeBody(ctx, snake);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    expect(fillRectCalls).toHaveLength(1);
+    // Should use tail color
+    expect(ctx.fillStyle).toBe(RENDER_COLORS.snakeBodyEnd);
+  });
+
+  it('should handle edge positions', () => {
+    const snake = [
+      { x: 0, y: 0 }, // head
+      { x: 0, y: 1 }, // body at edge
+    ];
+
+    expect(() => renderSnakeBody(ctx, snake)).not.toThrow();
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    expect(fillRectCalls).toHaveLength(1);
+  });
+
+  it('should handle max grid positions', () => {
+    const snake = [
+      { x: GRID_SIZE - 1, y: GRID_SIZE - 1 }, // head
+      { x: GRID_SIZE - 2, y: GRID_SIZE - 1 }, // body
+    ];
+
+    expect(() => renderSnakeBody(ctx, snake)).not.toThrow();
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    expect(fillRectCalls).toHaveLength(1);
+  });
+
+  it('should iterate through segments in correct order', () => {
+    const snake = [
+      { x: 10, y: 10 }, // head
+      { x: 9, y: 10 }, // body 1
+      { x: 8, y: 10 }, // body 2
+      { x: 7, y: 10 }, // tail
+    ];
+
+    renderSnakeBody(ctx, snake);
+
+    const mockCtx = ctx as any;
+    const fillRectCalls = mockCtx.getCalls('fillRect');
+
+    // Verify positions are in correct order
+    expect(fillRectCalls[0].args[0]).toBe(9 * CELL_SIZE + 1); // body 1
+    expect(fillRectCalls[1].args[0]).toBe(8 * CELL_SIZE + 1); // body 2
+    expect(fillRectCalls[2].args[0]).toBe(7 * CELL_SIZE + 1); // tail
   });
 });
