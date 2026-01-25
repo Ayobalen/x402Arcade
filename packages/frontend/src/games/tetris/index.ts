@@ -84,5 +84,21 @@ export { TetrisGame, type TetrisGameProps } from './TetrisGame';
 // Game wrapper component
 export { TetrisGameWrapper, type TetrisGameWrapperProps } from './TetrisGameWrapper';
 
+// Sound System
+export {
+  TetrisSoundType,
+  TETRIS_SOUND_ASSETS,
+  initializeTetrisSounds,
+  playRotateSound,
+  playLockSound,
+  playHardDropSound,
+  playLineClearSound,
+  playComboSound,
+  playLevelUpSound,
+  playGameStartSound,
+  playGameOverSound,
+  playHoldSound,
+} from './TetrisSounds';
+
 // Re-export game type for convenience
 export { GAME_TYPES } from '../types';
