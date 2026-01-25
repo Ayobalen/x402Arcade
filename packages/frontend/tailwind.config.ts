@@ -1,16 +1,29 @@
 import type { Config } from 'tailwindcss';
-import { backgrounds, surfaces, primary, secondary, semantic, text, borders, accents } from './src/styles/tokens/colors';
-import { fontFamilies, fontSizes, fontWeights, lineHeights, letterSpacing } from './src/styles/tokens/typography';
+import {
+  backgrounds,
+  surfaces,
+  primary,
+  secondary,
+  semantic,
+  text,
+  borders,
+  accents,
+} from './src/styles/tokens/colors';
+import {
+  fontFamilies,
+  fontSizes,
+  fontWeights,
+  lineHeights,
+  letterSpacing,
+} from './src/styles/tokens/typography';
 import { spacing, negativeSpacing } from './src/styles/tokens/spacing';
 import { borderRadius, borderWidth } from './src/styles/tokens/borders';
 import { elevationShadows, glowShadows, combinedShadows } from './src/styles/tokens/shadows';
 import { durations, easings, keyframes as animKeyframes } from './src/styles/tokens/animations';
+import { zIndex } from './src/styles/tokens/zIndex';
 
 const config: Config = {
-  content: [
-    './index.html',
-    './src/**/*.{js,ts,jsx,tsx}',
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -113,11 +126,11 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: fontFamilies.display.split(',').map(f => f.trim().replace(/['"]/g, '')),
-        body: fontFamilies.body.split(',').map(f => f.trim().replace(/['"]/g, '')),
-        code: fontFamilies.code.split(',').map(f => f.trim().replace(/['"]/g, '')),
-        mono: fontFamilies.mono.split(',').map(f => f.trim().replace(/['"]/g, '')),
-        sans: fontFamilies.sans.split(',').map(f => f.trim().replace(/['"]/g, '')),
+        display: fontFamilies.display.split(',').map((f) => f.trim().replace(/['"]/g, '')),
+        body: fontFamilies.body.split(',').map((f) => f.trim().replace(/['"]/g, '')),
+        code: fontFamilies.code.split(',').map((f) => f.trim().replace(/['"]/g, '')),
+        mono: fontFamilies.mono.split(',').map((f) => f.trim().replace(/['"]/g, '')),
+        sans: fontFamilies.sans.split(',').map((f) => f.trim().replace(/['"]/g, '')),
       },
       fontSize: {
         xs: fontSizes.xs,
@@ -272,6 +285,20 @@ const config: Config = {
         'scale-in': `${animKeyframes.scaleIn} 200ms ease-out`,
         'score-pop': `${animKeyframes.scorePop} 300ms ease-out`,
       },
+      zIndex: {
+        auto: zIndex.auto,
+        base: zIndex.base,
+        raised: zIndex.raised,
+        dropdown: zIndex.dropdown,
+        sticky: zIndex.sticky,
+        fixed: zIndex.fixed,
+        'modal-backdrop': zIndex.modalBackdrop,
+        modal: zIndex.modal,
+        popover: zIndex.popover,
+        tooltip: zIndex.tooltip,
+        toast: zIndex.toast,
+        debug: zIndex.debug,
+      },
       keyframes: {
         'glow-pulse': {
           '0%, 100%': { boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)' },
@@ -302,8 +329,14 @@ const config: Config = {
           '50%': { opacity: '0.5' },
         },
         [animKeyframes.bounce]: {
-          '0%, 100%': { transform: 'translateY(-25%)', animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)' },
-          '50%': { transform: 'translateY(0)', animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)' },
+          '0%, 100%': {
+            transform: 'translateY(-25%)',
+            animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)',
+          },
+          '50%': {
+            transform: 'translateY(0)',
+            animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)',
+          },
         },
         [animKeyframes.ping]: {
           '75%, 100%': { transform: 'scale(2)', opacity: '0' },
