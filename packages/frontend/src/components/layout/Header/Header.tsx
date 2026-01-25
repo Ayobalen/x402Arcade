@@ -19,7 +19,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { ConnectButton } from '@/components/wallet';
 import { Balance } from '@/components/wallet/Balance';
 import type { HeaderProps } from './Header.types';
 
