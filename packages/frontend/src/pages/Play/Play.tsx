@@ -72,7 +72,7 @@ const GAMES: Game[] = [
     emoji: '👾',
     description: 'Defend Earth from alien invaders. Shoot them down before they reach you.',
     price: '$0.02',
-    status: 'coming-soon',
+    status: 'available',
     route: '/play/space-invaders',
   },
 ];

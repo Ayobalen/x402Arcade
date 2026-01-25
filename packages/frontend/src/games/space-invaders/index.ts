@@ -151,3 +151,5 @@ export {
 // Components
 export { SpaceInvadersGame } from './SpaceInvadersGame';
 export type { SpaceInvadersGameProps } from './SpaceInvadersGame';
+export { SpaceInvadersGameWrapper } from './SpaceInvadersGameWrapper';
+export type { SpaceInvadersGameWrapperProps } from './SpaceInvadersGameWrapper';
