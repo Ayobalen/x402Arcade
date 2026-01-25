@@ -33,7 +33,7 @@
  * const cellSize = canvasWidth / GRID_SIZE // e.g., 800 / 20 = 40px
  * ```
  */
-export const GRID_SIZE = 20
+export const GRID_SIZE = 20;
 
 /**
  * Cell dimensions in pixels when rendered on canvas.
@@ -41,13 +41,13 @@ export const GRID_SIZE = 20
  *
  * @default 20 pixels
  */
-export const CELL_SIZE = 20
+export const CELL_SIZE = 20;
 
 /**
  * Alias for CELL_SIZE for backward compatibility.
  * @deprecated Use CELL_SIZE instead
  */
-export const DEFAULT_CELL_SIZE = CELL_SIZE
+export const DEFAULT_CELL_SIZE = CELL_SIZE;
 
 // ============================================================================
 // Canvas Constants (Derived Values)
@@ -72,7 +72,7 @@ export const DEFAULT_CELL_SIZE = CELL_SIZE
  * canvas.height = CANVAS_HEIGHT // 400
  * ```
  */
-export const CANVAS_WIDTH = GRID_SIZE * CELL_SIZE
+export const CANVAS_WIDTH = GRID_SIZE * CELL_SIZE;
 
 /**
  * Canvas height in pixels.
@@ -90,7 +90,7 @@ export const CANVAS_WIDTH = GRID_SIZE * CELL_SIZE
  * const centerY = CANVAS_HEIGHT / 2  // 200
  * ```
  */
-export const CANVAS_HEIGHT = GRID_SIZE * CELL_SIZE
+export const CANVAS_HEIGHT = GRID_SIZE * CELL_SIZE;
 
 // ============================================================================
 // Game Speed Constants
@@ -105,7 +105,7 @@ export const CANVAS_HEIGHT = GRID_SIZE * CELL_SIZE
  * - Normal: 150ms (6.67 moves/second)
  * - Hard: 100ms (10 moves/second)
  */
-export const INITIAL_TICK_INTERVAL = 150
+export const INITIAL_TICK_INTERVAL = 150;
 
 /**
  * Minimum tick interval in milliseconds (maximum game speed).
@@ -132,19 +132,19 @@ export const INITIAL_TICK_INTERVAL = 150
  * )
  * ```
  */
-export const MIN_SPEED = 50
+export const MIN_SPEED = 50;
 
 /**
  * Alias for MIN_SPEED - minimum tick interval (maximum speed cap).
  * @deprecated Use MIN_SPEED for clarity
  */
-export const MIN_TICK_INTERVAL = MIN_SPEED
+export const MIN_TICK_INTERVAL = MIN_SPEED;
 
 /**
  * Speed increase per level (percentage).
  * Each level reduces tick interval by this factor.
  */
-export const SPEED_INCREASE_PERCENT = 5
+export const SPEED_INCREASE_PERCENT = 5;
 
 // ============================================================================
 // Scoring Constants
@@ -153,18 +153,18 @@ export const SPEED_INCREASE_PERCENT = 5
 /**
  * Base points awarded for eating food.
  */
-export const BASE_FOOD_SCORE = 10
+export const BASE_FOOD_SCORE = 10;
 
 /**
  * Bonus multiplier for each level.
  * Score = BASE_FOOD_SCORE × (1 + (level - 1) × LEVEL_SCORE_MULTIPLIER)
  */
-export const LEVEL_SCORE_MULTIPLIER = 0.1
+export const LEVEL_SCORE_MULTIPLIER = 0.1;
 
 /**
  * Points needed to advance to next level.
  */
-export const POINTS_PER_LEVEL = 100
+export const POINTS_PER_LEVEL = 100;
 
 // ============================================================================
 // Snake Constants
@@ -173,12 +173,12 @@ export const POINTS_PER_LEVEL = 100
 /**
  * Initial length of the snake (number of segments).
  */
-export const INITIAL_SNAKE_LENGTH = 3
+export const INITIAL_SNAKE_LENGTH = 3;
 
 /**
  * Initial direction the snake faces at game start.
  */
-export const INITIAL_DIRECTION = 'right' as const
+export const INITIAL_DIRECTION = 'right' as const;
 
 // ============================================================================
 // Visual Constants
@@ -196,19 +196,20 @@ export const SNAKE_COLORS = {
   bodyEnd: '#009900',
   /** Snake outline */
   outline: '#006600',
-} as const
+} as const;
 
 /**
  * Food color palette
+ * Uses cyan for the retro arcade theme per design system
  */
 export const FOOD_COLORS = {
-  /** Standard food color */
-  standard: '#ff0000',
-  /** Bonus food color (worth more points) */
-  bonus: '#ffd700',
-  /** Food glow effect */
-  glow: 'rgba(255, 0, 0, 0.3)',
-} as const
+  /** Standard food color - cyan for retro arcade aesthetic */
+  standard: '#00ffff',
+  /** Bonus food color (worth more points) - magenta accent */
+  bonus: '#ff00ff',
+  /** Food glow effect - cyan glow */
+  glow: 'rgba(0, 255, 255, 0.3)',
+} as const;
 
 /**
  * Grid color palette
@@ -220,7 +221,7 @@ export const GRID_COLORS = {
   gridLine: '#1A1A2E',
   /** Border color */
   border: '#2D2D4A',
-} as const
+} as const;
 
 // ============================================================================
 // Difficulty Presets
@@ -248,11 +249,11 @@ export const DIFFICULTY_SETTINGS = {
     scoreMultiplier: 2.0,
     wallsKill: true,
   },
-} as const
+} as const;
 
 // ============================================================================
 // Type Exports
 // ============================================================================
 
-export type SnakeDirection = 'up' | 'down' | 'left' | 'right'
-export type SnakeDifficulty = keyof typeof DIFFICULTY_SETTINGS
+export type SnakeDirection = 'up' | 'down' | 'left' | 'right';
+export type SnakeDifficulty = keyof typeof DIFFICULTY_SETTINGS;

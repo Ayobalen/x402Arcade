@@ -26,7 +26,7 @@ import {
 import {
   renderBackground,
   renderGrid,
-  renderFood,
+  renderFoodPulsing,
   renderSnakeHead,
   renderSnakeBody,
   renderPauseOverlay,
@@ -403,16 +403,16 @@ export function useSnakeGame(
       renderLoopRef.current = null;
     }
 
-    // Render function
-    const render = () => {
+    // Render function with timestamp for animations
+    const render = (timestamp: number) => {
       // Clear canvas and render background
       renderBackground(ctx);
       renderGrid(ctx);
 
       // Render game elements if playing
       if ((state.isPlaying || state.isGameOver) && state.gameSpecific) {
-        // Render food
-        renderFood(ctx, state.gameSpecific.food);
+        // Render food with pulsing animation
+        renderFoodPulsing(ctx, state.gameSpecific.food, timestamp);
 
         // Render snake (head and body)
         const segments = state.gameSpecific.segments;
