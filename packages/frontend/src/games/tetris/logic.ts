@@ -19,6 +19,8 @@ import {
   SPAWN_POSITIONS,
   INITIAL_DROP_SPEED,
   PREVIEW_COUNT,
+  WALL_KICKS_I,
+  WALL_KICKS_JLSTZ,
   type TetrominoType,
 } from './constants';
 import type {
@@ -152,18 +154,19 @@ export function createPiece(type: TetrominoType): Piece {
 export function rotateMatrixClockwise(matrix: number[][]): number[][] {
   const rows = matrix.length;
   const cols = matrix[0].length;
-  const rotated: number[][] = [];
 
-  // Create new matrix with swapped dimensions
+  // Step 1: Transpose matrix (columns become rows)
+  const transposed: number[][] = [];
   for (let col = 0; col < cols; col++) {
     const newRow: number[] = [];
-    for (let row = rows - 1; row >= 0; row--) {
+    for (let row = 0; row < rows; row++) {
       newRow.push(matrix[row][col]);
     }
-    rotated.push(newRow);
+    transposed.push(newRow);
   }
 
-  return rotated;
+  // Step 2: Reverse each row for 90° clockwise rotation
+  return transposed.map((row) => row.reverse());
 }
 
 /**
@@ -509,6 +512,280 @@ export function calculateDropPosition(board: Board, piece: Piece): number {
  */
 export function isGameOver(board: Board, piece: Piece): boolean {
   return !isValidPosition(board, piece);
+}
+
+// ============================================================================
+// Piece Spawning
+// ============================================================================
+
+/**
+ * Spawns a new piece from the queue.
+ *
+ * Takes the first piece from nextPieces, generates a new piece for the queue,
+ * and sets it as the current piece. Also updates the ghost piece.
+ *
+ * @param state - The current game state
+ * @returns Updated state with new current piece, or game over state
+ */
+export function spawnPiece(state: TetrisState): TetrisState {
+  const { gameSpecific } = state;
+
+  // Get the next piece from the queue
+  const nextPiece = gameSpecific.nextPieces[0];
+  const newPiece = createPiece(nextPiece);
+
+  // Check if spawn position is valid (game over check)
+  if (!isValidPosition(gameSpecific.board, newPiece)) {
+    return {
+      ...state,
+      isGameOver: true,
+      isPlaying: false,
+    };
+  }
+
+  // Generate a new piece for the queue
+  const newQueue = [...gameSpecific.nextPieces.slice(1)];
+  if (newQueue.length < PREVIEW_COUNT) {
+    const additionalPieces = generatePieceQueue(PREVIEW_COUNT - newQueue.length + 1);
+    newQueue.push(...additionalPieces);
+  }
+
+  // Calculate ghost piece position
+  const ghostY = calculateDropPosition(gameSpecific.board, newPiece);
+  const ghost: Piece = {
+    ...newPiece,
+    position: { x: newPiece.position.x, y: ghostY },
+  };
+
+  return {
+    ...state,
+    gameSpecific: {
+      ...gameSpecific,
+      currentPiece: newPiece,
+      ghostPiece: ghost,
+      nextPieces: newQueue,
+      canHold: true, // Reset hold availability
+      isOnGround: isOnGround(gameSpecific.board, newPiece),
+      lockTimer: 0,
+      lockResets: 0,
+    },
+  };
+}
+
+// ============================================================================
+// Piece Movement
+// ============================================================================
+
+/**
+ * Moves a piece in the specified direction.
+ *
+ * Validates the move before applying. Returns updated state if valid,
+ * original state if invalid.
+ *
+ * @param state - The current game state
+ * @param direction - Direction to move ('left', 'right', or 'down')
+ * @returns Updated state with moved piece, or original state if invalid
+ */
+export function movePiece(state: TetrisState, direction: 'left' | 'right' | 'down'): TetrisState {
+  const { gameSpecific } = state;
+  const { currentPiece, board } = gameSpecific;
+
+  if (!currentPiece) {
+    return state;
+  }
+
+  // Calculate new position
+  let newX = currentPiece.position.x;
+  let newY = currentPiece.position.y;
+
+  switch (direction) {
+    case 'left':
+      newX -= 1;
+      break;
+    case 'right':
+      newX += 1;
+      break;
+    case 'down':
+      newY += 1;
+      break;
+  }
+
+  // Create test piece with new position
+  const movedPiece: Piece = {
+    ...currentPiece,
+    position: { x: newX, y: newY },
+  };
+
+  // Validate new position
+  if (!isValidPosition(board, movedPiece)) {
+    return state;
+  }
+
+  // Update ghost piece position
+  const ghostY = calculateDropPosition(board, movedPiece);
+  const ghost: Piece = {
+    ...movedPiece,
+    position: { x: newX, y: ghostY },
+  };
+
+  // Update state with moved piece
+  return {
+    ...state,
+    gameSpecific: {
+      ...gameSpecific,
+      currentPiece: movedPiece,
+      ghostPiece: ghost,
+      isOnGround: isOnGround(board, movedPiece),
+      // Reset lock timer if piece moved horizontally while on ground
+      lockTimer: direction !== 'down' && gameSpecific.isOnGround ? 0 : gameSpecific.lockTimer,
+      lockResets:
+        direction !== 'down' && gameSpecific.isOnGround
+          ? gameSpecific.lockResets + 1
+          : gameSpecific.lockResets,
+    },
+  };
+}
+
+/**
+ * Hard drops the current piece instantly to the bottom.
+ *
+ * @param state - The current game state
+ * @returns Updated state with piece at drop position
+ */
+export function hardDrop(state: TetrisState): TetrisState {
+  const { gameSpecific } = state;
+  const { currentPiece, board } = gameSpecific;
+
+  if (!currentPiece) {
+    return state;
+  }
+
+  const dropY = calculateDropPosition(board, currentPiece);
+  const droppedPiece: Piece = {
+    ...currentPiece,
+    position: { x: currentPiece.position.x, y: dropY },
+  };
+
+  return {
+    ...state,
+    gameSpecific: {
+      ...gameSpecific,
+      currentPiece: droppedPiece,
+      isOnGround: true,
+      lockTimer: 0, // Instant lock after hard drop
+    },
+  };
+}
+
+// ============================================================================
+// Piece Rotation
+// ============================================================================
+
+/**
+ * Gets wall kick offsets for a piece type and rotation transition.
+ *
+ * @param type - The tetromino type
+ * @param fromRotation - Current rotation state
+ * @param toRotation - Target rotation state
+ * @returns Array of [x, y] offset pairs to try
+ */
+function getWallKickOffsets(
+  type: TetrominoType,
+  fromRotation: RotationState,
+  toRotation: RotationState
+): [number, number][] {
+  // O piece doesn't rotate
+  if (type === 'O') {
+    return [[0, 0]];
+  }
+
+  const kickTable = type === 'I' ? WALL_KICKS_I : WALL_KICKS_JLSTZ;
+  const key = `${fromRotation}->${toRotation}`;
+
+  return kickTable[key] || [[0, 0]];
+}
+
+/**
+ * Rotates a piece in the specified direction with wall kick support.
+ *
+ * Uses SRS (Super Rotation System) wall kicks to allow rotation
+ * near walls and other pieces.
+ *
+ * @param state - The current game state
+ * @param direction - Rotation direction ('cw', 'ccw', or '180')
+ * @returns Updated state with rotated piece, or original state if rotation failed
+ */
+export function rotatePiece(state: TetrisState, direction: 'cw' | 'ccw' | '180'): TetrisState {
+  const { gameSpecific } = state;
+  const { currentPiece, board } = gameSpecific;
+
+  if (!currentPiece) {
+    return state;
+  }
+
+  // O piece doesn't rotate
+  if (currentPiece.type === 'O') {
+    return state;
+  }
+
+  // Calculate new rotation state
+  let newRotation: RotationState;
+  const currentRotation = currentPiece.rotation;
+
+  switch (direction) {
+    case 'cw':
+      newRotation = ((currentRotation + 1) % 4) as RotationState;
+      break;
+    case 'ccw':
+      newRotation = ((currentRotation + 3) % 4) as RotationState;
+      break;
+    case '180':
+      newRotation = ((currentRotation + 2) % 4) as RotationState;
+      break;
+  }
+
+  // Get wall kick offsets to try
+  const kickOffsets = getWallKickOffsets(currentPiece.type, currentRotation, newRotation);
+
+  // Try each kick offset until one works
+  for (const [offsetX, offsetY] of kickOffsets) {
+    const rotatedPiece: Piece = {
+      ...currentPiece,
+      rotation: newRotation,
+      position: {
+        x: currentPiece.position.x + offsetX,
+        y: currentPiece.position.y + offsetY,
+      },
+    };
+
+    // If this position is valid, apply the rotation
+    if (isValidPosition(board, rotatedPiece)) {
+      // Update ghost piece position
+      const ghostY = calculateDropPosition(board, rotatedPiece);
+      const ghost: Piece = {
+        ...rotatedPiece,
+        position: { x: rotatedPiece.position.x, y: ghostY },
+      };
+
+      return {
+        ...state,
+        gameSpecific: {
+          ...gameSpecific,
+          currentPiece: rotatedPiece,
+          ghostPiece: ghost,
+          isOnGround: isOnGround(board, rotatedPiece),
+          // Reset lock timer on successful rotation while on ground
+          lockTimer: gameSpecific.isOnGround ? 0 : gameSpecific.lockTimer,
+          lockResets: gameSpecific.isOnGround
+            ? gameSpecific.lockResets + 1
+            : gameSpecific.lockResets,
+        },
+      };
+    }
+  }
+
+  // No valid rotation found
+  return state;
 }
 
 // ============================================================================
