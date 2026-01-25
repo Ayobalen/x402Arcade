@@ -21,6 +21,7 @@ import type {
 import type { SnakeDirection } from './constants'
 import {
   GRID_SIZE,
+  CELL_SIZE,
   INITIAL_TICK_INTERVAL,
   MIN_SPEED,
   SPEED_INCREASE_PERCENT,
@@ -28,7 +29,9 @@ import {
   LEVEL_SCORE_MULTIPLIER,
   INITIAL_SNAKE_LENGTH,
   INITIAL_DIRECTION,
+  DIFFICULTY_SETTINGS,
 } from './constants'
+import type { SnakeDifficulty } from './constants'
 
 // ============================================================================
 // Direction Utilities
@@ -620,6 +623,7 @@ export function createInitialSnakeState(
   const initialSpeed = config?.gameSpecificConfig?.initialSpeed ?? INITIAL_TICK_INTERVAL
   const initialLength = config?.gameSpecificConfig?.initialLength ?? INITIAL_SNAKE_LENGTH
   const wallsWrap = config?.gameSpecificConfig?.wallsWrap ?? false
+  const difficulty = config?.gameSpecificConfig?.difficulty ?? 'normal'
 
   const segments = createInitialSnake(initialLength)
   const food = spawnFood(segments, gridSize)
@@ -637,7 +641,196 @@ export function createInitialSnakeState(
     maxCombo: 0,
     currentCombo: 0,
     activePowerUps: [],
+    difficulty,
   }
+}
+
+/**
+ * Create full initial game state in menu mode.
+ *
+ * This function creates a complete SnakeState that starts in the menu
+ * (not playing). The player must call startGame() to begin.
+ *
+ * @param difficulty - Difficulty level (defaults to 'normal')
+ * @param existingHighScore - Previous high score to preserve
+ * @returns Full snake game state ready for menu display
+ *
+ * @example
+ * ```ts
+ * // Create initial state for menu
+ * const state = createMenuState('normal', 1000)
+ * console.log(state.isPlaying) // false
+ * console.log(state.highScore) // 1000
+ * ```
+ */
+export function createMenuState(
+  difficulty: SnakeDifficulty = 'normal',
+  existingHighScore: number = 0
+): SnakeState {
+  const settings = DIFFICULTY_SETTINGS[difficulty]
+
+  const config: Partial<SnakeConfig> = {
+    gameSpecificConfig: {
+      gridSize: settings.gridSize,
+      initialSpeed: settings.tickInterval,
+      initialLength: INITIAL_SNAKE_LENGTH,
+      wallsWrap: !settings.wallsKill,
+      difficulty,
+      cellSize: CELL_SIZE,
+      speedIncreasePerLevel: SPEED_INCREASE_PERCENT,
+      enableBonusFood: false,
+      bonusFoodChance: 0,
+      foodValueMultiplier: settings.scoreMultiplier,
+      enableScreenWrap: !settings.wallsKill,
+      enableSelfCollision: true,
+    },
+  }
+
+  const gameSpecific = createInitialSnakeState(config)
+
+  return {
+    score: 0,
+    isPlaying: false,
+    isPaused: false,
+    isGameOver: false,
+    level: 1,
+    lives: 1,
+    highScore: existingHighScore,
+    startTime: null,
+    elapsedTime: 0,
+    gameSpecific,
+  }
+}
+
+/**
+ * Start the game from menu state.
+ *
+ * Transitions from menu (isPlaying: false) to active gameplay (isPlaying: true).
+ * Resets score, level, and game-specific state while preserving high score.
+ *
+ * @param state - Current game state (should be in menu)
+ * @returns New game state with gameplay started
+ *
+ * @example
+ * ```ts
+ * const menuState = createMenuState('hard')
+ * const playingState = startGame(menuState)
+ * console.log(playingState.isPlaying) // true
+ * console.log(playingState.startTime) // timestamp
+ * ```
+ */
+export function startGame(state: SnakeState): SnakeState {
+  // Only start if not already playing
+  if (state.isPlaying || state.isGameOver) {
+    return state
+  }
+
+  // Get difficulty from current config
+  const difficulty = state.gameSpecific?.difficulty ?? 'normal'
+  const settings = DIFFICULTY_SETTINGS[difficulty]
+
+  const config: Partial<SnakeConfig> = {
+    gameSpecificConfig: {
+      gridSize: settings.gridSize,
+      initialSpeed: settings.tickInterval,
+      initialLength: INITIAL_SNAKE_LENGTH,
+      wallsWrap: !settings.wallsKill,
+      difficulty,
+      cellSize: CELL_SIZE,
+      speedIncreasePerLevel: SPEED_INCREASE_PERCENT,
+      enableBonusFood: false,
+      bonusFoodChance: 0,
+      foodValueMultiplier: settings.scoreMultiplier,
+      enableScreenWrap: !settings.wallsKill,
+      enableSelfCollision: true,
+    },
+  }
+
+  const gameSpecific = createInitialSnakeState(config)
+
+  return {
+    ...state,
+    score: 0,
+    isPlaying: true,
+    isPaused: false,
+    isGameOver: false,
+    level: 1,
+    lives: 1,
+    startTime: Date.now(),
+    elapsedTime: 0,
+    gameSpecific,
+  }
+}
+
+/**
+ * Return to menu from game over or playing state.
+ *
+ * Preserves high score but resets all other game state.
+ * Sets isPlaying to false to show menu UI.
+ *
+ * @param state - Current game state
+ * @returns New game state in menu mode
+ *
+ * @example
+ * ```ts
+ * const gameOverState = { ...state, isGameOver: true, score: 500 }
+ * const menuState = returnToMenu(gameOverState)
+ * console.log(menuState.isPlaying) // false
+ * console.log(menuState.isGameOver) // false
+ * console.log(menuState.highScore) // 500 (preserved)
+ * ```
+ */
+export function returnToMenu(state: SnakeState): SnakeState {
+  const difficulty = state.gameSpecific?.difficulty ?? 'normal'
+  const preservedHighScore = Math.max(state.highScore, state.score)
+
+  return createMenuState(difficulty, preservedHighScore)
+}
+
+/**
+ * Change difficulty level (only works in menu).
+ *
+ * Updates the game configuration to use the specified difficulty preset.
+ * This function only works when the game is not playing.
+ *
+ * Difficulty presets affect:
+ * - Grid size (easy: 18, normal: 20, hard: 22)
+ * - Initial speed (easy: 200ms, normal: 150ms, hard: 100ms)
+ * - Score multiplier (easy: 0.5x, normal: 1.0x, hard: 2.0x)
+ * - Wall behavior (easy: wrap, normal/hard: kill)
+ *
+ * @param state - Current game state (must be in menu)
+ * @param difficulty - Difficulty level to apply
+ * @returns New game state with updated difficulty, or unchanged if playing
+ *
+ * @example
+ * ```ts
+ * const menuState = createMenuState('normal')
+ * const hardState = setDifficulty(menuState, 'hard')
+ * console.log(hardState.gameSpecific.currentSpeed) // 100
+ * console.log(hardState.gameSpecific.wallsWrap) // false
+ *
+ * // Cannot change difficulty during gameplay
+ * const playingState = startGame(menuState)
+ * const unchanged = setDifficulty(playingState, 'easy')
+ * console.log(unchanged === playingState) // true (no change)
+ * ```
+ */
+export function setDifficulty(
+  state: SnakeState,
+  difficulty: SnakeDifficulty
+): SnakeState {
+  // Can only change difficulty in menu (not playing, not game over)
+  if (state.isPlaying || state.isGameOver) {
+    return state
+  }
+
+  // Validate difficulty
+  if (!DIFFICULTY_SETTINGS[difficulty]) {
+    return state
+  }
+
+  return createMenuState(difficulty, state.highScore)
 }
 
 // ============================================================================
@@ -676,4 +869,8 @@ export default {
   togglePause,
   // State creation
   createInitialSnakeState,
+  createMenuState,
+  startGame,
+  returnToMenu,
+  setDifficulty,
 }
