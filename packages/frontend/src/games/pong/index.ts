@@ -96,5 +96,9 @@ export type { UsePongGameOptions, UsePongGameReturn } from './usePongGame';
 export { PongGame } from './PongGame';
 export type { PongGameProps } from './PongGame';
 
+// Wrapper Component with difficulty selection and arcade integration
+export { PongGameWrapper } from './PongGameWrapper';
+export type { PongGameWrapperProps } from './PongGameWrapper';
+
 // Default export
 export { default } from './logic';

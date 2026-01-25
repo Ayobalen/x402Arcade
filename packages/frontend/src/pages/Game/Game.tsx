@@ -7,9 +7,10 @@
  * Games: snake, pong, tetris, breakout, space-invaders
  */
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { SnakeGame } from '@/games/snake/SnakeGame';
+import { PongGameWrapper } from '@/games/pong/PongGameWrapper';
 
 /**
  * Game metadata
@@ -38,7 +39,7 @@ const GAMES: Record<string, GameInfo> = {
     name: 'Pong',
     emoji: '🏓',
     description: 'Classic arcade pong. Keep the ball in play and beat the AI.',
-    status: 'coming-soon',
+    status: 'available',
   },
   tetris: {
     id: 'tetris',
@@ -89,9 +90,15 @@ function ArrowLeftIcon({ className }: { className?: string }) {
  */
 export function Game() {
   const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
 
   // Get game info, or undefined if not found
   const gameInfo = gameId ? GAMES[gameId] : undefined;
+
+  // Handle exit from game wrapper
+  const handleExit = () => {
+    navigate('/play');
+  };
 
   // If game not found, show error message
   if (!gameInfo || !gameId) {
@@ -134,12 +141,23 @@ export function Game() {
     );
   }
 
-  // Render available game
+  // Render available game - Snake
   if (gameInfo.status === 'available' && gameId === 'snake') {
     return (
       <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
         <div className="max-w-4xl mx-auto">
           <SnakeGame />
+        </div>
+      </div>
+    );
+  }
+
+  // Render available game - Pong
+  if (gameInfo.status === 'available' && gameId === 'pong') {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="max-w-4xl mx-auto w-full">
+          <PongGameWrapper onExit={handleExit} />
         </div>
       </div>
     );
@@ -180,9 +198,7 @@ export function Game() {
               Coming Soon
             </p>
           </div>
-          <p className="text-lg text-white/60">
-            This game is under development. Check back soon!
-          </p>
+          <p className="text-lg text-white/60">This game is under development. Check back soon!</p>
         </div>
 
         {/* Back Button */}
