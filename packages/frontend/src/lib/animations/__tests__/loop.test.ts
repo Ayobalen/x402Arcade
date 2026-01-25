@@ -229,6 +229,17 @@ describe('loop', () => {
       expect(preset.transition.repeat).toBe(1);
     });
 
+    it('should define loadingPulse preset', () => {
+      const preset = LOOP_PRESETS.loadingPulse;
+
+      expect(preset).toHaveProperty('scale');
+      expect(preset).toHaveProperty('opacity');
+      expect(preset.scale).toEqual([1, 1.05, 1]);
+      expect(preset.opacity).toEqual([1, 0.8, 1]);
+      expect(preset.transition.duration).toBe(1.5);
+      expect(preset.transition.ease).toBe('easeInOut');
+    });
+
     it('should have all presets with infinite repeat by default', () => {
       const infinitePresets = [
         'pulse',
@@ -241,6 +252,7 @@ describe('loop', () => {
         'glow',
         'blink',
         'shimmer',
+        'loadingPulse',
       ];
 
       infinitePresets.forEach((presetName) => {
@@ -289,6 +301,7 @@ describe('loop', () => {
         'blink',
         'shimmer',
         'shake',
+        'loadingPulse',
       ];
 
       presetKeys.forEach((key) => {
