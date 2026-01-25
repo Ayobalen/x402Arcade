@@ -16,7 +16,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { SnakeState } from './types';
 import type { SnakeDifficulty } from './constants';
-import { createMenuState } from './logic';
+import {
+  createMenuState,
+  changeDirection,
+  processSnakeMove,
+  togglePause,
+  startGame,
+} from './logic';
 
 // ============================================================================
 // Hook Interface
@@ -99,6 +105,12 @@ export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGa
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
 
   /**
+   * Ref for game loop interval ID.
+   * Used to store and clear the game loop interval.
+   */
+  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+
+  /**
    * Initialize canvas context after mount.
    * Gets the 2D rendering context from the canvas element.
    */
@@ -109,6 +121,90 @@ export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGa
         contextRef.current = ctx;
       }
     }
+  }, []);
+
+  // ============================================================================
+  // Game Loop
+  // ============================================================================
+
+  /**
+   * Game loop effect.
+   * Runs the game tick at the current speed interval.
+   * Updates when playing state or speed changes.
+   */
+  useEffect(() => {
+    // Clear any existing interval
+    if (gameLoopRef.current) {
+      clearInterval(gameLoopRef.current);
+      gameLoopRef.current = null;
+    }
+
+    // Only start loop if game is playing and not paused
+    if (state.isPlaying && !state.isPaused && !state.isGameOver) {
+      const currentSpeed = state.gameSpecific?.currentSpeed || 150;
+
+      gameLoopRef.current = setInterval(() => {
+        setState((prevState) => processSnakeMove(prevState));
+      }, currentSpeed);
+    }
+
+    // Cleanup on unmount or when dependencies change
+    return () => {
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
+    };
+  }, [state.isPlaying, state.isPaused, state.isGameOver, state.gameSpecific?.currentSpeed]);
+
+  // ============================================================================
+  // Keyboard Input
+  // ============================================================================
+
+  /**
+   * Keyboard event handler.
+   * Handles arrow keys for direction changes and space for pause/start.
+   */
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Arrow keys - change direction
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setState((prevState) => changeDirection(prevState, 'up'));
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setState((prevState) => changeDirection(prevState, 'down'));
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setState((prevState) => changeDirection(prevState, 'left'));
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setState((prevState) => changeDirection(prevState, 'right'));
+      }
+      // Space - pause/unpause or start from menu
+      else if (event.key === ' ' || event.key === 'Space') {
+        event.preventDefault();
+        setState((prevState) => {
+          // If in menu, start the game
+          if (!prevState.isPlaying && !prevState.isGameOver) {
+            return startGame(prevState);
+          }
+          // If playing, toggle pause
+          else if (prevState.isPlaying && !prevState.isGameOver) {
+            return togglePause(prevState);
+          }
+          return prevState;
+        });
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   // ============================================================================
