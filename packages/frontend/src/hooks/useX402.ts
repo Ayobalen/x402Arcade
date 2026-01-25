@@ -17,7 +17,7 @@
  * @see https://eips.ethereum.org/EIPS/eip-712 - EIP-712 Typed Data Standard
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState } from 'react';
 import {
   TRANSFER_WITH_AUTHORIZATION_TYPES,
   TRANSFER_WITH_AUTHORIZATION_PRIMARY_TYPE,
@@ -30,11 +30,9 @@ import {
   type TransferWithAuthorizationMessage,
   type SignatureComponents,
   type SignedTransferWithAuthorization,
-} from '../config/eip3009'
-import {
-  CRONOS_TESTNET_CHAIN_ID,
-  USDC_CONTRACT_ADDRESS,
-} from '../config/chain'
+} from '../config/eip3009';
+import { CRONOS_TESTNET_CHAIN_ID, USDC_CONTRACT_ADDRESS } from '../config/chain';
+import { useWallet } from './useWallet';
 
 // ============================================================================
 // Types
@@ -44,22 +42,22 @@ import {
  * Payment status states
  */
 export type PaymentStatus =
-  | 'idle'           // No payment in progress
-  | 'signing'        // Waiting for user to sign
-  | 'settling'       // Payment being processed
-  | 'success'        // Payment completed successfully
-  | 'error'          // Payment failed
+  | 'idle' // No payment in progress
+  | 'signing' // Waiting for user to sign
+  | 'settling' // Payment being processed
+  | 'success' // Payment completed successfully
+  | 'error'; // Payment failed
 
 /**
  * Payment error information
  */
 export interface PaymentError {
   /** Error code for programmatic handling */
-  code: string
+  code: string;
   /** Human-readable error message */
-  message: string
+  message: string;
   /** Whether the payment can be retried */
-  retryable: boolean
+  retryable: boolean;
 }
 
 /**
@@ -67,13 +65,13 @@ export interface PaymentError {
  */
 export interface PaymentRequest {
   /** Recipient wallet address */
-  to: `0x${string}`
+  to: `0x${string}`;
   /** Amount in USDC (human-readable, e.g., "0.01") */
-  amount: string | number
+  amount: string | number;
   /** Optional validity duration in seconds (default: 3600) */
-  validitySeconds?: number
+  validitySeconds?: number;
   /** Optional metadata for the payment */
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -81,11 +79,11 @@ export interface PaymentRequest {
  */
 export interface PaymentResult {
   /** The signed authorization */
-  authorization: SignedTransferWithAuthorization
+  authorization: SignedTransferWithAuthorization;
   /** Transaction hash if settlement completed */
-  transactionHash?: string
+  transactionHash?: string;
   /** Block number of the settlement transaction */
-  blockNumber?: number
+  blockNumber?: number;
 }
 
 /**
@@ -93,15 +91,15 @@ export interface PaymentResult {
  */
 export interface UseX402State {
   /** Current payment status */
-  status: PaymentStatus
+  status: PaymentStatus;
   /** Error information if status is 'error' */
-  error: PaymentError | null
+  error: PaymentError | null;
   /** Last successful payment result */
-  lastPayment: PaymentResult | null
+  lastPayment: PaymentResult | null;
   /** Whether a payment is in progress */
-  isPending: boolean
+  isPending: boolean;
   /** Whether the wallet is connected and ready */
-  isReady: boolean
+  isReady: boolean;
 }
 
 /**
@@ -113,22 +111,22 @@ export interface UseX402Actions {
    * @param request - Payment request parameters
    * @returns Promise resolving to the payment result
    */
-  pay: (request: PaymentRequest) => Promise<PaymentResult>
+  pay: (request: PaymentRequest) => Promise<PaymentResult>;
   /**
    * Reset the hook state (clears error, status, and lastPayment)
    */
-  reset: () => void
+  reset: () => void;
   /**
    * Clear only the error state for retry attempts
    * Keeps status as 'idle' and preserves lastPayment
    */
-  clearError: () => void
+  clearError: () => void;
   /**
    * Create a signed authorization without submitting
    * @param request - Payment request parameters
    * @returns Promise resolving to the signed authorization
    */
-  createAuthorization: (request: PaymentRequest) => Promise<SignedTransferWithAuthorization>
+  createAuthorization: (request: PaymentRequest) => Promise<SignedTransferWithAuthorization>;
 }
 
 /**
@@ -136,13 +134,13 @@ export interface UseX402Actions {
  */
 export interface UseX402Options {
   /** Optional callback when payment succeeds */
-  onSuccess?: (result: PaymentResult) => void
+  onSuccess?: (result: PaymentResult) => void;
   /** Optional callback when payment fails */
-  onError?: (error: PaymentError) => void
+  onError?: (error: PaymentError) => void;
   /** Whether to auto-reset after success (default: false) */
-  autoReset?: boolean
+  autoReset?: boolean;
   /** Auto-reset delay in milliseconds (default: 3000) */
-  autoResetDelay?: number
+  autoResetDelay?: number;
 }
 
 /**
@@ -191,28 +189,28 @@ export interface UseX402Result extends UseX402State, UseX402Actions {}
  * ```
  */
 export function useX402(options: UseX402Options = {}): UseX402Result {
-  const { onSuccess, onError, autoReset = false, autoResetDelay = 3000 } = options
+  const { onSuccess, onError, autoReset = false, autoResetDelay = 3000 } = options;
 
   // State
-  const [status, setStatus] = useState<PaymentStatus>('idle')
-  const [error, setError] = useState<PaymentError | null>(null)
-  const [lastPayment, setLastPayment] = useState<PaymentResult | null>(null)
+  const [status, setStatus] = useState<PaymentStatus>('idle');
+  const [error, setError] = useState<PaymentError | null>(null);
+  const [lastPayment, setLastPayment] = useState<PaymentResult | null>(null);
+
+  // Wallet integration
+  const { isReady: walletReady, address, signTypedData } = useWallet();
 
   // Derived state
-  const isPending = status === 'signing' || status === 'settling'
-
-  // TODO: Integrate with wagmi for wallet connection status
-  // For now, always report as not ready since wagmi isn't installed
-  const isReady = false
+  const isPending = status === 'signing' || status === 'settling';
+  const isReady = walletReady;
 
   /**
    * Reset hook state
    */
   const reset = useCallback(() => {
-    setStatus('idle')
-    setError(null)
-    setLastPayment(null)
-  }, [])
+    setStatus('idle');
+    setError(null);
+    setLastPayment(null);
+  }, []);
 
   /**
    * Clear error state for retry attempts
@@ -221,39 +219,39 @@ export function useX402(options: UseX402Options = {}): UseX402Result {
    * can attempt another payment. Preserves lastPayment for reference.
    */
   const clearError = useCallback(() => {
-    setError(null)
+    setError(null);
     if (status === 'error') {
-      setStatus('idle')
+      setStatus('idle');
     }
-  }, [status])
+  }, [status]);
 
   /**
    * Handle successful payment
    */
   const handleSuccess = useCallback(
     (result: PaymentResult) => {
-      setStatus('success')
-      setLastPayment(result)
-      onSuccess?.(result)
+      setStatus('success');
+      setLastPayment(result);
+      onSuccess?.(result);
 
       if (autoReset) {
-        setTimeout(reset, autoResetDelay)
+        setTimeout(reset, autoResetDelay);
       }
     },
     [onSuccess, autoReset, autoResetDelay, reset]
-  )
+  );
 
   /**
    * Handle payment error
    */
   const handleError = useCallback(
     (paymentError: PaymentError) => {
-      setStatus('error')
-      setError(paymentError)
-      onError?.(paymentError)
+      setStatus('error');
+      setError(paymentError);
+      onError?.(paymentError);
     },
     [onError]
-  )
+  );
 
   /**
    * Create a signed authorization
@@ -262,16 +260,72 @@ export function useX402(options: UseX402Options = {}): UseX402Result {
    * from the connected wallet.
    */
   const createAuthorization = useCallback(
-     
-    async (_request: PaymentRequest): Promise<SignedTransferWithAuthorization> => {
-      // TODO: Implement wallet signing with wagmi
-      // This is a placeholder that will be implemented when wagmi is added
-      throw new Error(
-        'Wallet signing not yet implemented. Please install and configure wagmi.'
-      )
+    async (request: PaymentRequest): Promise<SignedTransferWithAuthorization> => {
+      if (!walletReady || !address) {
+        throw new Error('Wallet not connected or not ready');
+      }
+
+      // Parse amount to smallest units
+      const amountInSmallestUnits =
+        typeof request.amount === 'string'
+          ? parseUSDC(request.amount)
+          : parseUSDC(request.amount.toString());
+
+      // Generate unique nonce
+      const nonce = generateNonce();
+
+      // Calculate validity window
+      const validitySeconds = request.validitySeconds || 3600; // Default 1 hour
+      const now = Math.floor(Date.now() / 1000);
+      const validAfter = 0;
+      const validBefore = now + validitySeconds;
+
+      // Create EIP-3009 message
+      const message = createTransferWithAuthorizationMessage({
+        from: address,
+        to: request.to,
+        value: amountInSmallestUnits,
+        validAfter: BigInt(validAfter),
+        validBefore: BigInt(validBefore),
+        nonce,
+      });
+
+      // Get EIP-712 domain
+      const domain = getUsdcEip712Domain(CRONOS_TESTNET_CHAIN_ID, USDC_CONTRACT_ADDRESS);
+
+      // Sign the message
+      const signature = await signTypedData({
+        domain: {
+          name: domain.name,
+          version: domain.version,
+          chainId: domain.chainId,
+          verifyingContract: domain.verifyingContract,
+        },
+        types: TRANSFER_WITH_AUTHORIZATION_TYPES,
+        primaryType: TRANSFER_WITH_AUTHORIZATION_PRIMARY_TYPE,
+        message: {
+          from: message.from,
+          to: message.to,
+          value: message.value.toString(),
+          validAfter: message.validAfter.toString(),
+          validBefore: message.validBefore.toString(),
+          nonce: message.nonce,
+        },
+      });
+
+      // Parse signature components
+      const { v, r, s } = parseSignature(signature);
+
+      // Return signed authorization
+      return {
+        message,
+        v,
+        r,
+        s,
+      };
     },
-    []
-  )
+    [walletReady, address, signTypedData]
+  );
 
   /**
    * Initiate a payment
@@ -281,37 +335,37 @@ export function useX402(options: UseX402Options = {}): UseX402Result {
   const pay = useCallback(
     async (request: PaymentRequest): Promise<PaymentResult> => {
       if (isPending) {
-        throw new Error('Payment already in progress')
+        throw new Error('Payment already in progress');
       }
 
       try {
-        setStatus('signing')
-        setError(null)
+        setStatus('signing');
+        setError(null);
 
-        const authorization = await createAuthorization(request)
+        const authorization = await createAuthorization(request);
 
-        setStatus('settling')
+        setStatus('settling');
 
         // TODO: Submit to backend/facilitator
         // For now, just return the authorization
         const result: PaymentResult = {
           authorization,
-        }
+        };
 
-        handleSuccess(result)
-        return result
+        handleSuccess(result);
+        return result;
       } catch (e) {
         const paymentError: PaymentError = {
           code: 'PAYMENT_FAILED',
           message: e instanceof Error ? e.message : 'Unknown error',
           retryable: true,
-        }
-        handleError(paymentError)
-        throw e
+        };
+        handleError(paymentError);
+        throw e;
       }
     },
     [isPending, createAuthorization, handleSuccess, handleError]
-  )
+  );
 
   return {
     // State
@@ -325,7 +379,7 @@ export function useX402(options: UseX402Options = {}): UseX402Result {
     reset,
     clearError,
     createAuthorization,
-  }
+  };
 }
 
 // ============================================================================
@@ -344,9 +398,9 @@ export {
   formatUSDC,
   CRONOS_TESTNET_CHAIN_ID,
   USDC_CONTRACT_ADDRESS,
-}
+};
 export type {
   TransferWithAuthorizationMessage,
   SignatureComponents,
   SignedTransferWithAuthorization,
-}
+};

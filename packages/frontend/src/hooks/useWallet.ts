@@ -11,8 +11,9 @@
  * @see https://wagmi.sh/react/hooks/useWalletClient
  */
 
-import { useCallback, useMemo } from 'react'
-import { CRONOS_TESTNET_CHAIN_ID } from '../config/chain'
+import { useCallback, useMemo } from 'react';
+import { useAccount, useConnect, useDisconnect, useSwitchChain, useWalletClient } from 'wagmi';
+import { CRONOS_TESTNET_CHAIN_ID } from '../config/chain';
 
 // ============================================================================
 // Types
@@ -22,19 +23,19 @@ import { CRONOS_TESTNET_CHAIN_ID } from '../config/chain'
  * Wallet connection status
  */
 export type WalletStatus =
-  | 'disconnected'    // No wallet connected
-  | 'connecting'      // Connection in progress
-  | 'connected'       // Wallet connected and ready
-  | 'wrong_chain'     // Connected but on wrong network
+  | 'disconnected' // No wallet connected
+  | 'connecting' // Connection in progress
+  | 'connected' // Wallet connected and ready
+  | 'wrong_chain'; // Connected but on wrong network
 
 /**
  * Wallet error information
  */
 export interface WalletError {
   /** Error code for programmatic handling */
-  code: string
+  code: string;
   /** Human-readable error message */
-  message: string
+  message: string;
 }
 
 /**
@@ -46,24 +47,24 @@ export interface WalletError {
 export interface WalletClient {
   /** The connected account address */
   account: {
-    address: `0x${string}`
-  }
+    address: `0x${string}`;
+  };
   /** Chain information */
   chain: {
-    id: number
-    name: string
-  }
+    id: number;
+    name: string;
+  };
   /**
    * Sign typed data using EIP-712
    * @param params - Typed data parameters
    * @returns Signature hex string
    */
   signTypedData: (params: {
-    domain: Record<string, unknown>
-    types: Record<string, unknown[]>
-    primaryType: string
-    message: Record<string, unknown>
-  }) => Promise<`0x${string}`>
+    domain: Record<string, unknown>;
+    types: Record<string, unknown[]>;
+    primaryType: string;
+    message: Record<string, unknown>;
+  }) => Promise<`0x${string}`>;
 }
 
 /**
@@ -71,19 +72,19 @@ export interface WalletClient {
  */
 export interface UseWalletState {
   /** Current connection status */
-  status: WalletStatus
+  status: WalletStatus;
   /** Connected wallet address (if connected) */
-  address: `0x${string}` | undefined
+  address: `0x${string}` | undefined;
   /** Current chain ID (if connected) */
-  chainId: number | undefined
+  chainId: number | undefined;
   /** Error information */
-  error: WalletError | null
+  error: WalletError | null;
   /** Whether wallet is connected and on correct chain */
-  isReady: boolean
+  isReady: boolean;
   /** Whether wallet is connected (any chain) */
-  isConnected: boolean
+  isConnected: boolean;
   /** Whether wallet is on the expected chain */
-  isCorrectChain: boolean
+  isCorrectChain: boolean;
 }
 
 /**
@@ -92,17 +93,17 @@ export interface UseWalletState {
 export interface SignTypedDataParams {
   /** EIP-712 domain */
   domain: {
-    name: string
-    version: string
-    chainId: number | bigint
-    verifyingContract: `0x${string}`
-  }
+    name: string;
+    version: string;
+    chainId: number | bigint;
+    verifyingContract: `0x${string}`;
+  };
   /** Type definitions */
-  types: Record<string, Array<{ name: string; type: string }>>
+  types: Record<string, Array<{ name: string; type: string }>>;
   /** Primary type name */
-  primaryType: string
+  primaryType: string;
   /** Message to sign */
-  message: Record<string, unknown>
+  message: Record<string, unknown>;
 }
 
 /**
@@ -113,7 +114,7 @@ export interface UseWalletActions {
    * Get the wallet client for signing operations
    * @throws Error if wallet not connected or on wrong chain
    */
-  getWalletClient: () => Promise<WalletClient>
+  getWalletClient: () => Promise<WalletClient>;
   /**
    * Sign typed data using EIP-712
    *
@@ -124,21 +125,21 @@ export interface UseWalletActions {
    * @returns Signature hex string
    * @throws Error if wallet not ready or user rejects
    */
-  signTypedData: (params: SignTypedDataParams) => Promise<`0x${string}`>
+  signTypedData: (params: SignTypedDataParams) => Promise<`0x${string}`>;
   /**
    * Request wallet connection
    * @returns Promise resolving when connected
    */
-  connect: () => Promise<void>
+  connect: () => Promise<void>;
   /**
    * Disconnect the wallet
    */
-  disconnect: () => void
+  disconnect: () => void;
   /**
    * Switch to the expected chain
    * @returns Promise resolving when switched
    */
-  switchChain: () => Promise<void>
+  switchChain: () => Promise<void>;
 }
 
 /**
@@ -146,13 +147,13 @@ export interface UseWalletActions {
  */
 export interface UseWalletOptions {
   /** Expected chain ID (default: CRONOS_TESTNET_CHAIN_ID) */
-  expectedChainId?: number
+  expectedChainId?: number;
   /** Callback when connection succeeds */
-  onConnect?: (address: `0x${string}`) => void
+  onConnect?: (address: `0x${string}`) => void;
   /** Callback when disconnected */
-  onDisconnect?: () => void
+  onDisconnect?: () => void;
   /** Callback when error occurs */
-  onError?: (error: WalletError) => void
+  onError?: (error: WalletError) => void;
 }
 
 /**
@@ -196,54 +197,63 @@ export interface UseWalletResult extends UseWalletState, UseWalletActions {}
 export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
   const {
     expectedChainId = CRONOS_TESTNET_CHAIN_ID,
-     
-    onConnect: _onConnect,
-     
-    onDisconnect: _onDisconnect,
-     
-    onError: _onError,
-  } = options
+    onConnect,
+    onDisconnect: onDisconnectCallback,
+    onError,
+  } = options;
 
-  // TODO: Replace with actual wagmi hooks when installed
-  // const { data: walletClient } = useWalletClient()
-  // const { address, isConnected, chain } = useAccount()
-  // const { connect: wagmiConnect } = useConnect()
-  // const { disconnect: wagmiDisconnect } = useDisconnect()
-  // const { switchChain: wagmiSwitchChain } = useSwitchChain()
+  // Wagmi hooks
+  const { data: walletClient } = useWalletClient();
+  const { address, isConnected: wagmiIsConnected, chain } = useAccount();
+  const { connectors, connect: wagmiConnect, isPending: isConnecting } = useConnect();
+  const { disconnect: wagmiDisconnect } = useDisconnect();
+  const { switchChain: wagmiSwitchChain } = useSwitchChain();
 
-  // Placeholder state (always disconnected until wagmi is installed)
-  // Note: These will be replaced with actual wagmi hook values
-  const status: WalletStatus = 'disconnected' as WalletStatus
-  const address: `0x${string}` | undefined = undefined
-  const chainId: number | undefined = undefined
-  const error: WalletError | null = null
+  // Get chainId from connected chain
+  const chainId = chain?.id;
+
+  // Determine status
+  let status: WalletStatus;
+  if (isConnecting) {
+    status = 'connecting';
+  } else if (!wagmiIsConnected) {
+    status = 'disconnected';
+  } else if (chainId !== expectedChainId) {
+    status = 'wrong_chain';
+  } else {
+    status = 'connected';
+  }
+
+  const error: WalletError | null = null;
 
   // Derived state
   // Using as-cast to allow for future wagmi integration where status can change
-  const isConnected = (status as WalletStatus) === 'connected' || (status as WalletStatus) === 'wrong_chain'
-  const isCorrectChain = chainId === expectedChainId
-  const isReady = isConnected && isCorrectChain
+  const isConnected =
+    (status as WalletStatus) === 'connected' || (status as WalletStatus) === 'wrong_chain';
+  const isCorrectChain = chainId === expectedChainId;
+  const isReady = isConnected && isCorrectChain;
 
   /**
    * Get wallet client for signing
    */
   const getWalletClient = useCallback(async (): Promise<WalletClient> => {
-    // TODO: Implement with wagmi's useWalletClient
-    if (!isConnected) {
-      throw new Error('Wallet not connected. Please connect your wallet first.')
+    if (!wagmiIsConnected) {
+      throw new Error('Wallet not connected. Please connect your wallet first.');
     }
 
-    if (!isCorrectChain) {
+    if (chainId !== expectedChainId) {
       throw new Error(
         `Wrong network. Please switch to Cronos Testnet (chain ID: ${expectedChainId}).`
-      )
+      );
     }
 
-    // Placeholder - will return actual wagmi wallet client
-    throw new Error(
-      'Wallet client not available. Please install and configure wagmi.'
-    )
-  }, [isConnected, isCorrectChain, expectedChainId])
+    if (!walletClient) {
+      throw new Error('Wallet client not available.');
+    }
+
+    // Return wallet client with proper typing
+    return walletClient as unknown as WalletClient;
+  }, [wagmiIsConnected, chainId, expectedChainId, walletClient]);
 
   /**
    * Sign typed data using EIP-712
@@ -255,18 +265,18 @@ export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
     async (params: SignTypedDataParams): Promise<`0x${string}`> => {
       // Verify wallet is ready
       if (!isConnected) {
-        throw new Error('Wallet not connected. Please connect your wallet first.')
+        throw new Error('Wallet not connected. Please connect your wallet first.');
       }
 
       if (!isCorrectChain) {
         throw new Error(
           `Wrong network. Please switch to Cronos Testnet (chain ID: ${expectedChainId}).`
-        )
+        );
       }
 
       try {
         // Get wallet client
-        const client = await getWalletClient()
+        const client = await getWalletClient();
 
         // Call signTypedData on the wallet client
         // This will prompt the user to sign in their wallet
@@ -275,9 +285,9 @@ export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
           types: params.types,
           primaryType: params.primaryType,
           message: params.message,
-        })
+        });
 
-        return signature
+        return signature;
       } catch (error) {
         // Handle user rejection
         if (
@@ -287,43 +297,75 @@ export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
             error.message.includes('cancelled') ||
             error.message.includes('User rejected'))
         ) {
-          throw new Error('User rejected the signature request.')
+          throw new Error('User rejected the signature request.');
         }
 
         // Re-throw other errors
-        throw error
+        throw error;
       }
     },
     [isConnected, isCorrectChain, expectedChainId, getWalletClient]
-  )
+  );
 
   /**
    * Connect wallet
    */
   const connect = useCallback(async (): Promise<void> => {
-    // TODO: Implement with wagmi's useConnect
-    throw new Error(
-      'Wallet connection not available. Please install and configure wagmi.'
-    )
-  }, [])
+    try {
+      // Use the first available connector (MetaMask/injected)
+      const connector = connectors[0];
+      if (!connector) {
+        throw new Error('No wallet connector available. Please install MetaMask.');
+      }
+
+      const result = await wagmiConnect({ connector });
+
+      if (result && onConnect) {
+        onConnect(result.accounts[0]);
+      }
+    } catch (err) {
+      const walletError: WalletError = {
+        code: 'CONNECTION_FAILED',
+        message: err instanceof Error ? err.message : 'Failed to connect wallet',
+      };
+      if (onError) {
+        onError(walletError);
+      }
+      throw err;
+    }
+  }, [connectors, wagmiConnect, onConnect, onError]);
 
   /**
    * Disconnect wallet
    */
   const disconnect = useCallback((): void => {
-    // TODO: Implement with wagmi's useDisconnect
-    console.warn('Wallet disconnect not available. Please install wagmi.')
-  }, [])
+    wagmiDisconnect();
+    if (onDisconnectCallback) {
+      onDisconnectCallback();
+    }
+  }, [wagmiDisconnect, onDisconnectCallback]);
 
   /**
    * Switch to expected chain
    */
   const switchChain = useCallback(async (): Promise<void> => {
-    // TODO: Implement with wagmi's useSwitchChain
-    throw new Error(
-      'Chain switching not available. Please install and configure wagmi.'
-    )
-  }, [])
+    if (!wagmiSwitchChain) {
+      throw new Error('Chain switching not available.');
+    }
+
+    try {
+      await wagmiSwitchChain({ chainId: expectedChainId });
+    } catch (err) {
+      const walletError: WalletError = {
+        code: 'SWITCH_CHAIN_FAILED',
+        message: err instanceof Error ? err.message : 'Failed to switch chain',
+      };
+      if (onError) {
+        onError(walletError);
+      }
+      throw err;
+    }
+  }, [wagmiSwitchChain, expectedChainId, onError]);
 
   // Memoize the return value
   return useMemo(
@@ -357,7 +399,7 @@ export function useWallet(options: UseWalletOptions = {}): UseWalletResult {
       disconnect,
       switchChain,
     ]
-  )
+  );
 }
 
 // ============================================================================
@@ -378,9 +420,9 @@ export function formatAddress(
   suffixLength: number = 4
 ): string {
   if (address.length <= prefixLength + suffixLength) {
-    return address
+    return address;
   }
-  return `${address.slice(0, prefixLength)}...${address.slice(-suffixLength)}`
+  return `${address.slice(0, prefixLength)}...${address.slice(-suffixLength)}`;
 }
 
 /**
@@ -390,5 +432,5 @@ export function formatAddress(
  * @returns true if valid format
  */
 export function isValidAddress(address: string): address is `0x${string}` {
-  return /^0x[a-fA-F0-9]{40}$/.test(address)
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
 }

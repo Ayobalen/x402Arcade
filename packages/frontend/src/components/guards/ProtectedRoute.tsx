@@ -57,10 +57,10 @@ interface ProtectedRouteProps {
  */
 export function ProtectedRoute({
   children,
-  redirectTo = '/',
+  redirectTo: _redirectTo = '/',
   showLoading = true,
 }: ProtectedRouteProps) {
-  const location = useLocation();
+  const _location = useLocation();
   const { isConnected, isConnecting } = useWalletStore();
   const [hasChecked, setHasChecked] = useState(false);
 
@@ -137,14 +137,7 @@ export function ProtectedRoute({
           </p>
 
           {/* Connect Button */}
-          <ConnectButton
-            size="lg"
-            className="mb-4"
-            onConnectSuccess={() => {
-              // User will automatically see the game content after connection
-              console.log('Wallet connected successfully!');
-            }}
-          />
+          <ConnectButton className="mb-4" />
 
           {/* Help Text */}
           <p className="text-sm text-gray-500 mt-6">
