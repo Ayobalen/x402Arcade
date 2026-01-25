@@ -14,14 +14,18 @@ import type { SnakeDifficulty } from './constants';
 // Component Props
 // ============================================================================
 
+import type { RankingEntry } from './useSnakeGame';
+
 /**
  * Props for the SnakeGame component.
  */
 export interface SnakeGameProps {
   /** Game difficulty level */
   difficulty?: SnakeDifficulty;
-  /** Callback when game ends (receives final score) */
-  onGameOver?: (score: number) => void;
+  /** Callback when game ends (receives final score and session ID) */
+  onGameOver?: (score: number, sessionId?: string) => void;
+  /** Callback to fetch rankings after game over */
+  onFetchRankings?: (score: number) => Promise<RankingEntry[]>;
   /** Optional CSS class name */
   className?: string;
 }
@@ -46,16 +50,24 @@ export interface SnakeGameProps {
  * />
  * ```
  */
-export function SnakeGame({ difficulty = 'normal', onGameOver, className = '' }: SnakeGameProps) {
+export function SnakeGame({
+  difficulty = 'normal',
+  onGameOver,
+  onFetchRankings,
+  className = '',
+}: SnakeGameProps) {
   // Use the Snake game hook
-  const { state, canvasRef, restart } = useSnakeGame(difficulty, { onGameOver });
+  const { state, canvasRef, restart, playerRank, rankings, isLoadingRankings } = useSnakeGame(
+    difficulty,
+    { onGameOver, onFetchRankings }
+  );
 
   return (
     <div className={`snake-game ${className}`}>
       {/* Score Display */}
       <div className="score-display">
         <span className="score-label">Score:</span>
-        <span className="score-value">{state.gameSpecific.score}</span>
+        <span className="score-value">{state.score}</span>
       </div>
 
       {/* Game Canvas */}
@@ -87,8 +99,43 @@ export function SnakeGame({ difficulty = 'normal', onGameOver, className = '' }:
             <h2 className="game-over-title">Game Over</h2>
             <div className="final-score">
               <span className="final-score-label">Final Score</span>
-              <span className="final-score-value">{state.gameSpecific.score}</span>
+              <span className="final-score-value">{state.score}</span>
             </div>
+
+            {/* Ranking Display */}
+            {isLoadingRankings && (
+              <div className="ranking-loading">
+                <span className="loading-text">Loading rankings...</span>
+              </div>
+            )}
+
+            {!isLoadingRankings && playerRank !== null && (
+              <div className="player-rank">
+                <span className="rank-label">Your Rank</span>
+                <span className="rank-value">#{playerRank}</span>
+              </div>
+            )}
+
+            {!isLoadingRankings && rankings.length > 0 && (
+              <div className="nearby-rankings">
+                <span className="rankings-title">Leaderboard</span>
+                <div className="rankings-list">
+                  {rankings.slice(0, 5).map((entry) => (
+                    <div
+                      key={`rank-${entry.rank}`}
+                      className={`ranking-entry ${entry.isCurrentPlayer ? 'current-player' : ''}`}
+                    >
+                      <span className="ranking-position">#{entry.rank}</span>
+                      <span className="ranking-address">
+                        {entry.playerAddress.slice(0, 6)}...{entry.playerAddress.slice(-4)}
+                      </span>
+                      <span className="ranking-score">{entry.score}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button className="restart-button" onClick={restart}>
               Play Again
             </button>
@@ -104,7 +151,7 @@ export function SnakeGame({ difficulty = 'normal', onGameOver, className = '' }:
         </div>
         <div className="info-item">
           <span className="info-label">Difficulty:</span>
-          <span className="info-value">{state.gameSpecific.difficulty}</span>
+          <span className="info-value">{state.gameSpecific?.difficulty ?? 'normal'}</span>
         </div>
       </div>
 
@@ -245,6 +292,119 @@ export function SnakeGame({ difficulty = 'normal', onGameOver, className = '' }:
           font-weight: 700;
           color: #00ffff;
           text-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+        }
+
+        .ranking-loading {
+          padding: 1rem;
+          text-align: center;
+        }
+
+        .loading-text {
+          font-family: 'Inter', sans-serif;
+          font-size: 0.875rem;
+          color: #94a3b8;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+
+        .player-rank {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 1rem 2rem;
+          background: rgba(0, 255, 0, 0.1);
+          border: 1px solid rgba(0, 255, 0, 0.3);
+          border-radius: 0.5rem;
+        }
+
+        .rank-label {
+          font-family: 'Inter', sans-serif;
+          font-size: 0.75rem;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .rank-value {
+          font-family: 'Inter', sans-serif;
+          font-size: 2rem;
+          font-weight: 700;
+          color: #00ff00;
+          text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+        }
+
+        .nearby-rankings {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+          width: 100%;
+          max-width: 300px;
+        }
+
+        .rankings-title {
+          font-family: 'Inter', sans-serif;
+          font-size: 0.875rem;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .rankings-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          width: 100%;
+        }
+
+        .ranking-entry {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.5rem 0.75rem;
+          background: rgba(26, 26, 46, 0.8);
+          border: 1px solid #2d2d4a;
+          border-radius: 0.375rem;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.875rem;
+        }
+
+        .ranking-entry.current-player {
+          background: rgba(0, 255, 255, 0.1);
+          border-color: rgba(0, 255, 255, 0.4);
+        }
+
+        .ranking-position {
+          font-weight: 600;
+          color: #f8fafc;
+          min-width: 2.5rem;
+        }
+
+        .ranking-address {
+          color: #94a3b8;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.75rem;
+        }
+
+        .ranking-entry.current-player .ranking-address {
+          color: #00ffff;
+        }
+
+        .ranking-score {
+          font-weight: 600;
+          color: #00ffff;
+          min-width: 3rem;
+          text-align: right;
         }
 
         .restart-button {

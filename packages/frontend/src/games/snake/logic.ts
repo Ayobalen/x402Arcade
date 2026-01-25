@@ -17,8 +17,8 @@ import type {
   SnakeConfig,
   DirectionVector,
   OppositeDirection,
-} from './types'
-import type { SnakeDirection } from './constants'
+} from './types';
+import type { SnakeDirection } from './constants';
 import {
   GRID_SIZE,
   CELL_SIZE,
@@ -30,8 +30,8 @@ import {
   INITIAL_SNAKE_LENGTH,
   INITIAL_DIRECTION,
   DIFFICULTY_SETTINGS,
-} from './constants'
-import type { SnakeDifficulty } from './constants'
+} from './constants';
+import type { SnakeDifficulty } from './constants';
 
 // ============================================================================
 // Direction Utilities
@@ -46,7 +46,7 @@ export const DIRECTION_VECTORS: DirectionVector = {
   down: { x: 0, y: 1 },
   left: { x: -1, y: 0 },
   right: { x: 1, y: 0 },
-}
+};
 
 /**
  * Opposite direction mapping.
@@ -57,7 +57,7 @@ export const OPPOSITE_DIRECTIONS: OppositeDirection = {
   down: 'up',
   left: 'right',
   right: 'left',
-}
+};
 
 /**
  * Check if two directions are opposite.
@@ -66,11 +66,8 @@ export const OPPOSITE_DIRECTIONS: OppositeDirection = {
  * @param dir2 - Second direction
  * @returns True if directions are opposite
  */
-export function areOppositeDirections(
-  dir1: SnakeDirection,
-  dir2: SnakeDirection
-): boolean {
-  return OPPOSITE_DIRECTIONS[dir1] === dir2
+export function areOppositeDirections(dir1: SnakeDirection, dir2: SnakeDirection): boolean {
+  return OPPOSITE_DIRECTIONS[dir1] === dir2;
 }
 
 /**
@@ -85,9 +82,9 @@ export function isValidDirectionChange(
   newDirection: SnakeDirection
 ): boolean {
   // Same direction is always valid (no change)
-  if (currentDirection === newDirection) return true
+  if (currentDirection === newDirection) return true;
   // Opposite direction is not valid (would reverse into self)
-  return !areOppositeDirections(currentDirection, newDirection)
+  return !areOppositeDirections(currentDirection, newDirection);
 }
 
 // ============================================================================
@@ -102,7 +99,7 @@ export function isValidDirectionChange(
  * @returns True if positions have same x and y
  */
 export function positionsEqual(a: Position, b: Position): boolean {
-  return a.x === b.x && a.y === b.y
+  return a.x === b.x && a.y === b.y;
 }
 
 /**
@@ -112,11 +109,8 @@ export function positionsEqual(a: Position, b: Position): boolean {
  * @param gridSize - Grid size (cells per side)
  * @returns True if position is within bounds
  */
-export function isWithinBounds(
-  pos: Position,
-  gridSize: number = GRID_SIZE
-): boolean {
-  return pos.x >= 0 && pos.x < gridSize && pos.y >= 0 && pos.y < gridSize
+export function isWithinBounds(pos: Position, gridSize: number = GRID_SIZE): boolean {
+  return pos.x >= 0 && pos.x < gridSize && pos.y >= 0 && pos.y < gridSize;
 }
 
 /**
@@ -126,14 +120,11 @@ export function isWithinBounds(
  * @param gridSize - Grid size (cells per side)
  * @returns Wrapped position
  */
-export function wrapPosition(
-  pos: Position,
-  gridSize: number = GRID_SIZE
-): Position {
+export function wrapPosition(pos: Position, gridSize: number = GRID_SIZE): Position {
   return {
     x: ((pos.x % gridSize) + gridSize) % gridSize,
     y: ((pos.y % gridSize) + gridSize) % gridSize,
-  }
+  };
 }
 
 /**
@@ -143,15 +134,12 @@ export function wrapPosition(
  * @param direction - Direction to move
  * @returns New position after moving
  */
-export function getNextPosition(
-  pos: Position,
-  direction: SnakeDirection
-): Position {
-  const vector = DIRECTION_VECTORS[direction]
+export function getNextPosition(pos: Position, direction: SnakeDirection): Position {
+  const vector = DIRECTION_VECTORS[direction];
   return {
     x: pos.x + vector.x,
     y: pos.y + vector.y,
-  }
+  };
 }
 
 // ============================================================================
@@ -165,7 +153,7 @@ export function getNextPosition(
  * @returns Head position (first segment)
  */
 export function getSnakeHead(segments: SnakeSegment[]): Position {
-  return segments[0]
+  return segments[0];
 }
 
 /**
@@ -175,7 +163,7 @@ export function getSnakeHead(segments: SnakeSegment[]): Position {
  * @returns Tail position (last segment)
  */
 export function getSnakeTail(segments: SnakeSegment[]): Position {
-  return segments[segments.length - 1]
+  return segments[segments.length - 1];
 }
 
 /**
@@ -191,8 +179,8 @@ export function collidesWithSnake(
   segments: SnakeSegment[],
   excludeHead: boolean = false
 ): boolean {
-  const startIndex = excludeHead ? 1 : 0
-  return segments.slice(startIndex).some((segment) => positionsEqual(pos, segment))
+  const startIndex = excludeHead ? 1 : 0;
+  return segments.slice(startIndex).some((segment) => positionsEqual(pos, segment));
 }
 
 /**
@@ -202,9 +190,9 @@ export function collidesWithSnake(
  * @returns True if snake has collided with itself
  */
 export function checkSelfCollision(segments: SnakeSegment[]): boolean {
-  if (segments.length < 2) return false
-  const head = getSnakeHead(segments)
-  return collidesWithSnake(head, segments, true)
+  if (segments.length < 2) return false;
+  const head = getSnakeHead(segments);
+  return collidesWithSnake(head, segments, true);
 }
 
 /**
@@ -220,8 +208,8 @@ export function createInitialSnake(
   startPosition: Position = { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) },
   direction: SnakeDirection = INITIAL_DIRECTION
 ): SnakeSegment[] {
-  const oppositeVector = DIRECTION_VECTORS[OPPOSITE_DIRECTIONS[direction]]
-  const segments: SnakeSegment[] = []
+  const oppositeVector = DIRECTION_VECTORS[OPPOSITE_DIRECTIONS[direction]];
+  const segments: SnakeSegment[] = [];
 
   for (let i = 0; i < length; i++) {
     segments.push({
@@ -229,10 +217,10 @@ export function createInitialSnake(
       y: startPosition.y + oppositeVector.y * i,
       isHead: i === 0,
       isTail: i === length - 1,
-    })
+    });
   }
 
-  return segments
+  return segments;
 }
 
 /**
@@ -252,12 +240,12 @@ export function moveSnake(
   wrapEnabled: boolean = false,
   gridSize: number = GRID_SIZE
 ): SnakeSegment[] {
-  const head = getSnakeHead(segments)
-  let newHeadPos = getNextPosition(head, direction)
+  const head = getSnakeHead(segments);
+  let newHeadPos = getNextPosition(head, direction);
 
   // Wrap position if enabled
   if (wrapEnabled) {
-    newHeadPos = wrapPosition(newHeadPos, gridSize)
+    newHeadPos = wrapPosition(newHeadPos, gridSize);
   }
 
   // Create new head segment
@@ -265,10 +253,10 @@ export function moveSnake(
     ...newHeadPos,
     isHead: true,
     isTail: false,
-  }
+  };
 
   // Create new segments array
-  const newSegments = [newHead]
+  const newSegments = [newHead];
 
   // Add existing segments (shifted)
   for (let i = 0; i < segments.length - (grow ? 0 : 1); i++) {
@@ -276,10 +264,10 @@ export function moveSnake(
       ...segments[i],
       isHead: false,
       isTail: i === segments.length - (grow ? 1 : 2),
-    })
+    });
   }
 
-  return newSegments
+  return newSegments;
 }
 
 // ============================================================================
@@ -296,7 +284,7 @@ export function getRandomPosition(gridSize: number = GRID_SIZE): Position {
   return {
     x: Math.floor(Math.random() * gridSize),
     y: Math.floor(Math.random() * gridSize),
-  }
+  };
 }
 
 /**
@@ -312,15 +300,15 @@ export function spawnFood(
   gridSize: number = GRID_SIZE,
   type: FoodType = 'standard'
 ): Food {
-  let position: Position
-  let attempts = 0
-  const maxAttempts = gridSize * gridSize
+  let position: Position;
+  let attempts = 0;
+  const maxAttempts = gridSize * gridSize;
 
   // Find a position that doesn't collide with the snake
   do {
-    position = getRandomPosition(gridSize)
-    attempts++
-  } while (collidesWithSnake(position, segments) && attempts < maxAttempts)
+    position = getRandomPosition(gridSize);
+    attempts++;
+  } while (collidesWithSnake(position, segments) && attempts < maxAttempts);
 
   // Calculate points based on food type
   const pointsMap: Record<FoodType, number> = {
@@ -328,7 +316,7 @@ export function spawnFood(
     bonus: BASE_FOOD_SCORE * 5,
     speed: BASE_FOOD_SCORE * 2,
     slow: BASE_FOOD_SCORE * 2,
-  }
+  };
 
   return {
     ...position,
@@ -336,7 +324,7 @@ export function spawnFood(
     points: pointsMap[type],
     hasEffect: type !== 'standard',
     timeRemaining: type === 'bonus' ? 5000 : undefined, // 5 seconds for bonus food
-  }
+  };
 }
 
 /**
@@ -349,24 +337,18 @@ export function spawnFood(
  * @param gridSize - Grid size (cells per side)
  * @returns Position object at a valid location
  */
-export function generateFood(
-  snake: Position[],
-  gridSize: number = GRID_SIZE
-): Position {
-  let position: Position
-  let attempts = 0
-  const maxAttempts = gridSize * gridSize
+export function generateFood(snake: Position[], gridSize: number = GRID_SIZE): Position {
+  let position: Position;
+  let attempts = 0;
+  const maxAttempts = gridSize * gridSize;
 
   // Find a position that doesn't collide with the snake
   do {
-    position = getRandomPosition(gridSize)
-    attempts++
-  } while (
-    snake.some((segment) => positionsEqual(position, segment)) &&
-    attempts < maxAttempts
-  )
+    position = getRandomPosition(gridSize);
+    attempts++;
+  } while (snake.some((segment) => positionsEqual(position, segment)) && attempts < maxAttempts);
 
-  return position
+  return position;
 }
 
 /**
@@ -377,8 +359,8 @@ export function generateFood(
  * @returns True if snake head is on food
  */
 export function isEatingFood(segments: SnakeSegment[], food: Food): boolean {
-  const head = getSnakeHead(segments)
-  return positionsEqual(head, food)
+  const head = getSnakeHead(segments);
+  return positionsEqual(head, food);
 }
 
 // ============================================================================
@@ -393,15 +375,11 @@ export function isEatingFood(segments: SnakeSegment[], food: Food): boolean {
  * @param combo - Current combo count
  * @returns Points earned
  */
-export function calculateScore(
-  food: Food,
-  level: number = 1,
-  combo: number = 0
-): number {
-  const basePoints = food.points
-  const levelMultiplier = 1 + (level - 1) * LEVEL_SCORE_MULTIPLIER
-  const comboMultiplier = 1 + combo * 0.1 // 10% bonus per combo
-  return Math.round(basePoints * levelMultiplier * comboMultiplier)
+export function calculateScore(food: Food, level: number = 1, combo: number = 0): number {
+  const basePoints = food.points;
+  const levelMultiplier = 1 + (level - 1) * LEVEL_SCORE_MULTIPLIER;
+  const comboMultiplier = 1 + combo * 0.1; // 10% bonus per combo
+  return Math.round(basePoints * levelMultiplier * comboMultiplier);
 }
 
 /**
@@ -411,12 +389,9 @@ export function calculateScore(
  * @param baseSpeed - Base tick interval
  * @returns Tick interval in milliseconds (never below MIN_SPEED)
  */
-export function calculateSpeed(
-  level: number,
-  baseSpeed: number = INITIAL_TICK_INTERVAL
-): number {
-  const reduction = baseSpeed * (SPEED_INCREASE_PERCENT / 100) * (level - 1)
-  return Math.max(MIN_SPEED, baseSpeed - reduction)
+export function calculateSpeed(level: number, baseSpeed: number = INITIAL_TICK_INTERVAL): number {
+  const reduction = baseSpeed * (SPEED_INCREASE_PERCENT / 100) * (level - 1);
+  return Math.max(MIN_SPEED, baseSpeed - reduction);
 }
 
 // ============================================================================
@@ -438,25 +413,25 @@ export function calculateSpeed(
 export function processSnakeMove(state: SnakeState): SnakeState {
   // Return unchanged state if game is paused or over
   if (state.isPaused || state.isGameOver || !state.isPlaying) {
-    return state
+    return state;
   }
 
-  const gameSpecific = state.gameSpecific
+  const gameSpecific = state.gameSpecific;
   if (!gameSpecific) {
-    return state
+    return state;
   }
 
   // Get current state values
-  const { segments, nextDirection, food, wallsWrap, currentSpeed } = gameSpecific
-  const gridSize = GRID_SIZE
+  const { segments, nextDirection, food, wallsWrap, currentSpeed } = gameSpecific;
+  const gridSize = GRID_SIZE;
 
   // Calculate next head position
-  const head = getSnakeHead(segments)
-  let newHeadPos = getNextPosition(head, nextDirection)
+  const head = getSnakeHead(segments);
+  let newHeadPos = getNextPosition(head, nextDirection);
 
   // Handle wall wrapping or collision
   if (wallsWrap) {
-    newHeadPos = wrapPosition(newHeadPos, gridSize)
+    newHeadPos = wrapPosition(newHeadPos, gridSize);
   } else if (!isWithinBounds(newHeadPos, gridSize)) {
     // Wall collision - game over
     return {
@@ -464,11 +439,11 @@ export function processSnakeMove(state: SnakeState): SnakeState {
       isPlaying: false,
       isGameOver: true,
       highScore: Math.max(state.highScore, state.score),
-    }
+    };
   }
 
   // Check for self collision (check against current body, not the new head position)
-  const wouldCollideWithSelf = collidesWithSnake(newHeadPos, segments, false)
+  const wouldCollideWithSelf = collidesWithSnake(newHeadPos, segments, false);
   if (wouldCollideWithSelf) {
     // Self collision - game over
     return {
@@ -476,47 +451,47 @@ export function processSnakeMove(state: SnakeState): SnakeState {
       isPlaying: false,
       isGameOver: true,
       highScore: Math.max(state.highScore, state.score),
-    }
+    };
   }
 
   // Check if eating food
-  const eating = positionsEqual(newHeadPos, food)
+  const eating = positionsEqual(newHeadPos, food);
 
   // Move the snake (grow if eating)
-  const newSegments = moveSnake(segments, nextDirection, eating, wallsWrap, gridSize)
+  const newSegments = moveSnake(segments, nextDirection, eating, wallsWrap, gridSize);
 
   // Calculate new score and food if eating
-  let newScore = state.score
-  let newFood = food
-  let newFoodEatenThisLevel = gameSpecific.foodEatenThisLevel
-  let newTotalFoodEaten = gameSpecific.totalFoodEaten
-  let newCombo = gameSpecific.currentCombo
-  let newMaxCombo = gameSpecific.maxCombo
-  let newLevel = state.level
-  let newSpeed = currentSpeed
+  let newScore = state.score;
+  let newFood = food;
+  let newFoodEatenThisLevel = gameSpecific.foodEatenThisLevel;
+  let newTotalFoodEaten = gameSpecific.totalFoodEaten;
+  let newCombo = gameSpecific.currentCombo;
+  let newMaxCombo = gameSpecific.maxCombo;
+  let newLevel = state.level;
+  let newSpeed = currentSpeed;
 
   if (eating) {
     // Calculate score with combo bonus
-    newCombo += 1
-    newMaxCombo = Math.max(newMaxCombo, newCombo)
-    newScore += calculateScore(food, state.level, newCombo)
+    newCombo += 1;
+    newMaxCombo = Math.max(newMaxCombo, newCombo);
+    newScore += calculateScore(food, state.level, newCombo);
 
     // Update food counters
-    newFoodEatenThisLevel += 1
-    newTotalFoodEaten += 1
+    newFoodEatenThisLevel += 1;
+    newTotalFoodEaten += 1;
 
     // Check for level up (every 10 food)
     if (newFoodEatenThisLevel >= 10) {
-      newLevel += 1
-      newFoodEatenThisLevel = 0
-      newSpeed = calculateSpeed(newLevel)
+      newLevel += 1;
+      newFoodEatenThisLevel = 0;
+      newSpeed = calculateSpeed(newLevel);
     }
 
     // Spawn new food
-    newFood = spawnFood(newSegments, gridSize)
+    newFood = spawnFood(newSegments, gridSize);
   } else {
     // Reset combo if not eating
-    newCombo = 0
+    newCombo = 0;
   }
 
   // Return new state
@@ -537,7 +512,7 @@ export function processSnakeMove(state: SnakeState): SnakeState {
       maxCombo: newMaxCombo,
       timeSinceLastMove: 0,
     },
-  }
+  };
 }
 
 /**
@@ -550,30 +525,27 @@ export function processSnakeMove(state: SnakeState): SnakeState {
  * @param newDirection - The new direction to change to
  * @returns New game state with updated nextDirection, or unchanged if invalid
  */
-export function changeDirection(
-  state: SnakeState,
-  newDirection: SnakeDirection
-): SnakeState {
+export function changeDirection(state: SnakeState, newDirection: SnakeDirection): SnakeState {
   // Return unchanged state if game is paused or over
   if (state.isPaused || state.isGameOver || !state.isPlaying) {
-    return state
+    return state;
   }
 
-  const gameSpecific = state.gameSpecific
+  const gameSpecific = state.gameSpecific;
   if (!gameSpecific) {
-    return state
+    return state;
   }
 
   // Validate the direction is a valid SnakeDirection
-  const validDirections: SnakeDirection[] = ['up', 'down', 'left', 'right']
+  const validDirections: SnakeDirection[] = ['up', 'down', 'left', 'right'];
   if (!validDirections.includes(newDirection)) {
-    return state
+    return state;
   }
 
   // Check if direction change is allowed (can't reverse into self)
-  const currentDirection = gameSpecific.direction
+  const currentDirection = gameSpecific.direction;
   if (!isValidDirectionChange(currentDirection, newDirection)) {
-    return state
+    return state;
   }
 
   // Return new state with updated nextDirection
@@ -583,7 +555,7 @@ export function changeDirection(
       ...gameSpecific,
       nextDirection: newDirection,
     },
-  }
+  };
 }
 
 /**
@@ -597,13 +569,13 @@ export function changeDirection(
 export function togglePause(state: SnakeState): SnakeState {
   // Can only pause/unpause if game is playing and not over
   if (!state.isPlaying || state.isGameOver) {
-    return state
+    return state;
   }
 
   return {
     ...state,
     isPaused: !state.isPaused,
-  }
+  };
 }
 
 // ============================================================================
@@ -611,22 +583,36 @@ export function togglePause(state: SnakeState): SnakeState {
 // ============================================================================
 
 /**
+ * Generate a unique session ID for game tracking.
+ *
+ * Creates a UUID-like string for identifying game sessions.
+ * Used for score submission and replay verification.
+ *
+ * @returns Unique session ID string
+ */
+export function generateSessionId(): string {
+  // Generate a UUID v4-like string
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 15);
+  const randomPart2 = Math.random().toString(36).substring(2, 15);
+  return `${timestamp}-${randomPart}-${randomPart2}`;
+}
+
+/**
  * Create initial snake game specific state.
  *
  * @param config - Game configuration
  * @returns Initial game-specific state
  */
-export function createInitialSnakeState(
-  config?: Partial<SnakeConfig>
-): SnakeGameSpecificState {
-  const gridSize = config?.gameSpecificConfig?.gridSize ?? GRID_SIZE
-  const initialSpeed = config?.gameSpecificConfig?.initialSpeed ?? INITIAL_TICK_INTERVAL
-  const initialLength = config?.gameSpecificConfig?.initialLength ?? INITIAL_SNAKE_LENGTH
-  const wallsWrap = config?.gameSpecificConfig?.wallsWrap ?? false
-  const difficulty = config?.gameSpecificConfig?.difficulty ?? 'normal'
+export function createInitialSnakeState(config?: Partial<SnakeConfig>): SnakeGameSpecificState {
+  const gridSize = config?.gameSpecificConfig?.gridSize ?? GRID_SIZE;
+  const initialSpeed = config?.gameSpecificConfig?.initialSpeed ?? INITIAL_TICK_INTERVAL;
+  const initialLength = config?.gameSpecificConfig?.initialLength ?? INITIAL_SNAKE_LENGTH;
+  const wallsWrap = config?.gameSpecificConfig?.wallsWrap ?? false;
+  const difficulty = config?.gameSpecificConfig?.difficulty ?? 'normal';
 
-  const segments = createInitialSnake(initialLength)
-  const food = spawnFood(segments, gridSize)
+  const segments = createInitialSnake(initialLength);
+  const food = spawnFood(segments, gridSize);
 
   return {
     segments,
@@ -642,7 +628,8 @@ export function createInitialSnakeState(
     currentCombo: 0,
     activePowerUps: [],
     difficulty,
-  }
+    sessionId: undefined, // Session ID is set when game starts
+  };
 }
 
 /**
@@ -667,7 +654,7 @@ export function createMenuState(
   difficulty: SnakeDifficulty = 'normal',
   existingHighScore: number = 0
 ): SnakeState {
-  const settings = DIFFICULTY_SETTINGS[difficulty]
+  const settings = DIFFICULTY_SETTINGS[difficulty];
 
   const config: Partial<SnakeConfig> = {
     gameSpecificConfig: {
@@ -684,9 +671,9 @@ export function createMenuState(
       enableScreenWrap: !settings.wallsKill,
       enableSelfCollision: true,
     },
-  }
+  };
 
-  const gameSpecific = createInitialSnakeState(config)
+  const gameSpecific = createInitialSnakeState(config);
 
   return {
     score: 0,
@@ -699,7 +686,7 @@ export function createMenuState(
     startTime: null,
     elapsedTime: 0,
     gameSpecific,
-  }
+  };
 }
 
 /**
@@ -707,6 +694,7 @@ export function createMenuState(
  *
  * Transitions from menu (isPlaying: false) to active gameplay (isPlaying: true).
  * Resets score, level, and game-specific state while preserving high score.
+ * Generates a unique session ID for the game session.
  *
  * @param state - Current game state (should be in menu)
  * @returns New game state with gameplay started
@@ -717,17 +705,18 @@ export function createMenuState(
  * const playingState = startGame(menuState)
  * console.log(playingState.isPlaying) // true
  * console.log(playingState.startTime) // timestamp
+ * console.log(playingState.gameSpecific.sessionId) // unique ID
  * ```
  */
 export function startGame(state: SnakeState): SnakeState {
   // Only start if not already playing
   if (state.isPlaying || state.isGameOver) {
-    return state
+    return state;
   }
 
   // Get difficulty from current config
-  const difficulty = state.gameSpecific?.difficulty ?? 'normal'
-  const settings = DIFFICULTY_SETTINGS[difficulty]
+  const difficulty = state.gameSpecific?.difficulty ?? 'normal';
+  const settings = DIFFICULTY_SETTINGS[difficulty];
 
   const config: Partial<SnakeConfig> = {
     gameSpecificConfig: {
@@ -744,9 +733,12 @@ export function startGame(state: SnakeState): SnakeState {
       enableScreenWrap: !settings.wallsKill,
       enableSelfCollision: true,
     },
-  }
+  };
 
-  const gameSpecific = createInitialSnakeState(config)
+  const gameSpecific = createInitialSnakeState(config);
+
+  // Generate a unique session ID for this game session
+  const sessionId = generateSessionId();
 
   return {
     ...state,
@@ -758,8 +750,11 @@ export function startGame(state: SnakeState): SnakeState {
     lives: 1,
     startTime: Date.now(),
     elapsedTime: 0,
-    gameSpecific,
-  }
+    gameSpecific: {
+      ...gameSpecific,
+      sessionId,
+    },
+  };
 }
 
 /**
@@ -781,10 +776,10 @@ export function startGame(state: SnakeState): SnakeState {
  * ```
  */
 export function returnToMenu(state: SnakeState): SnakeState {
-  const difficulty = state.gameSpecific?.difficulty ?? 'normal'
-  const preservedHighScore = Math.max(state.highScore, state.score)
+  const difficulty = state.gameSpecific?.difficulty ?? 'normal';
+  const preservedHighScore = Math.max(state.highScore, state.score);
 
-  return createMenuState(difficulty, preservedHighScore)
+  return createMenuState(difficulty, preservedHighScore);
 }
 
 /**
@@ -816,21 +811,18 @@ export function returnToMenu(state: SnakeState): SnakeState {
  * console.log(unchanged === playingState) // true (no change)
  * ```
  */
-export function setDifficulty(
-  state: SnakeState,
-  difficulty: SnakeDifficulty
-): SnakeState {
+export function setDifficulty(state: SnakeState, difficulty: SnakeDifficulty): SnakeState {
   // Can only change difficulty in menu (not playing, not game over)
   if (state.isPlaying || state.isGameOver) {
-    return state
+    return state;
   }
 
   // Validate difficulty
   if (!DIFFICULTY_SETTINGS[difficulty]) {
-    return state
+    return state;
   }
 
-  return createMenuState(difficulty, state.highScore)
+  return createMenuState(difficulty, state.highScore);
 }
 
 // ============================================================================
@@ -868,9 +860,10 @@ export default {
   changeDirection,
   togglePause,
   // State creation
+  generateSessionId,
   createInitialSnakeState,
   createMenuState,
   startGame,
   returnToMenu,
   setDifficulty,
-}
+};

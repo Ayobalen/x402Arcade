@@ -7,8 +7,8 @@
  * @module games/snake/types
  */
 
-import type { GameState, GameConfig } from '../types'
-import type { SnakeDirection, SnakeDifficulty } from './constants'
+import type { GameState, GameConfig } from '../types';
+import type { SnakeDirection, SnakeDifficulty } from './constants';
 
 // ============================================================================
 // Position Types
@@ -44,27 +44,27 @@ import type { SnakeDirection, SnakeDifficulty } from './constants'
  */
 export interface Position {
   /** Column index (0 to GRID_SIZE - 1), left to right */
-  x: number
+  x: number;
   /** Row index (0 to GRID_SIZE - 1), top to bottom */
-  y: number
+  y: number;
 }
 
 /**
  * Alias for Position - grid position in cell coordinates.
  * @deprecated Use Position instead for consistency
  */
-export type GridPosition = Position
+export type GridPosition = Position;
 
 /**
  * Snake segment with position and optional metadata.
  */
 export interface SnakeSegment extends Position {
   /** Unique identifier for this segment */
-  id?: string
+  id?: string;
   /** Whether this is the head segment */
-  isHead?: boolean
+  isHead?: boolean;
   /** Whether this is the tail segment */
-  isTail?: boolean
+  isTail?: boolean;
 }
 
 // ============================================================================
@@ -74,20 +74,20 @@ export interface SnakeSegment extends Position {
 /**
  * Food type enumeration.
  */
-export type FoodType = 'standard' | 'bonus' | 'speed' | 'slow'
+export type FoodType = 'standard' | 'bonus' | 'speed' | 'slow';
 
 /**
  * Food item on the grid.
  */
 export interface Food extends GridPosition {
   /** Type of food */
-  type: FoodType
+  type: FoodType;
   /** Point value of this food */
-  points: number
+  points: number;
   /** Whether food has special effects */
-  hasEffect: boolean
+  hasEffect: boolean;
   /** Time remaining before food disappears (for bonus food) */
-  timeRemaining?: number
+  timeRemaining?: number;
 }
 
 // ============================================================================
@@ -100,31 +100,33 @@ export interface Food extends GridPosition {
  */
 export interface SnakeGameSpecificState {
   /** Snake body segments, head is first element */
-  segments: SnakeSegment[]
+  segments: SnakeSegment[];
   /** Current movement direction */
-  direction: SnakeDirection
+  direction: SnakeDirection;
   /** Queued direction (for buffered input) */
-  nextDirection: SnakeDirection
+  nextDirection: SnakeDirection;
   /** Current food position */
-  food: Food
+  food: Food;
   /** Current game speed (tick interval in ms) */
-  currentSpeed: number
+  currentSpeed: number;
   /** Whether walls wrap around (easy mode) */
-  wallsWrap: boolean
+  wallsWrap: boolean;
   /** Time since last move (for tick timing) */
-  timeSinceLastMove: number
+  timeSinceLastMove: number;
   /** Number of food eaten this level */
-  foodEatenThisLevel: number
+  foodEatenThisLevel: number;
   /** Total food eaten this game */
-  totalFoodEaten: number
+  totalFoodEaten: number;
   /** Highest combo achieved */
-  maxCombo: number
+  maxCombo: number;
   /** Current combo count */
-  currentCombo: number
+  currentCombo: number;
   /** Active power-ups */
-  activePowerUps: ActivePowerUp[]
+  activePowerUps: ActivePowerUp[];
   /** Current difficulty level */
-  difficulty?: SnakeDifficulty
+  difficulty?: SnakeDifficulty;
+  /** Unique session ID for this game session */
+  sessionId?: string;
 }
 
 /**
@@ -132,17 +134,17 @@ export interface SnakeGameSpecificState {
  */
 export interface ActivePowerUp {
   /** Power-up type identifier */
-  type: string
+  type: string;
   /** Remaining duration in milliseconds */
-  remainingTime: number
+  remainingTime: number;
   /** Effect multiplier or value */
-  value: number
+  value: number;
 }
 
 /**
  * Complete Snake game state.
  */
-export type SnakeState = GameState<SnakeGameSpecificState>
+export type SnakeState = GameState<SnakeGameSpecificState>;
 
 // ============================================================================
 // Snake Game Configuration
@@ -153,35 +155,35 @@ export type SnakeState = GameState<SnakeGameSpecificState>
  */
 export interface SnakeGameSpecificConfig {
   /** Grid size (cells per side) */
-  gridSize: number
+  gridSize: number;
   /** Cell size in pixels */
-  cellSize: number
+  cellSize: number;
   /** Initial snake length */
-  initialLength: number
+  initialLength: number;
   /** Initial game speed (tick interval in ms) */
-  initialSpeed: number
+  initialSpeed: number;
   /** Speed increase per level (ms reduction) */
-  speedIncreasePerLevel: number
+  speedIncreasePerLevel: number;
   /** Whether walls kill or wrap */
-  wallsWrap: boolean
+  wallsWrap: boolean;
   /** Difficulty level */
-  difficulty: SnakeDifficulty
+  difficulty: SnakeDifficulty;
   /** Enable bonus food spawns */
-  enableBonusFood: boolean
+  enableBonusFood: boolean;
   /** Bonus food spawn chance (0-1) */
-  bonusFoodChance: number
+  bonusFoodChance: number;
   /** Food value multiplier */
-  foodValueMultiplier: number
+  foodValueMultiplier: number;
   /** Enable screen wrap (snake comes out other side) */
-  enableScreenWrap: boolean
+  enableScreenWrap: boolean;
   /** Enable self-collision (can die by hitting self) */
-  enableSelfCollision: boolean
+  enableSelfCollision: boolean;
 }
 
 /**
  * Complete Snake game configuration.
  */
-export type SnakeConfig = GameConfig<SnakeGameSpecificConfig>
+export type SnakeConfig = GameConfig<SnakeGameSpecificConfig>;
 
 // ============================================================================
 // Snake Game Actions
@@ -199,7 +201,7 @@ export type SnakeAction =
   | { type: 'SPEED_UP' }
   | { type: 'COLLISION'; collisionType: 'wall' | 'self' }
   | { type: 'POWER_UP_COLLECTED'; powerUpType: string }
-  | { type: 'POWER_UP_EXPIRED'; powerUpType: string }
+  | { type: 'POWER_UP_EXPIRED'; powerUpType: string };
 
 // ============================================================================
 // Snake Game Events
@@ -217,7 +219,7 @@ export type SnakeEvent =
   | { type: 'DIRECTION_CHANGED'; from: SnakeDirection; to: SnakeDirection }
   | { type: 'SPEED_INCREASED'; newSpeed: number }
   | { type: 'BONUS_FOOD_SPAWNED'; food: Food }
-  | { type: 'BONUS_FOOD_EXPIRED'; position: GridPosition }
+  | { type: 'BONUS_FOOD_EXPIRED'; position: GridPosition };
 
 // ============================================================================
 // Utility Types
@@ -227,41 +229,41 @@ export type SnakeEvent =
  * Direction vector for movement calculations.
  * Maps direction to grid offset.
  */
-export type DirectionVector = Record<SnakeDirection, GridPosition>
+export type DirectionVector = Record<SnakeDirection, GridPosition>;
 
 /**
  * Opposite direction mapping.
  */
-export type OppositeDirection = Record<SnakeDirection, SnakeDirection>
+export type OppositeDirection = Record<SnakeDirection, SnakeDirection>;
 
 /**
  * High score entry for leaderboard.
  */
 export interface SnakeHighScore {
   /** Player identifier */
-  playerId: string
+  playerId: string;
   /** Player display name */
-  playerName: string
+  playerName: string;
   /** Score achieved */
-  score: number
+  score: number;
   /** Level reached */
-  level: number
+  level: number;
   /** Snake length at game end */
-  snakeLength: number
+  snakeLength: number;
   /** Total food eaten */
-  foodEaten: number
+  foodEaten: number;
   /** Game duration in seconds */
-  duration: number
+  duration: number;
   /** Difficulty played */
-  difficulty: SnakeDifficulty
+  difficulty: SnakeDifficulty;
   /** Timestamp */
-  timestamp: number
+  timestamp: number;
 }
 
 // ============================================================================
 // Re-exports for convenience
 // ============================================================================
 
-export type { SnakeDirection, SnakeDifficulty } from './constants'
-export type { Direction } from '../types'
-export type { Vector2D } from '../engine/types'
+export type { SnakeDirection, SnakeDifficulty } from './constants';
+export type { Direction } from '../types';
+export type { Vector2D } from '../engine/types';
