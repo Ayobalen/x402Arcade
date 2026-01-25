@@ -12,6 +12,7 @@ import {
   renderBackground,
   renderGrid,
   renderFood,
+  renderFoodPulsing,
   renderSnakeHead,
   renderSnakeBody,
   renderSnakeBodyAnimated,
@@ -205,7 +206,7 @@ describe('RENDER_COLORS', () => {
     expect(RENDER_COLORS.background).toBe('#0F0F1A');
     expect(RENDER_COLORS.gridLine).toBe('#1A1A2E');
     expect(RENDER_COLORS.snakeHead).toBe('#00ff00');
-    expect(RENDER_COLORS.food).toBe('#ff0000');
+    expect(RENDER_COLORS.food).toBe('#00ffff'); // Cyan for retro arcade aesthetic
   });
 
   it('should have valid hex color format', () => {
@@ -418,6 +419,104 @@ describe('renderFood', () => {
   it('should default to standard color if type is undefined', () => {
     const food = { x: 5, y: 10 };
     renderFood(ctx, food);
+
+    expect(ctx.fillStyle).toBe(RENDER_COLORS.food);
+  });
+});
+
+// ============================================================================
+// Pulsing Food Rendering Tests
+// ============================================================================
+
+describe('renderFoodPulsing', () => {
+  let ctx: CanvasRenderingContext2D;
+
+  beforeEach(() => {
+    ctx = createMockContext();
+  });
+
+  it('should calculate correct pixel position from grid coordinates', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFoodPulsing(ctx, food, 0);
+
+    const mockCtx = ctx as any;
+    const arcCalls = mockCtx.getCalls('arc');
+
+    expect(arcCalls).toHaveLength(1);
+
+    // Position should be centered in cell
+    const expectedX = food.x * CELL_SIZE + CELL_SIZE / 2;
+    const expectedY = food.y * CELL_SIZE + CELL_SIZE / 2;
+
+    expect(arcCalls[0].args[0]).toBe(expectedX); // x
+    expect(arcCalls[0].args[1]).toBe(expectedY); // y
+  });
+
+  it('should draw circle with pulsing radius based on time', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+
+    // Test at time 0
+    const mockCtx1 = createMockContext();
+    renderFoodPulsing(mockCtx1, food, 0);
+    const radius1 = (mockCtx1 as any).getCalls('arc')[0].args[2];
+
+    // Test at time 1000 (different phase in sine wave)
+    const mockCtx2 = createMockContext();
+    renderFoodPulsing(mockCtx2, food, 1000);
+    const radius2 = (mockCtx2 as any).getCalls('arc')[0].args[2];
+
+    // Radii should be different due to pulsing
+    expect(radius1).not.toBe(radius2);
+  });
+
+  it('should use standard food color for standard type', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFoodPulsing(ctx, food, 0);
+
+    expect(ctx.fillStyle).toBe(RENDER_COLORS.food);
+  });
+
+  it('should use bonus food color for bonus type', () => {
+    const food = { x: 5, y: 10, type: 'bonus' };
+    renderFoodPulsing(ctx, food, 0);
+
+    expect(ctx.fillStyle).toBe(RENDER_COLORS.bonusFood);
+  });
+
+  it('should reset shadow properties after rendering', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+    renderFoodPulsing(ctx, food, 0);
+
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowColor).toBe('transparent');
+  });
+
+  it('should have pulsing glow intensity based on time', () => {
+    const food = { x: 5, y: 10, type: 'standard' };
+
+    // Both should call applyNeonGlow which sets shadowBlur
+    // But after rendering, it should be reset
+    renderFoodPulsing(ctx, food, 0);
+
+    // After rendering, glow is reset
+    expect(ctx.shadowBlur).toBe(0);
+  });
+
+  it('should handle edge positions', () => {
+    const food = { x: 0, y: 0, type: 'standard' };
+
+    expect(() => renderFoodPulsing(ctx, food, 0)).not.toThrow();
+
+    const mockCtx = ctx as any;
+    const arcCalls = mockCtx.getCalls('arc');
+
+    expect(arcCalls[0].args[0]).toBe(CELL_SIZE / 2); // x
+    expect(arcCalls[0].args[1]).toBe(CELL_SIZE / 2); // y
+  });
+
+  it('should default to standard color if type is undefined', () => {
+    const food = { x: 5, y: 10 };
+    renderFoodPulsing(ctx, food, 0);
 
     expect(ctx.fillStyle).toBe(RENDER_COLORS.food);
   });

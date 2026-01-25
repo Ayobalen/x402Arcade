@@ -145,7 +145,7 @@ export function renderGrid(ctx: CanvasRenderingContext2D): void {
  * Renders a food item as a circle with glow effect.
  *
  * This function draws food items on the game grid using the arc() method
- * to create circular shapes. Standard food is neon red, bonus food is gold.
+ * to create circular shapes. Standard food is cyan, bonus food is magenta.
  * Food is drawn with a subtle glow effect for visual appeal.
  *
  * @param ctx - Canvas 2D rendering context
@@ -162,7 +162,7 @@ export function renderGrid(ctx: CanvasRenderingContext2D): void {
  * @example
  * ```ts
  * const food: Food = { x: 10, y: 15, type: 'standard', points: 10, hasEffect: false }
- * renderFood(ctx, food) // Draws red circle at grid position (10, 15)
+ * renderFood(ctx, food) // Draws cyan circle at grid position (10, 15)
  * ```
  */
 export function renderFood(
@@ -182,6 +182,69 @@ export function renderFood(
   applyNeonGlow(ctx, foodColor, glowIntensity);
 
   // Draw food circle
+  ctx.fillStyle = foodColor;
+  ctx.beginPath();
+  ctx.arc(pixelX, pixelY, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Reset glow effect
+  resetGlow(ctx);
+}
+
+/**
+ * Renders a food item with pulsing animation effect.
+ *
+ * This function draws food items with a pulsing scale animation that makes
+ * them appear to "breathe". The animation creates an appealing visual effect
+ * that draws player attention to the food.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param food - Food object with position and type
+ * @param time - Current time in milliseconds (for animation)
+ *
+ * @description
+ * - Uses sine wave for smooth pulsing effect
+ * - Pulse frequency: 2 cycles per second
+ * - Scale variation: 0.85 to 1.15 (15% variation)
+ * - Glow intensity also pulses with the size
+ * - Creates an "inviting" visual effect for the food
+ *
+ * @example
+ * ```ts
+ * const food: Food = { x: 10, y: 15, type: 'standard', points: 10, hasEffect: false }
+ * const time = performance.now()
+ * renderFoodPulsing(ctx, food, time) // Draws pulsing cyan circle
+ * ```
+ */
+export function renderFoodPulsing(
+  ctx: CanvasRenderingContext2D,
+  food: { x: number; y: number; type?: string },
+  time: number
+): void {
+  // Calculate pixel position (center of cell)
+  const pixelX = food.x * CELL_SIZE + CELL_SIZE / 2;
+  const pixelY = food.y * CELL_SIZE + CELL_SIZE / 2;
+
+  // Calculate pulsing animation
+  // frequency: 0.004 = ~2 cycles per second (1000ms / 0.004 / 2π ≈ 400ms per cycle)
+  const frequency = 0.004;
+  const amplitude = 0.15; // 15% size variation
+  const pulsePhase = Math.sin(time * frequency);
+  const scale = 1 + pulsePhase * amplitude;
+
+  // Base radius with pulse scaling
+  const baseRadius = CELL_SIZE / 3;
+  const radius = baseRadius * scale;
+
+  // Determine color based on food type
+  const foodColor = food.type === 'bonus' ? RENDER_COLORS.bonusFood : RENDER_COLORS.food;
+
+  // Glow intensity also pulses (stronger when larger)
+  const baseGlow = food.type === 'bonus' ? 15 : 10;
+  const glowIntensity = baseGlow + (pulsePhase + 1) * 3; // Range: baseGlow to baseGlow+6
+  applyNeonGlow(ctx, foodColor, glowIntensity);
+
+  // Draw food circle with pulsing radius
   ctx.fillStyle = foodColor;
   ctx.beginPath();
   ctx.arc(pixelX, pixelY, radius, 0, Math.PI * 2);
