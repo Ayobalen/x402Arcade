@@ -1,5 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { PageTransition } from '@/components/transitions';
 import { ProtectedRoute } from '@/components/guards';
@@ -12,60 +11,56 @@ import { NotFound } from '@/pages/NotFound';
 /**
  * AnimatedRoutes Component
  *
- * Handles route transitions with AnimatePresence.
- * Must be separate component to access useLocation hook.
+ * Renders routes with PageTransition wrapper for smooth animations.
+ * PageTransition component handles AnimatePresence internally.
  */
 function AnimatedRoutes() {
-  const location = useLocation();
-
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route
-          path="/"
-          element={
-            <PageTransition>
-              <Home />
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <PageTransition>
+            <Home />
+          </PageTransition>
+        }
+      />
+      <Route
+        path="/play"
+        element={
+          <PageTransition>
+            <Play />
+          </PageTransition>
+        }
+      />
+      <Route
+        path="/play/:gameId"
+        element={
+          <ProtectedRoute>
+            <PageTransition transition="zoom">
+              <Game />
             </PageTransition>
-          }
-        />
-        <Route
-          path="/play"
-          element={
-            <PageTransition>
-              <Play />
-            </PageTransition>
-          }
-        />
-        <Route
-          path="/play/:gameId"
-          element={
-            <ProtectedRoute>
-              <PageTransition>
-                <Game />
-              </PageTransition>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leaderboard"
-          element={
-            <PageTransition>
-              <Leaderboard />
-            </PageTransition>
-          }
-        />
-        {/* Catch-all route for 404 */}
-        <Route
-          path="*"
-          element={
-            <PageTransition>
-              <NotFound />
-            </PageTransition>
-          }
-        />
-      </Routes>
-    </AnimatePresence>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leaderboard"
+        element={
+          <PageTransition>
+            <Leaderboard />
+          </PageTransition>
+        }
+      />
+      {/* Catch-all route for 404 */}
+      <Route
+        path="*"
+        element={
+          <PageTransition>
+            <NotFound />
+          </PageTransition>
+        }
+      />
+    </Routes>
   );
 }
 
