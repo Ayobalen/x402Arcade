@@ -39,11 +39,27 @@ import {
 // ============================================================================
 
 /**
+ * Ranking entry interface for leaderboard display.
+ */
+export interface RankingEntry {
+  /** Player's rank position */
+  rank: number;
+  /** Player's wallet address or identifier */
+  playerAddress: string;
+  /** Player's score */
+  score: number;
+  /** Whether this is the current player */
+  isCurrentPlayer?: boolean;
+}
+
+/**
  * Hook options interface for useSnakeGame.
  */
 export interface UseSnakeGameOptions {
-  /** Callback when game ends (called with final score) */
-  onGameOver?: (score: number) => void;
+  /** Callback when game ends (called with final score and session ID) */
+  onGameOver?: (score: number, sessionId?: string) => void;
+  /** Callback to fetch rankings after game over */
+  onFetchRankings?: (score: number) => Promise<RankingEntry[]>;
 }
 
 /**
@@ -64,6 +80,14 @@ export interface UseSnakeGameReturn {
   pause: () => void;
   /** Restart the game (alias for reset) */
   restart: () => void;
+  /** Current session ID for this game */
+  sessionId: string | undefined;
+  /** Player's ranking after game over */
+  playerRank: number | null;
+  /** Nearby rankings for context */
+  rankings: RankingEntry[];
+  /** Whether rankings are being loaded */
+  isLoadingRankings: boolean;
 }
 
 // ============================================================================
@@ -99,7 +123,7 @@ export interface UseSnakeGameReturn {
  *     <div>
  *       <canvas ref={canvasRef} width={400} height={400} />
  *       <button onClick={reset}>Reset</button>
- *       <div>Score: {state.gameSpecific.score}</div>
+ *       <div>Score: {state.score}</div>
  *     </div>
  *   )
  * }
@@ -109,7 +133,7 @@ export function useSnakeGame(
   difficulty: SnakeDifficulty = 'normal',
   options: UseSnakeGameOptions = {}
 ): UseSnakeGameReturn {
-  const { onGameOver } = options;
+  const { onGameOver, onFetchRankings } = options;
   // ============================================================================
   // State Initialization
   // ============================================================================
@@ -119,6 +143,13 @@ export function useSnakeGame(
    * This creates the initial menu state with the specified difficulty.
    */
   const [state, setState] = useState<SnakeState>(() => createMenuState(difficulty));
+
+  /**
+   * Ranking state for display after game over.
+   */
+  const [rankings, setRankings] = useState<RankingEntry[]>([]);
+  const [playerRank, setPlayerRank] = useState<number | null>(null);
+  const [isLoadingRankings, setIsLoadingRankings] = useState(false);
 
   // ============================================================================
   // Canvas Context Management
@@ -333,14 +364,14 @@ export function useSnakeGame(
         }
 
         // Render score
-        renderScore(ctx, state.gameSpecific.score);
+        renderScore(ctx, state.score);
       }
 
       // Render overlays
       if (state.isPaused) {
         renderPauseOverlay(ctx);
       } else if (state.isGameOver) {
-        renderGameOverOverlay(ctx, state.gameSpecific.score);
+        renderGameOverOverlay(ctx, state.score);
       }
 
       // Continue render loop
@@ -360,17 +391,44 @@ export function useSnakeGame(
   }, [state]); // Re-render when state changes
 
   // ============================================================================
-  // Game Over Callback
+  // Game Over Callback and Rankings
   // ============================================================================
 
   /**
-   * Call onGameOver callback when game ends.
+   * Call onGameOver callback when game ends and fetch rankings.
    */
   useEffect(() => {
-    if (state.isGameOver && onGameOver) {
-      onGameOver(state.gameSpecific.score);
+    if (state.isGameOver) {
+      const score = state.score;
+      const sessionId = state.gameSpecific?.sessionId;
+
+      // Call the game over callback with score and session ID
+      if (onGameOver) {
+        onGameOver(score, sessionId);
+      }
+
+      // Fetch rankings if callback provided
+      if (onFetchRankings) {
+        setIsLoadingRankings(true);
+        onFetchRankings(score)
+          .then((fetchedRankings) => {
+            setRankings(fetchedRankings);
+            // Find player's rank from the rankings
+            const playerEntry = fetchedRankings.find((r) => r.isCurrentPlayer);
+            if (playerEntry) {
+              setPlayerRank(playerEntry.rank);
+            }
+          })
+          .catch(() => {
+            // Rankings fetch failed - silently handle as this is non-critical
+            // Rankings will simply not be displayed
+          })
+          .finally(() => {
+            setIsLoadingRankings(false);
+          });
+      }
     }
-  }, [state.isGameOver, state.gameSpecific.score, onGameOver]);
+  }, [state.isGameOver, state.score, state.gameSpecific?.sessionId, onGameOver, onFetchRankings]);
 
   // ============================================================================
   // Control Methods
@@ -379,10 +437,15 @@ export function useSnakeGame(
   /**
    * Reset game to initial menu state.
    * Creates a new menu state with the same difficulty.
+   * Clears rankings from previous game.
    */
   const reset = useCallback(() => {
     const currentDifficulty = state.gameSpecific.difficulty || difficulty;
     setState(createMenuState(currentDifficulty));
+    // Clear previous game's rankings
+    setRankings([]);
+    setPlayerRank(null);
+    setIsLoadingRankings(false);
   }, [state.gameSpecific.difficulty, difficulty]);
 
   /**
@@ -419,5 +482,9 @@ export function useSnakeGame(
     start,
     pause,
     restart,
+    sessionId: state.gameSpecific?.sessionId,
+    playerRank,
+    rankings,
+    isLoadingRankings,
   };
 }

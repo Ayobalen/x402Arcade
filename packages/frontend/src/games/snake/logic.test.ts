@@ -36,9 +36,15 @@ import {
   startGame,
   returnToMenu,
   setDifficulty,
+  generateSessionId,
 } from './logic';
 import type { SnakeState } from './types';
-import { GRID_SIZE, INITIAL_SNAKE_LENGTH, INITIAL_DIRECTION, DIFFICULTY_SETTINGS } from './constants';
+import {
+  GRID_SIZE,
+  INITIAL_SNAKE_LENGTH,
+  INITIAL_DIRECTION,
+  DIFFICULTY_SETTINGS,
+} from './constants';
 
 // ============================================================================
 // Snake Centering Logic Tests (Feature #709)
@@ -2098,6 +2104,134 @@ describe('Menu State Management', () => {
       const backToMenu = returnToMenu(gameOver);
 
       expect(backToMenu.gameSpecific?.difficulty).toBe('hard');
+    });
+  });
+});
+
+// ============================================================================
+// Session ID Tracking Tests (Feature #765)
+// ============================================================================
+
+describe('Session ID Tracking', () => {
+  describe('generateSessionId', () => {
+    it('should generate a non-empty string', () => {
+      const sessionId = generateSessionId();
+      expect(typeof sessionId).toBe('string');
+      expect(sessionId.length).toBeGreaterThan(0);
+    });
+
+    it('should generate unique IDs on consecutive calls', () => {
+      const id1 = generateSessionId();
+      const id2 = generateSessionId();
+      const id3 = generateSessionId();
+
+      expect(id1).not.toBe(id2);
+      expect(id2).not.toBe(id3);
+      expect(id1).not.toBe(id3);
+    });
+
+    it('should generate IDs with expected format (timestamp-random-random)', () => {
+      const sessionId = generateSessionId();
+      const parts = sessionId.split('-');
+
+      // Should have 3 parts: timestamp, random1, random2
+      expect(parts.length).toBe(3);
+
+      // All parts should be non-empty strings
+      parts.forEach((part) => {
+        expect(part.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('Session ID in Game State', () => {
+    it('should not have sessionId in menu state', () => {
+      const menuState = createMenuState('normal');
+      expect(menuState.gameSpecific?.sessionId).toBeUndefined();
+    });
+
+    it('should generate sessionId when game starts', () => {
+      const menuState = createMenuState('normal');
+      const playingState = startGame(menuState);
+
+      expect(playingState.gameSpecific?.sessionId).toBeDefined();
+      expect(typeof playingState.gameSpecific?.sessionId).toBe('string');
+      expect(playingState.gameSpecific?.sessionId?.length).toBeGreaterThan(0);
+    });
+
+    it('should generate unique sessionId for each new game', () => {
+      const menuState = createMenuState('normal');
+
+      // Start first game
+      const game1 = startGame(menuState);
+      const sessionId1 = game1.gameSpecific?.sessionId;
+
+      // Return to menu and start new game
+      const backToMenu = returnToMenu({
+        ...game1,
+        isPlaying: false,
+        isGameOver: true,
+        score: 100,
+      });
+      const game2 = startGame(backToMenu);
+      const sessionId2 = game2.gameSpecific?.sessionId;
+
+      expect(sessionId1).toBeDefined();
+      expect(sessionId2).toBeDefined();
+      expect(sessionId1).not.toBe(sessionId2);
+    });
+
+    it('should preserve sessionId during gameplay', () => {
+      const menuState = createMenuState('normal');
+      const playingState = startGame(menuState);
+      const originalSessionId = playingState.gameSpecific?.sessionId;
+
+      // Simulate movement
+      const afterMove = processSnakeMove(playingState);
+
+      expect(afterMove.gameSpecific?.sessionId).toBe(originalSessionId);
+    });
+
+    it('should preserve sessionId through pause/unpause', () => {
+      const menuState = createMenuState('normal');
+      const playingState = startGame(menuState);
+      const originalSessionId = playingState.gameSpecific?.sessionId;
+
+      // Pause the game
+      const pausedState = togglePause(playingState);
+      expect(pausedState.gameSpecific?.sessionId).toBe(originalSessionId);
+
+      // Unpause the game
+      const unpausedState = togglePause(pausedState);
+      expect(unpausedState.gameSpecific?.sessionId).toBe(originalSessionId);
+    });
+
+    it('should preserve sessionId through direction changes', () => {
+      const menuState = createMenuState('normal');
+      const playingState = startGame(menuState);
+      const originalSessionId = playingState.gameSpecific?.sessionId;
+
+      // Change direction
+      const afterDirection = changeDirection(playingState, 'up');
+      expect(afterDirection.gameSpecific?.sessionId).toBe(originalSessionId);
+    });
+
+    it('should clear sessionId when returning to menu', () => {
+      const menuState = createMenuState('normal');
+      const playingState = startGame(menuState);
+
+      expect(playingState.gameSpecific?.sessionId).toBeDefined();
+
+      // Return to menu
+      const backToMenu = returnToMenu({
+        ...playingState,
+        isPlaying: false,
+        isGameOver: true,
+        score: 100,
+      });
+
+      // Menu state should not have a session ID
+      expect(backToMenu.gameSpecific?.sessionId).toBeUndefined();
     });
   });
 });
