@@ -300,3 +300,117 @@ export const AllPresets: Story = {
     layout: 'fullscreen',
   },
 };
+
+// Component for callbacks demo (extracted to avoid hooks-in-render error)
+const CallbacksDemo = () => {
+  const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'contact'>('home');
+  const [logs, setLogs] = useState<string[]>([]);
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 9)]);
+  };
+
+  const pages = {
+    home: { title: 'Home Page', color: '#8B5CF6', subtitle: 'Welcome!' },
+    about: { title: 'About Page', color: '#EC4899', subtitle: 'Learn More' },
+    contact: { title: 'Contact Page', color: '#10B981', subtitle: 'Get in Touch' },
+  };
+
+  return (
+    <div className="min-h-screen bg-bg-main">
+      {/* Navigation */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-bg-surface border-b border-border">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex gap-4 items-center justify-center">
+            <button
+              onClick={() => setCurrentPage('home')}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === 'home'
+                  ? 'bg-primary text-text'
+                  : 'bg-bg-main text-text-muted hover:text-text'
+              }`}
+            >
+              Home
+            </button>
+            <button
+              onClick={() => setCurrentPage('about')}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === 'about'
+                  ? 'bg-primary text-text'
+                  : 'bg-bg-main text-text-muted hover:text-text'
+              }`}
+            >
+              About
+            </button>
+            <button
+              onClick={() => setCurrentPage('contact')}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === 'contact'
+                  ? 'bg-primary text-text'
+                  : 'bg-bg-main text-text-muted hover:text-text'
+              }`}
+            >
+              Contact
+            </button>
+          </div>
+          <div className="text-center mt-2 text-sm text-text-muted">
+            Navigate between pages to see callback logs below
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="pt-24 flex">
+        {/* Page Content */}
+        <div className="flex-1">
+          <MemoryRouter key={currentPage}>
+            <PageTransition
+              transition="slideRight"
+              onAnimationStart={() => addLog('🎬 Animation started')}
+              onAnimationComplete={() => addLog('✅ Animation completed')}
+              onExitComplete={() => addLog('👋 Exit complete')}
+            >
+              <DemoPage {...pages[currentPage]} />
+            </PageTransition>
+          </MemoryRouter>
+        </div>
+
+        {/* Callback Log Panel */}
+        <div className="w-80 bg-bg-surface border-l border-border p-4 overflow-y-auto max-h-screen">
+          <div className="space-y-2">
+            <h3 className="text-lg font-display font-bold text-text mb-4">
+              Animation Callback Log
+            </h3>
+            {logs.length === 0 && (
+              <p className="text-sm text-text-muted italic">
+                Navigate between pages to see callbacks...
+              </p>
+            )}
+            {logs.map((log, index) => (
+              <div
+                key={index}
+                className="text-sm font-mono text-text-muted bg-bg-main p-2 rounded border border-border"
+              >
+                {log}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * With Animation Callbacks
+ *
+ * Demonstrates the callback functionality of PageTransition.
+ * Open the browser console to see callback logs.
+ */
+export const WithCallbacks: Story = {
+  render: () => <CallbacksDemo />,
+  parameters: {
+    layout: 'fullscreen',
+  },
+};
