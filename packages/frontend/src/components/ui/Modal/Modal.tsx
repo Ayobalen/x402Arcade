@@ -22,10 +22,10 @@
  * </Modal>
  */
 
-import React, { forwardRef, useEffect, useCallback, useRef, type RefObject } from 'react'
-import { createPortal } from 'react-dom'
-import { motion, AnimatePresence, type Variants } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import React, { forwardRef, useEffect, useCallback, useRef, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import type {
   ModalProps,
   ModalBackdropProps,
@@ -33,7 +33,7 @@ import type {
   ModalBodyProps,
   ModalFooterProps,
   ModalSize,
-} from './Modal.types'
+} from './Modal.types';
 
 /**
  * Selector for all focusable elements within a container
@@ -48,7 +48,7 @@ const FOCUSABLE_SELECTORS = [
   'audio[controls]',
   'video[controls]',
   '[contenteditable]:not([contenteditable="false"])',
-].join(',')
+].join(',');
 
 /**
  * Custom hook for focus trapping within a container
@@ -65,101 +65,109 @@ function useFocusTrap(
   isActive: boolean,
   options: {
     /** Auto-focus first element when trap activates */
-    autoFocus?: boolean
+    autoFocus?: boolean;
     /** Return focus to trigger element on deactivate */
-    returnFocus?: boolean
+    returnFocus?: boolean;
     /** Initial element to focus (selector or element) */
-    initialFocus?: string | HTMLElement
+    initialFocus?: string | HTMLElement;
   } = {}
 ): void {
-  const { autoFocus = true, returnFocus = true, initialFocus } = options
+  const { autoFocus = true, returnFocus = true, initialFocus } = options;
 
   // Store the element that had focus before the trap activated
-  const previouslyFocusedElement = useRef<HTMLElement | null>(null)
+  const previouslyFocusedElement = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!isActive || !containerRef.current) return
+    if (!isActive || !containerRef.current) return;
 
-    const container = containerRef.current
+    const container = containerRef.current;
 
     // Store currently focused element to restore later
     if (returnFocus) {
-      previouslyFocusedElement.current = document.activeElement as HTMLElement
+      previouslyFocusedElement.current = document.activeElement as HTMLElement;
     }
 
     /**
      * Get all focusable elements within the container
      */
     const getFocusableElements = (): HTMLElement[] => {
-      return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS))
-        .filter((el) => {
+      return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)).filter(
+        (el) => {
           // Filter out elements that are hidden or have display:none
-          const style = window.getComputedStyle(el)
-          return style.display !== 'none' && style.visibility !== 'hidden'
-        })
-    }
+          const style = window.getComputedStyle(el);
+          return style.display !== 'none' && style.visibility !== 'hidden';
+        }
+      );
+    };
 
     /**
      * Focus the initial element or first focusable element
      */
     const focusInitialElement = () => {
-      if (!autoFocus) return
+      if (!autoFocus) return;
 
-      const focusableElements = getFocusableElements()
+      const focusableElements = getFocusableElements();
 
       if (initialFocus) {
         // Focus specific element
-        const initialElement = typeof initialFocus === 'string'
-          ? container.querySelector<HTMLElement>(initialFocus)
-          : initialFocus
+        const initialElement =
+          typeof initialFocus === 'string'
+            ? container.querySelector<HTMLElement>(initialFocus)
+            : initialFocus;
 
         if (initialElement && focusableElements.includes(initialElement)) {
-          initialElement.focus()
-          return
+          initialElement.focus();
+          return;
         }
       }
 
       // Focus first focusable element
       if (focusableElements.length > 0) {
-        focusableElements[0].focus()
+        focusableElements[0].focus();
       } else {
         // If no focusable elements, focus the container itself
-        container.setAttribute('tabindex', '-1')
-        container.focus()
+        container.setAttribute('tabindex', '-1');
+        container.focus();
       }
-    }
+    };
 
     /**
      * Handle Tab key to cycle focus within container
      */
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab') return
+      if (event.key !== 'Tab') return;
 
-      const focusableElements = getFocusableElements()
+      const focusableElements = getFocusableElements();
       if (focusableElements.length === 0) {
-        event.preventDefault()
-        return
+        event.preventDefault();
+        return;
       }
 
-      const firstElement = focusableElements[0]
-      const lastElement = focusableElements[focusableElements.length - 1]
-      const activeElement = document.activeElement
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
 
       // Shift + Tab: Move to previous element
       if (event.shiftKey) {
-        if (activeElement === firstElement || !focusableElements.includes(activeElement as HTMLElement)) {
-          event.preventDefault()
-          lastElement.focus()
+        if (
+          activeElement === firstElement ||
+          !focusableElements.includes(activeElement as HTMLElement)
+        ) {
+          event.preventDefault();
+          lastElement.focus();
         }
       }
       // Tab: Move to next element
       else {
-        if (activeElement === lastElement || !focusableElements.includes(activeElement as HTMLElement)) {
-          event.preventDefault()
-          firstElement.focus()
+        if (
+          activeElement === lastElement ||
+          !focusableElements.includes(activeElement as HTMLElement)
+        ) {
+          event.preventDefault();
+          firstElement.focus();
         }
       }
-    }
+    };
 
     /**
      * Handle focus leaving the container (for edge cases)
@@ -167,29 +175,29 @@ function useFocusTrap(
     const handleFocusIn = (event: FocusEvent) => {
       if (!container.contains(event.target as Node)) {
         // Focus escaped the container, bring it back
-        const focusableElements = getFocusableElements()
+        const focusableElements = getFocusableElements();
         if (focusableElements.length > 0) {
-          focusableElements[0].focus()
+          focusableElements[0].focus();
         }
       }
-    }
+    };
 
     // Set up focus trap
-    focusInitialElement()
-    container.addEventListener('keydown', handleKeyDown)
-    document.addEventListener('focusin', handleFocusIn)
+    focusInitialElement();
+    container.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('focusin', handleFocusIn);
 
     // Cleanup
     return () => {
-      container.removeEventListener('keydown', handleKeyDown)
-      document.removeEventListener('focusin', handleFocusIn)
+      container.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('focusin', handleFocusIn);
 
       // Return focus to previously focused element
       if (returnFocus && previouslyFocusedElement.current) {
-        previouslyFocusedElement.current.focus()
+        previouslyFocusedElement.current.focus();
       }
-    }
-  }, [isActive, containerRef, autoFocus, returnFocus, initialFocus])
+    };
+  }, [isActive, containerRef, autoFocus, returnFocus, initialFocus]);
 }
 
 /**
@@ -206,7 +214,7 @@ const backdropVariants: Variants = {
     opacity: 0,
     transition: { duration: 0.15, ease: 'easeIn' },
   },
-}
+};
 
 /**
  * Animation variants for the modal content
@@ -215,7 +223,7 @@ const backdropVariants: Variants = {
 const modalVariants: Variants = {
   hidden: {
     opacity: 0,
-    scale: 0.95,
+    scale: 0.9,
     y: -10,
   },
   visible: {
@@ -223,8 +231,9 @@ const modalVariants: Variants = {
     scale: 1,
     y: 0,
     transition: {
-      duration: 0.2,
-      ease: [0.4, 0, 0.2, 1], // Custom easing for smooth feel
+      type: 'spring',
+      stiffness: 300,
+      damping: 25,
     },
   },
   exit: {
@@ -236,7 +245,7 @@ const modalVariants: Variants = {
       ease: [0.4, 0, 1, 1],
     },
   },
-}
+};
 
 /**
  * Reduced motion variants - instant transitions for accessibility
@@ -246,7 +255,7 @@ const reducedMotionVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.01 } },
   exit: { opacity: 0, transition: { duration: 0.01 } },
-}
+};
 
 /**
  * Close Icon Component
@@ -267,7 +276,7 @@ function CloseIcon({ className }: { className?: string }) {
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -275,10 +284,10 @@ function CloseIcon({ className }: { className?: string }) {
  */
 function usePrefersReducedMotion(): boolean {
   // Check if we're in a browser environment
-  if (typeof window === 'undefined') return false
+  if (typeof window === 'undefined') return false;
 
-  const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)')
-  return mediaQuery?.matches ?? false
+  const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  return mediaQuery?.matches ?? false;
 }
 
 /**
@@ -290,8 +299,8 @@ const backdropStyles = cn(
   // Dark semi-transparent background
   'bg-bg-primary/85',
   // Glassmorphism effect
-  'backdrop-blur-sm',
-)
+  'backdrop-blur-sm'
+);
 
 /**
  * Modal container styles
@@ -304,8 +313,8 @@ const modalContainerStyles = cn(
   // Padding from viewport edges
   'p-4',
   // Pointer events for backdrop clicks
-  'pointer-events-none',
-)
+  'pointer-events-none'
+);
 
 /**
  * Modal content styles
@@ -326,8 +335,8 @@ const modalContentStyles = cn(
   // Enable pointer events
   'pointer-events-auto',
   // Will change for GPU acceleration
-  'will-change-transform',
-)
+  'will-change-transform'
+);
 
 /**
  * Size-specific styles
@@ -338,14 +347,14 @@ const sizeStyles: Record<ModalSize, string> = {
   lg: 'w-full max-w-lg',
   xl: 'w-full max-w-xl',
   full: 'w-full max-w-[calc(100vw-2rem)] h-[calc(100vh-2rem)]',
-}
+};
 
 /**
  * Animated Modal Backdrop Component
  *
  * Renders the semi-transparent overlay behind the modal with fade animation
  */
-const AnimatedBackdrop = motion.div
+const AnimatedBackdrop = motion.div;
 
 /**
  * Modal Backdrop Component (for direct use)
@@ -354,7 +363,7 @@ const AnimatedBackdrop = motion.div
  */
 export const ModalBackdrop = forwardRef<HTMLDivElement, ModalBackdropProps>(
   ({ isOpen, onClick, className, ...props }, ref) => {
-    if (!isOpen) return null
+    if (!isOpen) return null;
 
     return (
       <div
@@ -364,11 +373,11 @@ export const ModalBackdrop = forwardRef<HTMLDivElement, ModalBackdropProps>(
         aria-hidden="true"
         {...props}
       />
-    )
+    );
   }
-)
+);
 
-ModalBackdrop.displayName = 'ModalBackdrop'
+ModalBackdrop.displayName = 'ModalBackdrop';
 
 /**
  * Modal Header Component
@@ -405,11 +414,11 @@ export const ModalHeader = forwardRef<HTMLDivElement, ModalHeaderProps>(
           </button>
         )}
       </div>
-    )
+    );
   }
-)
+);
 
-ModalHeader.displayName = 'ModalHeader'
+ModalHeader.displayName = 'ModalHeader';
 
 /**
  * Modal Body Component
@@ -417,18 +426,14 @@ ModalHeader.displayName = 'ModalHeader'
 export const ModalBody = forwardRef<HTMLDivElement, ModalBodyProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div
-        ref={ref}
-        className={cn('px-6 py-4 overflow-y-auto', className)}
-        {...props}
-      >
+      <div ref={ref} className={cn('px-6 py-4 overflow-y-auto', className)} {...props}>
         {children}
       </div>
-    )
+    );
   }
-)
+);
 
-ModalBody.displayName = 'ModalBody'
+ModalBody.displayName = 'ModalBody';
 
 /**
  * Modal Footer Component
@@ -448,11 +453,11 @@ export const ModalFooter = forwardRef<HTMLDivElement, ModalFooterProps>(
       >
         {children}
       </div>
-    )
+    );
   }
-)
+);
 
-ModalFooter.displayName = 'ModalFooter'
+ModalFooter.displayName = 'ModalFooter';
 
 /**
  * Modal Component
@@ -487,55 +492,55 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps & { 'data-testid'?: s
   ) => {
     // Internal ref for focus trap (merged with forwarded ref)
     // Using mutable ref to allow assignment from callback
-    const internalRef = useRef<HTMLDivElement | null>(null)
+    const internalRef = useRef<HTMLDivElement | null>(null);
 
     // Check for reduced motion preference
-    const prefersReducedMotion = usePrefersReducedMotion()
+    const prefersReducedMotion = usePrefersReducedMotion();
 
     // Select appropriate animation variants
-    const currentBackdropVariants = prefersReducedMotion ? reducedMotionVariants : backdropVariants
-    const currentModalVariants = prefersReducedMotion ? reducedMotionVariants : modalVariants
+    const currentBackdropVariants = prefersReducedMotion ? reducedMotionVariants : backdropVariants;
+    const currentModalVariants = prefersReducedMotion ? reducedMotionVariants : modalVariants;
 
     // Apply focus trap
     useFocusTrap(internalRef, isOpen && trapFocus, {
       autoFocus,
       returnFocus,
       initialFocus,
-    })
+    });
 
     // Handle backdrop click
     const handleBackdropClick = useCallback(() => {
       if (closeOnBackdrop) {
-        onClose()
+        onClose();
       }
-    }, [closeOnBackdrop, onClose])
+    }, [closeOnBackdrop, onClose]);
 
     // Handle escape key
     useEffect(() => {
-      if (!isOpen || !closeOnEscape) return
+      if (!isOpen || !closeOnEscape) return;
 
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
-          onClose()
+          onClose();
         }
-      }
+      };
 
-      document.addEventListener('keydown', handleKeyDown)
-      return () => document.removeEventListener('keydown', handleKeyDown)
-    }, [isOpen, closeOnEscape, onClose])
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, closeOnEscape, onClose]);
 
     // Prevent body scroll when modal is open
     useEffect(() => {
-      if (!preventScroll) return
+      if (!preventScroll) return;
 
       if (isOpen) {
-        const originalOverflow = document.body.style.overflow
-        document.body.style.overflow = 'hidden'
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
         return () => {
-          document.body.style.overflow = originalOverflow
-        }
+          document.body.style.overflow = originalOverflow;
+        };
       }
-    }, [isOpen, preventScroll])
+    }, [isOpen, preventScroll]);
 
     // Render modal in portal with AnimatePresence for exit animations
     return createPortal(
@@ -565,19 +570,15 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps & { 'data-testid'?: s
               <motion.div
                 ref={(node) => {
                   // Merge internal ref and forwarded ref
-                  internalRef.current = node
+                  internalRef.current = node;
                   if (typeof ref === 'function') {
-                    ref(node)
+                    ref(node);
                   } else if (ref) {
                     // Cast to mutable ref
-                    (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+                    (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
                   }
                 }}
-                className={cn(
-                  modalContentStyles,
-                  sizeStyles[size],
-                  className
-                )}
+                className={cn(modalContentStyles, sizeStyles[size], className)}
                 onClick={(e) => e.stopPropagation()}
                 variants={currentModalVariants}
                 initial="hidden"
@@ -588,10 +589,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps & { 'data-testid'?: s
               >
                 {/* Title Header */}
                 {title && (
-                  <ModalHeader
-                    showCloseButton={showCloseButton}
-                    onClose={onClose}
-                  >
+                  <ModalHeader showCloseButton={showCloseButton} onClose={onClose}>
                     <span id="modal-title">{title}</span>
                   </ModalHeader>
                 )}
@@ -604,10 +602,10 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps & { 'data-testid'?: s
         )}
       </AnimatePresence>,
       document.body
-    )
+    );
   }
-)
+);
 
-Modal.displayName = 'Modal'
+Modal.displayName = 'Modal';
 
-export default Modal
+export default Modal;

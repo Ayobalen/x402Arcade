@@ -24,10 +24,11 @@
  * />
  */
 
-import type { KeyboardEvent } from 'react'
-import { useEffect, useCallback } from 'react'
-import { cn } from '@/lib/utils'
-import type { ToastProps, ToastVariant } from './Toast.types'
+import type { KeyboardEvent } from 'react';
+import { useEffect, useCallback } from 'react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import type { ToastProps, ToastVariant, ToastPosition } from './Toast.types';
 
 /**
  * Variant-specific styles including background, border, and text colors
@@ -65,7 +66,7 @@ const variantStyles: Record<ToastVariant, string> = {
     // Left accent bar
     'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-info before:rounded-l-lg'
   ),
-}
+};
 
 /**
  * Variant-specific icon colors
@@ -75,7 +76,7 @@ const iconColorStyles: Record<ToastVariant, string> = {
   error: 'text-error',
   warning: 'text-warning',
   info: 'text-info',
-}
+};
 
 /**
  * Success icon (checkmark in circle)
@@ -96,7 +97,7 @@ function SuccessIcon({ className }: { className?: string }) {
       <circle cx="12" cy="12" r="10" />
       <path d="m9 12 2 2 4-4" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -119,7 +120,7 @@ function ErrorIcon({ className }: { className?: string }) {
       <path d="m15 9-6 6" />
       <path d="m9 9 6 6" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -142,7 +143,7 @@ function WarningIcon({ className }: { className?: string }) {
       <path d="M12 9v4" />
       <path d="M12 17h.01" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -165,7 +166,7 @@ function InfoIcon({ className }: { className?: string }) {
       <path d="M12 16v-4" />
       <path d="M12 8h.01" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -187,7 +188,7 @@ function CloseIcon({ className }: { className?: string }) {
       <path d="M18 6 6 18" />
       <path d="m6 6 12 12" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -196,20 +197,64 @@ function CloseIcon({ className }: { className?: string }) {
 function VariantIcon({ variant, className }: { variant: ToastVariant; className?: string }) {
   switch (variant) {
     case 'success':
-      return <SuccessIcon className={className} />
+      return <SuccessIcon className={className} />;
     case 'error':
-      return <ErrorIcon className={className} />
+      return <ErrorIcon className={className} />;
     case 'warning':
-      return <WarningIcon className={className} />
+      return <WarningIcon className={className} />;
     case 'info':
-      return <InfoIcon className={className} />
+      return <InfoIcon className={className} />;
   }
+}
+
+/**
+ * Get animation variants based on toast position
+ * Determines slide-in direction
+ */
+function getToastVariants(position: ToastPosition = 'top-right'): Variants {
+  // Determine horizontal direction (left vs right)
+  const isLeft = position.includes('left');
+  const isRight = position.includes('right');
+
+  // Determine vertical direction (top vs bottom)
+  const isTop = position.includes('top');
+
+  // Calculate initial X position (slide from right by default)
+  const initialX = isLeft ? -100 : isRight ? 100 : 0;
+
+  return {
+    hidden: {
+      opacity: 0,
+      x: initialX,
+      y: isTop ? -20 : 20,
+    },
+    visible: {
+      opacity: 1,
+      x: 0,
+      y: 0,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 25,
+      },
+    },
+    exit: {
+      opacity: 0,
+      x: initialX,
+      y: isTop ? -20 : 20,
+      transition: {
+        duration: 0.15,
+        ease: 'easeIn',
+      },
+    },
+  };
 }
 
 /**
  * Toast Component
  *
  * Displays notification messages with variant-specific styling and icons.
+ * Uses Framer Motion for smooth slide-in animations.
  */
 export function Toast({
   variant = 'info',
@@ -221,118 +266,115 @@ export function Toast({
   icon,
   showCloseButton = true,
   action,
+  position = 'top-right',
   className,
   'data-testid': dataTestId,
 }: ToastProps) {
   // Auto-close timer
   useEffect(() => {
-    if (!isOpen || duration === 0 || !onClose) return
+    if (!isOpen || duration === 0 || !onClose) return;
 
     const timer = setTimeout(() => {
-      onClose()
-    }, duration)
+      onClose();
+    }, duration);
 
-    return () => clearTimeout(timer)
-  }, [isOpen, duration, onClose])
+    return () => clearTimeout(timer);
+  }, [isOpen, duration, onClose]);
 
   // Handle close action
   const handleClose = useCallback(() => {
-    onClose?.()
-  }, [onClose])
+    onClose?.();
+  }, [onClose]);
 
   // Handle keyboard events
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Escape') {
-        handleClose()
+        handleClose();
       }
     },
     [handleClose]
-  )
+  );
 
-  // Don't render if not open
-  if (!isOpen) return null
+  // Get animation variants based on position
+  const toastVariants = getToastVariants(position);
 
   return (
-    <div
-      role="alert"
-      aria-live="polite"
-      data-testid={dataTestId}
-      onKeyDown={handleKeyDown}
-      className={cn(
-        // Layout
-        'relative flex items-start gap-3 p-4 pl-5',
-        // Sizing
-        'w-full min-w-[320px] max-w-md',
-        // Visual
-        'rounded-lg shadow-lg',
-        // Animation
-        'animate-slide-in-up',
-        // Variant-specific styles
-        variantStyles[variant],
-        className
-      )}
-    >
-      {/* Icon */}
-      <div className="flex-shrink-0 mt-0.5">
-        {icon || (
-          <VariantIcon
-            variant={variant}
-            className={cn('h-5 w-5', iconColorStyles[variant])}
-          />
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        {title && (
-          <h3 className="text-sm font-medium text-text-primary leading-tight">
-            {title}
-          </h3>
-        )}
-        {description && (
-          <p className={cn(
-            'text-sm text-text-secondary',
-            title && 'mt-1'
-          )}>
-            {description}
-          </p>
-        )}
-        {action && (
-          <button
-            type="button"
-            onClick={action.onClick}
-            className={cn(
-              'mt-2 text-sm font-medium',
-              iconColorStyles[variant],
-              'hover:underline focus:outline-none focus:underline'
-            )}
-          >
-            {action.label}
-          </button>
-        )}
-      </div>
-
-      {/* Close button */}
-      {showCloseButton && onClose && (
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label="Close notification"
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <motion.div
+          role="alert"
+          aria-live="polite"
+          data-testid={dataTestId}
+          onKeyDown={handleKeyDown}
           className={cn(
-            'flex-shrink-0',
-            'p-1 -m-1',
-            'rounded-md',
-            'text-text-tertiary hover:text-text-primary',
-            'transition-colors duration-150',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-primary focus-visible:ring-border'
+            // Layout
+            'relative flex items-start gap-3 p-4 pl-5',
+            // Sizing
+            'w-full min-w-[320px] max-w-md',
+            // Visual
+            'rounded-lg shadow-lg',
+            // Variant-specific styles
+            variantStyles[variant],
+            className
           )}
+          variants={toastVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
         >
-          <CloseIcon className="h-4 w-4" />
-        </button>
+          {/* Icon */}
+          <div className="flex-shrink-0 mt-0.5">
+            {icon || (
+              <VariantIcon variant={variant} className={cn('h-5 w-5', iconColorStyles[variant])} />
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {title && (
+              <h3 className="text-sm font-medium text-text-primary leading-tight">{title}</h3>
+            )}
+            {description && (
+              <p className={cn('text-sm text-text-secondary', title && 'mt-1')}>{description}</p>
+            )}
+            {action && (
+              <button
+                type="button"
+                onClick={action.onClick}
+                className={cn(
+                  'mt-2 text-sm font-medium',
+                  iconColorStyles[variant],
+                  'hover:underline focus:outline-none focus:underline'
+                )}
+              >
+                {action.label}
+              </button>
+            )}
+          </div>
+
+          {/* Close button */}
+          {showCloseButton && onClose && (
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label="Close notification"
+              className={cn(
+                'flex-shrink-0',
+                'p-1 -m-1',
+                'rounded-md',
+                'text-text-tertiary hover:text-text-primary',
+                'transition-colors duration-150',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-primary focus-visible:ring-border'
+              )}
+            >
+              <CloseIcon className="h-4 w-4" />
+            </button>
+          )}
+        </motion.div>
       )}
-    </div>
-  )
+    </AnimatePresence>
+  );
 }
 
-export default Toast
+export default Toast;
