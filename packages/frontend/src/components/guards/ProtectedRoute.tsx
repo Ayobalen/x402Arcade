@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useWalletStore } from '@/stores/walletStore';
-import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { ConnectButton } from '@/components/wallet';
 import { cn } from '@/lib/utils';
 
 interface ProtectedRouteProps {

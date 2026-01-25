@@ -69,7 +69,7 @@ export const PONG_SOUND_ASSETS: SoundAsset[] = [
     category: AudioCategory.SFX,
     src: '/sounds/games/pong/paddle-hit.mp3',
     volume: 0.5,
-    priority: SoundPriority.MEDIUM,
+    priority: SoundPriority.NORMAL,
     maxInstances: 2,
     preload: true,
   },
@@ -78,7 +78,7 @@ export const PONG_SOUND_ASSETS: SoundAsset[] = [
     category: AudioCategory.SFX,
     src: '/sounds/games/pong/paddle-hit-hard.mp3',
     volume: 0.7,
-    priority: SoundPriority.MEDIUM,
+    priority: SoundPriority.NORMAL,
     maxInstances: 2,
     preload: true,
   },
@@ -118,7 +118,7 @@ export const PONG_SOUND_ASSETS: SoundAsset[] = [
     category: AudioCategory.SFX,
     src: '/sounds/games/pong/serve.mp3',
     volume: 0.6,
-    priority: SoundPriority.MEDIUM,
+    priority: SoundPriority.NORMAL,
     maxInstances: 1,
     preload: true,
   },
@@ -156,7 +156,7 @@ export const PONG_SOUND_ASSETS: SoundAsset[] = [
     category: AudioCategory.SFX,
     src: '/sounds/games/pong/rally-milestone.mp3',
     volume: 0.6,
-    priority: SoundPriority.MEDIUM,
+    priority: SoundPriority.NORMAL,
     maxInstances: 1,
     preload: true,
   },
@@ -165,7 +165,7 @@ export const PONG_SOUND_ASSETS: SoundAsset[] = [
     category: AudioCategory.SFX,
     src: '/sounds/games/pong/long-rally.mp3',
     volume: 0.7,
-    priority: SoundPriority.MEDIUM,
+    priority: SoundPriority.NORMAL,
     maxInstances: 1,
     preload: true,
   },
@@ -230,7 +230,7 @@ export function playPaddleHitSound(
 
   sfxEngine.play({
     id: soundId,
-    priority: SoundPriority.MEDIUM,
+    priority: SoundPriority.NORMAL,
   });
 }
 
@@ -310,7 +310,7 @@ export function playServeSound(sfxEngine: {
 }): void {
   sfxEngine.play({
     id: PongSoundType.SERVE,
-    priority: SoundPriority.MEDIUM,
+    priority: SoundPriority.NORMAL,
   });
 }
 
@@ -382,12 +382,12 @@ export function playRallySound(
     if (rallyCount >= 20) {
       sfxEngine.play({
         id: PongSoundType.LONG_RALLY,
-        priority: SoundPriority.MEDIUM,
+        priority: SoundPriority.NORMAL,
       });
     } else {
       sfxEngine.play({
         id: PongSoundType.RALLY_MILESTONE,
-        priority: SoundPriority.MEDIUM,
+        priority: SoundPriority.NORMAL,
       });
     }
   }
