@@ -1,0 +1,934 @@
+{
+  "info": {
+    "_postman_id": "x402arcade-api-collection",
+    "name": "x402Arcade API",
+    "description": "API collection for x402Arcade - a gasless arcade gaming platform on Cronos blockchain.\n\n## Getting Started\n\n1. Set the `baseUrl` variable to your API server (default: http://localhost:3001)\n2. Set the `playerAddress` variable to your test wallet address\n3. For x402 payment testing, you'll need a wallet with devUSDC.e tokens\n\n## Environment Variables\n\n- `baseUrl`: API base URL\n- `playerAddress`: Your Ethereum wallet address\n- `sessionId`: Populated after creating a game session\n\n## x402 Payment Flow\n\nThe `/api/v1/play/:gameType` endpoint uses the x402 payment protocol:\n\n1. Send POST without payment header to get payment requirements\n2. Sign EIP-3009 authorization with your wallet\n3. Send POST with X-Payment header containing the signed auth\n4. Receive sessionId on success",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "playerAddress",
+      "value": "0x1234567890123456789012345678901234567890",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Health check and monitoring endpoints",
+      "item": [
+        {
+          "name": "Basic Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Fast health check for load balancers. Only checks database connectivity."
+          },
+          "response": []
+        },
+        {
+          "name": "Detailed Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/detailed",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "detailed"]
+            },
+            "description": "Comprehensive health check including RPC and Facilitator connectivity. May take several seconds."
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "ready"]
+            },
+            "description": "Kubernetes/Railway readiness probe. Returns 200 only if service is ready."
+          },
+          "response": []
+        },
+        {
+          "name": "Liveness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "live"]
+            },
+            "description": "Kubernetes/Railway liveness probe. Returns 200 if process is alive."
+          },
+          "response": []
+        },
+        {
+          "name": "API Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api",
+              "host": ["{{baseUrl}}"],
+              "path": ["api"]
+            },
+            "description": "Get API information and available endpoints."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Play",
+      "description": "Game session creation with x402 payments",
+      "item": [
+        {
+          "name": "Play Snake (Get Payment Requirements)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// This request intentionally returns 402 to show payment requirements",
+                  "pm.test('Status code is 402 Payment Required', function() {",
+                  "    pm.response.to.have.status(402);",
+                  "});",
+                  "",
+                  "pm.test('X-Payment-Required header is present', function() {",
+                  "    pm.response.to.have.header('x-payment-required');",
+                  "});",
+                  "",
+                  "pm.test('Response contains payment info', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.paymentInfo).to.be.an('object');",
+                  "    pm.expect(jsonData.paymentInfo.amount).to.exist;",
+                  "    pm.expect(jsonData.paymentInfo.recipient).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/play/snake",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "play", "snake"]
+            },
+            "description": "Get payment requirements for playing Snake ($0.01 USDC).\n\nThis request will return 402 Payment Required with the payment details in the X-Payment-Required header."
+          },
+          "response": []
+        },
+        {
+          "name": "Play Tetris (Get Payment Requirements)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/play/tetris",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "play", "tetris"]
+            },
+            "description": "Get payment requirements for playing Tetris ($0.02 USDC)."
+          },
+          "response": []
+        },
+        {
+          "name": "Play Pong (Get Payment Requirements)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/play/pong",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "play", "pong"]
+            },
+            "description": "Get payment requirements for playing Pong ($0.01 USDC)."
+          },
+          "response": []
+        },
+        {
+          "name": "Play Breakout (Get Payment Requirements)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/play/breakout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "play", "breakout"]
+            },
+            "description": "Get payment requirements for playing Breakout ($0.015 USDC)."
+          },
+          "response": []
+        },
+        {
+          "name": "Play Space Invaders (Get Payment Requirements)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/play/space-invaders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "play", "space-invaders"]
+            },
+            "description": "Get payment requirements for playing Space Invaders ($0.025 USDC)."
+          },
+          "response": []
+        },
+        {
+          "name": "Play Invalid Game (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error message mentions invalid game type', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.equal('Invalid game type');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/play/invalid-game",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "play", "invalid-game"]
+            },
+            "description": "Test error handling for invalid game type. Should return 400."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Score",
+      "description": "Score submission for completed game sessions",
+      "item": [
+        {
+          "name": "Submit Score",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Note: This will fail without a valid sessionId",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Score submitted successfully', function() {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.message).to.equal('Score submitted successfully');",
+                  "        pm.expect(jsonData.session).to.be.an('object');",
+                  "        pm.expect(jsonData.rankings).to.be.an('object');",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Request handled appropriately', function() {",
+                  "        pm.expect([400, 404, 409]).to.include(pm.response.code);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sessionId\": \"{{sessionId}}\",\n    \"score\": 1500,\n    \"playerAddress\": \"{{playerAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/score/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "score", "submit"]
+            },
+            "description": "Submit a score for a completed game session.\n\nRequires:\n- `sessionId`: Valid game session ID (from play endpoint)\n- `score`: Non-negative integer score\n- `playerAddress`: Player's Ethereum address (must match session owner)"
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Score - Missing Session ID (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error mentions sessionId', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('sessionId');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"score\": 1500,\n    \"playerAddress\": \"{{playerAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/score/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "score", "submit"]
+            },
+            "description": "Test error handling when sessionId is missing."
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Score - Invalid Address (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error mentions address format', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Ethereum address');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sessionId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"score\": 1500,\n    \"playerAddress\": \"invalid-address\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/score/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "score", "submit"]
+            },
+            "description": "Test error handling for invalid Ethereum address format."
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Score - Negative Score (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sessionId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"score\": -100,\n    \"playerAddress\": \"{{playerAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/score/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "score", "submit"]
+            },
+            "description": "Test error handling for negative score values."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "description": "Player rankings and leaderboard queries",
+      "item": [
+        {
+          "name": "Get Snake Daily Leaderboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has expected structure', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.gameType).to.equal('snake');",
+                  "    pm.expect(jsonData.periodType).to.equal('daily');",
+                  "    pm.expect(jsonData.entries).to.be.an('array');",
+                  "    pm.expect(jsonData.count).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leaderboard/snake/daily",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "leaderboard", "snake", "daily"]
+            },
+            "description": "Get today's Snake leaderboard."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tetris Weekly Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leaderboard/tetris/weekly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "leaderboard", "tetris", "weekly"]
+            },
+            "description": "Get this week's Tetris leaderboard."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pong All-Time Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leaderboard/pong/alltime",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "leaderboard", "pong", "alltime"]
+            },
+            "description": "Get all-time Pong leaderboard."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leaderboard with Pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response respects limit parameter', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.limit).to.equal(5);",
+                  "    pm.expect(jsonData.offset).to.equal(10);",
+                  "    pm.expect(jsonData.entries.length).to.be.at.most(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leaderboard/snake/daily?limit=5&offset=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "leaderboard", "snake", "daily"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "offset",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get leaderboard with pagination (limit=5, offset=10)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leaderboard - Invalid Game Type (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error mentions game type', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Game type');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leaderboard/invalid-game/daily",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "leaderboard", "invalid-game", "daily"]
+            },
+            "description": "Test error handling for invalid game type."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leaderboard - Invalid Period Type (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error mentions period type', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Period type');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leaderboard/snake/invalid-period",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "leaderboard", "snake", "invalid-period"]
+            },
+            "description": "Test error handling for invalid period type."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Prize Pool",
+      "description": "Prize pool information and history",
+      "item": [
+        {
+          "name": "Get Snake Daily Prize Pool",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Response has pool object', function() {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.pool).to.be.an('object');",
+                  "        pm.expect(jsonData.pool.gameType).to.equal('snake');",
+                  "        pm.expect(jsonData.pool.periodType).to.equal('daily');",
+                  "    });",
+                  "} else if (pm.response.code === 404) {",
+                  "    pm.test('No active prize pool', function() {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.error).to.equal('Not found');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/prize/snake/daily",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "prize", "snake", "daily"]
+            },
+            "description": "Get today's Snake prize pool."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tetris Weekly Prize Pool",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/prize/tetris/weekly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "prize", "tetris", "weekly"]
+            },
+            "description": "Get this week's Tetris prize pool."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prize Pool History (Daily)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has history array', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.history).to.be.an('array');",
+                  "    pm.expect(jsonData.gameType).to.equal('snake');",
+                  "    pm.expect(jsonData.periodType).to.equal('daily');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/prize/snake/history?periodType=daily&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "prize", "snake", "history"],
+              "query": [
+                {
+                  "key": "periodType",
+                  "value": "daily"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get Snake daily prize pool history."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prize Pool History (All Periods)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has both daily and weekly arrays', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.daily).to.be.an('array');",
+                  "    pm.expect(jsonData.weekly).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/prize/tetris/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "prize", "tetris", "history"]
+            },
+            "description": "Get Tetris prize pool history for all periods."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prize Pool - Invalid Game Type (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/prize/invalid-game/daily",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "prize", "invalid-game", "daily"]
+            },
+            "description": "Test error handling for invalid game type."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prize Pool - All-Time Period (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 (alltime not valid for prize pools)', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/prize/snake/alltime",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "prize", "snake", "alltime"]
+            },
+            "description": "Test error handling: 'alltime' is not valid for prize pools (only daily/weekly)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Jobs (Admin)",
+      "description": "Background job management endpoints",
+      "item": [
+        {
+          "name": "Get Job Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "status"]
+            },
+            "description": "Get job scheduler status and statistics."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/history?limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "history"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get job execution history."
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger Prize Pool Job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/trigger/prizepool",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "trigger", "prizepool"]
+            },
+            "description": "Manually trigger the prize pool calculation job."
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger Leaderboard Job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/trigger/leaderboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "trigger", "leaderboard"]
+            },
+            "description": "Manually trigger the leaderboard update job."
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger Cleanup Job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/trigger/cleanup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "trigger", "cleanup"]
+            },
+            "description": "Manually trigger the session cleanup job."
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger Invalid Job (Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/trigger/invalid-job",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "trigger", "invalid-job"]
+            },
+            "description": "Test error handling for invalid job name."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

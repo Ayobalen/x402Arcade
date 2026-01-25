@@ -1,0 +1,1098 @@
+openapi: 3.1.0
+info:
+  title: x402Arcade API
+  version: 1.0.0
+  description: |
+    # x402Arcade - Gasless Arcade Gaming Platform
+
+    A gasless arcade gaming platform on Cronos blockchain using x402 protocol for micropayments.
+    Players pay $0.01-$0.02 USDC per game with zero gas fees, competing for daily prize pools on leaderboards.
+
+    ## Key Features
+    - **Micropayments**: Pay pennies per game via x402 protocol
+    - **Zero Gas**: Facilitator covers all gas costs
+    - **Instant Settlement**: Sub-second payment confirmation
+    - **Prize Pools**: 70% of payments fund daily/weekly jackpots
+
+    ## Authentication
+    This API uses the x402 payment protocol for game session creation.
+    Protected endpoints return HTTP 402 (Payment Required) with payment details in the `X-Payment-Required` header.
+
+    ## Rate Limiting
+    API requests are rate-limited per IP address. Default: 100 requests per 15 minutes.
+    Rate limit headers are returned in responses: `RateLimit-*`
+
+  contact:
+    name: x402Arcade Support
+    url: https://github.com/x402arcade/x402arcade
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+  - url: https://api.x402arcade.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Play
+    description: Game session creation with x402 payments
+  - name: Score
+    description: Score submission for completed game sessions
+  - name: Leaderboard
+    description: Player rankings and leaderboard queries
+  - name: Prize
+    description: Prize pool information and history
+  - name: Jobs
+    description: Background job management (admin only)
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Basic health check
+      description: |
+        Fast health check endpoint for load balancers.
+        Only checks database connectivity.
+        Returns 200 OK unless service is completely down.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                timestamp: '2026-01-25T12:00:00.000Z'
+                version: '1.0.0'
+                uptime: 3600
+                environment: production
+                checks:
+                  database:
+                    status: ok
+                    responseTime: 5
+                    details:
+                      sessions: 1523
+                      leaderboard: 8934
+
+  /health/detailed:
+    get:
+      tags:
+        - Health
+      summary: Detailed health check
+      description: |
+        Comprehensive health check with external service checks (RPC, Facilitator).
+        May take several seconds. Used by monitoring dashboards.
+      operationId: getHealthDetailed
+      responses:
+        '200':
+          description: Service is healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness probe
+      description: |
+        Kubernetes/Railway readiness probe.
+        Returns 200 only if service is ready to accept traffic.
+      operationId: getHealthReady
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: not ready
+                  message:
+                    type: string
+                  details:
+                    type: object
+
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Liveness probe
+      description: |
+        Kubernetes/Railway liveness probe.
+        Returns 200 if the process is alive and responding.
+        Does NOT check external dependencies.
+      operationId: getHealthLive
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: alive
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                  version:
+                    type: string
+                  pid:
+                    type: integer
+                  memory:
+                    type: object
+                    properties:
+                      heapUsed:
+                        type: integer
+                      heapTotal:
+                        type: integer
+                      external:
+                        type: integer
+                      rss:
+                        type: integer
+
+  /api:
+    get:
+      tags:
+        - Health
+      summary: API info endpoint
+      description: Returns basic API information and available endpoints
+      operationId: getApiInfo
+      responses:
+        '200':
+          description: API info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: x402Arcade API
+                  version:
+                    type: string
+                    example: '1.0.0'
+                  message:
+                    type: string
+                    example: Insert a Penny, Play for Glory
+                  endpoints:
+                    type: object
+                    additionalProperties:
+                      type: string
+
+  /api/v1/play/{gameType}:
+    post:
+      tags:
+        - Play
+      summary: Create a game session
+      description: |
+        Create a new game session with x402 payment.
+
+        ## x402 Payment Flow
+        1. Send POST request without payment header
+        2. Receive 402 response with payment requirements in `X-Payment-Required` header
+        3. Sign EIP-3009 authorization with player's wallet
+        4. Send POST request with `X-Payment` header containing the signed authorization
+        5. Receive 201 response with sessionId on successful payment
+
+        ## Payment Amounts
+        - Snake: $0.01 USDC
+        - Tetris: $0.02 USDC
+        - Pong: $0.01 USDC
+        - Breakout: $0.015 USDC
+        - Space Invaders: $0.025 USDC
+      operationId: createGameSession
+      parameters:
+        - name: gameType
+          in: path
+          required: true
+          description: Type of game to play
+          schema:
+            $ref: '#/components/schemas/GameType'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Empty body for payment initiation
+      responses:
+        '201':
+          description: Game session created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  sessionId:
+                    type: string
+                    format: uuid
+                    example: '550e8400-e29b-41d4-a716-446655440000'
+                  session:
+                    $ref: '#/components/schemas/GameSession'
+        '400':
+          description: Invalid game type or request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid game type
+                message: "Game type must be one of: snake, tetris, pong, breakout, space-invaders"
+        '402':
+          description: Payment required
+          headers:
+            X-Payment-Required:
+              description: Base64-encoded JSON with payment requirements
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequiredResponse'
+        '409':
+          description: Payment already processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Payment already processed
+                message: This payment transaction has already been used to create a game session
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Game type not yet supported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/score/submit:
+    post:
+      tags:
+        - Score
+      summary: Submit a game score
+      description: |
+        Submit a score for a completed game session.
+
+        The session must be in 'active' status and owned by the submitting player.
+        After successful submission:
+        - Session status changes to 'completed'
+        - Score is recorded in the database
+        - Leaderboard entries are created for daily, weekly, and alltime periods
+        - Player rankings are returned in the response
+      operationId: submitScore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoreSubmission'
+            example:
+              sessionId: '550e8400-e29b-41d4-a716-446655440000'
+              score: 1500
+              playerAddress: '0x1234567890123456789012345678901234567890'
+      responses:
+        '200':
+          description: Score submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Score submitted successfully
+                  session:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        format: uuid
+                      gameType:
+                        $ref: '#/components/schemas/GameType'
+                      status:
+                        type: string
+                        enum: [completed]
+                      score:
+                        type: integer
+                      completedAt:
+                        type: string
+                        format: date-time
+                      gameDurationMs:
+                        type: integer
+                  rankings:
+                    type: object
+                    properties:
+                      daily:
+                        $ref: '#/components/schemas/PlayerRanking'
+                      weekly:
+                        $ref: '#/components/schemas/PlayerRanking'
+                      alltime:
+                        $ref: '#/components/schemas/PlayerRanking'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missingSessionId:
+                  value:
+                    error: Validation error
+                    message: sessionId is required and must be a string (UUID)
+                invalidScore:
+                  value:
+                    error: Validation error
+                    message: Score must be a non-negative integer
+                    code: INVALID_SCORE
+                invalidAddress:
+                  value:
+                    error: Validation error
+                    message: playerAddress must be a valid Ethereum address (0x + 40 hex characters)
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Not found
+                message: "Session not found: 550e8400-e29b-41d4-a716-446655440000"
+        '409':
+          description: Session already completed or not active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Conflict
+                message: Cannot complete session - session is not active
+
+  /api/v1/leaderboard/{gameType}/{periodType}:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get leaderboard rankings
+      description: |
+        Get leaderboard rankings for a specific game and time period.
+
+        Results are cached for 30 seconds for performance.
+        Use pagination parameters to fetch large leaderboards.
+      operationId: getLeaderboard
+      parameters:
+        - name: gameType
+          in: path
+          required: true
+          description: Type of game
+          schema:
+            $ref: '#/components/schemas/GameType'
+        - name: periodType
+          in: path
+          required: true
+          description: Time period for rankings
+          schema:
+            $ref: '#/components/schemas/PeriodType'
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of entries to return (default 10, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          required: false
+          description: Number of entries to skip (for pagination)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Leaderboard entries
+          headers:
+            Cache-Control:
+              description: Caching directive
+              schema:
+                type: string
+                example: 'public, max-age=30, s-maxage=30'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gameType:
+                    $ref: '#/components/schemas/GameType'
+                  periodType:
+                    $ref: '#/components/schemas/PeriodType'
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  count:
+                    type: integer
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardEntry'
+              example:
+                gameType: snake
+                periodType: daily
+                limit: 10
+                offset: 0
+                count: 3
+                entries:
+                  - sessionId: '550e8400-e29b-41d4-a716-446655440000'
+                    playerAddress: '0x1234567890123456789012345678901234567890'
+                    score: 2500
+                    rank: 1
+                    createdAt: '2026-01-25T10:30:00.000Z'
+                  - sessionId: '550e8400-e29b-41d4-a716-446655440001'
+                    playerAddress: '0x0987654321098765432109876543210987654321'
+                    score: 2100
+                    rank: 2
+                    createdAt: '2026-01-25T09:15:00.000Z'
+                  - sessionId: '550e8400-e29b-41d4-a716-446655440002'
+                    playerAddress: '0xabcdef1234567890abcdef1234567890abcdef12'
+                    score: 1800
+                    rank: 3
+                    createdAt: '2026-01-25T08:45:00.000Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/prize/{gameType}/{periodType}:
+    get:
+      tags:
+        - Prize
+      summary: Get current prize pool
+      description: |
+        Get the current prize pool for a specific game and time period.
+
+        Prize pools accumulate 70% of all game payments.
+        Daily pools reset at midnight UTC.
+        Weekly pools reset on Monday at midnight UTC.
+      operationId: getPrizePool
+      parameters:
+        - name: gameType
+          in: path
+          required: true
+          description: Type of game
+          schema:
+            $ref: '#/components/schemas/GameType'
+        - name: periodType
+          in: path
+          required: true
+          description: Time period (daily or weekly only)
+          schema:
+            type: string
+            enum:
+              - daily
+              - weekly
+      responses:
+        '200':
+          description: Prize pool information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pool:
+                    $ref: '#/components/schemas/PrizePool'
+              example:
+                pool:
+                  id: 1
+                  gameType: snake
+                  periodType: daily
+                  periodDate: '2026-01-25'
+                  totalAmountUsdc: 2.45
+                  totalGames: 350
+                  status: active
+                  winnerAddress: null
+                  payoutTxHash: null
+                  createdAt: '2026-01-25T00:00:00.000Z'
+                  finalizedAt: null
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Prize pool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Not found
+                message: No active prize pool found for snake (daily)
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/prize/{gameType}/history:
+    get:
+      tags:
+        - Prize
+      summary: Get prize pool history
+      description: |
+        Get historical prize pools for a specific game.
+
+        Returns finalized and paid prize pools from previous periods.
+      operationId: getPrizePoolHistory
+      parameters:
+        - name: gameType
+          in: path
+          required: true
+          description: Type of game
+          schema:
+            $ref: '#/components/schemas/GameType'
+        - name: periodType
+          in: query
+          required: false
+          description: Filter by period type
+          schema:
+            type: string
+            enum:
+              - daily
+              - weekly
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of entries (default 10, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          required: false
+          description: Number of entries to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Prize pool history
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      history:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PrizePool'
+                      count:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      gameType:
+                        $ref: '#/components/schemas/GameType'
+                      periodType:
+                        type: string
+                  - type: object
+                    properties:
+                      daily:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PrizePool'
+                      weekly:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PrizePool'
+                      dailyCount:
+                        type: integer
+                      weeklyCount:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      gameType:
+                        $ref: '#/components/schemas/GameType'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/jobs/status:
+    get:
+      tags:
+        - Jobs
+      summary: Get job scheduler status
+      description: Get job scheduler status and statistics
+      operationId: getJobStatus
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      stats:
+                        type: object
+                        description: Job execution statistics
+                      recentExecutions:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            jobName:
+                              type: string
+                            startTime:
+                              type: string
+                              format: date-time
+                            endTime:
+                              type: string
+                              format: date-time
+                            success:
+                              type: boolean
+                            error:
+                              type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/jobs/trigger/{jobName}:
+    post:
+      tags:
+        - Jobs
+      summary: Trigger a background job
+      description: Manually trigger a background job (admin only)
+      operationId: triggerJob
+      parameters:
+        - name: jobName
+          in: path
+          required: true
+          description: Name of the job to trigger
+          schema:
+            type: string
+            enum:
+              - prizepool
+              - leaderboard
+              - cleanup
+      responses:
+        '200':
+          description: Job triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                message: "Job 'prizepool' triggered successfully"
+        '400':
+          description: Invalid job name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/jobs/history:
+    get:
+      tags:
+        - Jobs
+      summary: Get job execution history
+      description: Get historical job executions
+      operationId: getJobHistory
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of entries (default 20, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Job history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      executions:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: integer
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    GameType:
+      type: string
+      enum:
+        - snake
+        - tetris
+        - pong
+        - breakout
+        - space-invaders
+      description: Type of arcade game
+      example: snake
+
+    PeriodType:
+      type: string
+      enum:
+        - daily
+        - weekly
+        - alltime
+      description: Time period for leaderboards
+      example: daily
+
+    GameSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique session identifier
+        gameType:
+          $ref: '#/components/schemas/GameType'
+        playerAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Ethereum address of the player
+        status:
+          type: string
+          enum:
+            - active
+            - completed
+            - expired
+          description: Current session status
+        createdAt:
+          type: string
+          format: date-time
+          description: Session creation timestamp
+      required:
+        - id
+        - gameType
+        - playerAddress
+        - status
+        - createdAt
+
+    ScoreSubmission:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          description: Game session ID
+        score:
+          type: integer
+          minimum: 0
+          description: Final game score
+        playerAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Ethereum address of the player
+      required:
+        - sessionId
+        - score
+        - playerAddress
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        playerAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        score:
+          type: integer
+        rank:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    PlayerRanking:
+      type: object
+      nullable: true
+      properties:
+        rank:
+          type: integer
+          description: Player's rank in the period
+        score:
+          type: integer
+          description: Player's score
+        totalPlayers:
+          type: integer
+          description: Total number of players in the period
+
+    PrizePool:
+      type: object
+      properties:
+        id:
+          type: integer
+        gameType:
+          $ref: '#/components/schemas/GameType'
+        periodType:
+          type: string
+          enum:
+            - daily
+            - weekly
+        periodDate:
+          type: string
+          format: date
+        totalAmountUsdc:
+          type: number
+          format: double
+          description: Total prize pool amount in USDC
+        totalGames:
+          type: integer
+          description: Number of games played
+        status:
+          type: string
+          enum:
+            - active
+            - finalized
+            - paid
+        winnerAddress:
+          type: string
+          nullable: true
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        payoutTxHash:
+          type: string
+          nullable: true
+          pattern: '^0x[a-fA-F0-9]{64}$'
+        createdAt:
+          type: string
+          format: date-time
+        finalizedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PaymentRequiredResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Payment required
+        message:
+          type: string
+          example: Payment is required to play this game
+        paymentInfo:
+          type: object
+          properties:
+            amount:
+              type: string
+              description: Amount in token units (with decimals)
+              example: '10000'
+            amountUsdc:
+              type: string
+              description: Human-readable amount
+              example: '0.01'
+            currency:
+              type: string
+              example: USDC
+            recipient:
+              type: string
+              pattern: '^0x[a-fA-F0-9]{40}$'
+              description: Arcade wallet address
+            network:
+              type: string
+              example: Cronos Testnet
+            chainId:
+              type: integer
+              example: 338
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - degraded
+            - unhealthy
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        uptime:
+          type: number
+          description: Server uptime in seconds
+        environment:
+          type: string
+          enum:
+            - development
+            - production
+            - test
+        checks:
+          type: object
+          properties:
+            database:
+              $ref: '#/components/schemas/HealthCheckResult'
+            rpc:
+              $ref: '#/components/schemas/HealthCheckResult'
+            facilitator:
+              $ref: '#/components/schemas/HealthCheckResult'
+        build:
+          type: object
+          nullable: true
+          properties:
+            time:
+              type: string
+            commit:
+              type: string
+            branch:
+              type: string
+
+    HealthCheckResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - error
+            - degraded
+        message:
+          type: string
+          nullable: true
+        responseTime:
+          type: integer
+          description: Response time in milliseconds
+        details:
+          type: object
+          additionalProperties: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          nullable: true
+          description: Optional error code
+      required:
+        - error
+        - message
+
+  securitySchemes:
+    x402Payment:
+      type: apiKey
+      in: header
+      name: X-Payment
+      description: |
+        Base64-encoded x402 payment authorization.
+        Contains signed EIP-3009 authorization for USDC transfer.
+
+security: []
