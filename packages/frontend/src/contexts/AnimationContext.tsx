@@ -16,8 +16,21 @@
  * ```
  */
 
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+
+/**
+ * LocalStorage key for animation settings
+ */
+const ANIMATION_SETTINGS_KEY = 'x402arcade:animation-settings';
+
+/**
+ * Animation settings stored in localStorage
+ */
+interface AnimationSettings {
+  enabled: boolean;
+  speedMultiplier: number;
+}
 
 /**
  * Animation context state and actions
@@ -119,11 +132,50 @@ export function AnimationProvider({
 }: AnimationProviderProps) {
   const prefersReducedMotion = useReducedMotion();
 
+  // Load initial state from localStorage
+  const getInitialSettings = (): AnimationSettings => {
+    if (typeof window === 'undefined') {
+      return { enabled: initialEnabled, speedMultiplier: initialSpeedMultiplier };
+    }
+
+    try {
+      const stored = localStorage.getItem(ANIMATION_SETTINGS_KEY);
+      if (stored) {
+        const settings = JSON.parse(stored) as AnimationSettings;
+        return {
+          enabled: settings.enabled ?? initialEnabled,
+          speedMultiplier: settings.speedMultiplier ?? initialSpeedMultiplier,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to load animation settings from localStorage:', error);
+    }
+
+    return { enabled: initialEnabled, speedMultiplier: initialSpeedMultiplier };
+  };
+
+  const initialSettings = getInitialSettings();
+
   // State: animations enabled/disabled
-  const [animationsEnabled, setAnimationsEnabled] = useState(initialEnabled);
+  const [animationsEnabled, setAnimationsEnabled] = useState(initialSettings.enabled);
 
   // State: animation speed multiplier
-  const [speedMultiplier, setSpeedMultiplier] = useState(initialSpeedMultiplier);
+  const [speedMultiplier, setSpeedMultiplier] = useState(initialSettings.speedMultiplier);
+
+  // Persist settings to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const settings: AnimationSettings = {
+        enabled: animationsEnabled,
+        speedMultiplier,
+      };
+      localStorage.setItem(ANIMATION_SETTINGS_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('Failed to save animation settings to localStorage:', error);
+    }
+  }, [animationsEnabled, speedMultiplier]);
 
   // Action: Toggle animations
   const toggleAnimations = useCallback(() => {

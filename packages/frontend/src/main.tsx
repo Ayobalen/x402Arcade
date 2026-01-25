@@ -8,7 +8,7 @@ import { validateEnv, getEnv } from '@/lib/env';
 
 const envResult = validateEnv();
 if (!envResult.success) {
-  /* eslint-disable no-console */
+   
   console.error('❌ Environment validation failed:');
   envResult.errors?.forEach((error) => {
     console.error(
@@ -16,21 +16,21 @@ if (!envResult.success) {
       error.value !== undefined ? `(got: ${error.value})` : ''
     );
   });
-  /* eslint-enable no-console */
+   
   // In development, continue with defaults. In production, this would be a build-time error.
 }
 
 // Log environment info in development
 if (import.meta.env.DEV) {
   const env = getEnv();
-  /* eslint-disable no-console */
+   
   console.log('🎮 x402Arcade Frontend Starting');
   console.log(`📡 API: ${env.VITE_API_URL}`);
   console.log(`⛓️ Chain: ${env.VITE_CHAIN_ID}`);
   if (env.VITE_DEBUG) {
     console.log('🔧 Debug mode enabled');
   }
-  /* eslint-enable no-console */
+   
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

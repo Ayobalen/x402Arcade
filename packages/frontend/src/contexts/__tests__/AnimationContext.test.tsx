@@ -16,6 +16,8 @@ describe('AnimationContext', () => {
     vi.clearAllMocks();
     const { useReducedMotion } = require('../../hooks/useReducedMotion');
     vi.mocked(useReducedMotion).mockReturnValue(false);
+    // Clear localStorage before each test
+    localStorage.clear();
   });
 
   describe('AnimationProvider', () => {
@@ -299,6 +301,184 @@ describe('AnimationContext', () => {
       });
 
       expect(result.current.animationsEnabled).toBe(false);
+    });
+  });
+
+  describe('LocalStorage Persistence', () => {
+    const STORAGE_KEY = 'x402arcade:animation-settings';
+
+    it('should load settings from localStorage on initialization', () => {
+      // Set up localStorage with saved settings
+      const savedSettings = {
+        enabled: false,
+        speedMultiplier: 2.5,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSettings));
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider>{children}</AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      // Should load saved settings instead of defaults
+      expect(result.current.animationsEnabled).toBe(false);
+      expect(result.current.speedMultiplier).toBe(2.5);
+    });
+
+    it('should use initial props when localStorage is empty', () => {
+      // localStorage is empty (cleared in beforeEach)
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider initialEnabled={false} initialSpeedMultiplier={3}>
+          {children}
+        </AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      expect(result.current.animationsEnabled).toBe(false);
+      expect(result.current.speedMultiplier).toBe(3);
+    });
+
+    it('should save settings to localStorage when animationsEnabled changes', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider>{children}</AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      act(() => {
+        result.current.disableAnimations();
+      });
+
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      expect(saved.enabled).toBe(false);
+      expect(saved.speedMultiplier).toBe(1);
+    });
+
+    it('should save settings to localStorage when speedMultiplier changes', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider>{children}</AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      act(() => {
+        result.current.setSpeedMultiplier(2);
+      });
+
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      expect(saved.enabled).toBe(true);
+      expect(saved.speedMultiplier).toBe(2);
+    });
+
+    it('should persist both settings when both change', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider>{children}</AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      act(() => {
+        result.current.disableAnimations();
+        result.current.setSpeedMultiplier(3);
+      });
+
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      expect(saved.enabled).toBe(false);
+      expect(saved.speedMultiplier).toBe(3);
+    });
+
+    it('should handle corrupt localStorage data gracefully', () => {
+      // Set invalid JSON in localStorage
+      localStorage.setItem(STORAGE_KEY, 'invalid-json{');
+
+      // Suppress console.error for this test
+      const originalError = console.error;
+      console.error = vi.fn();
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider initialEnabled={true} initialSpeedMultiplier={1}>
+          {children}
+        </AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      // Should fall back to initial props
+      expect(result.current.animationsEnabled).toBe(true);
+      expect(result.current.speedMultiplier).toBe(1);
+
+      console.error = originalError;
+    });
+
+    it('should handle missing fields in localStorage data', () => {
+      // Set incomplete data in localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ enabled: false }));
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider initialEnabled={true} initialSpeedMultiplier={2}>
+          {children}
+        </AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      // Should use saved enabled but fall back to initial for missing speedMultiplier
+      expect(result.current.animationsEnabled).toBe(false);
+      expect(result.current.speedMultiplier).toBe(2);
+    });
+
+    it('should persist settings across multiple toggles', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider>{children}</AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      act(() => {
+        result.current.toggleAnimations();
+      });
+
+      let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      expect(saved.enabled).toBe(false);
+
+      act(() => {
+        result.current.toggleAnimations();
+      });
+
+      saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      expect(saved.enabled).toBe(true);
+    });
+
+    it('should update localStorage when reset is called', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <AnimationProvider initialEnabled={true} initialSpeedMultiplier={1}>
+          {children}
+        </AnimationProvider>
+      );
+
+      const { result } = renderHook(() => useAnimationContext(), { wrapper });
+
+      // Change settings
+      act(() => {
+        result.current.disableAnimations();
+        result.current.setSpeedMultiplier(3);
+      });
+
+      let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      expect(saved.enabled).toBe(false);
+      expect(saved.speedMultiplier).toBe(3);
+
+      // Reset
+      act(() => {
+        result.current.reset();
+      });
+
+      saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      expect(saved.enabled).toBe(true);
+      expect(saved.speedMultiplier).toBe(1);
     });
   });
 });

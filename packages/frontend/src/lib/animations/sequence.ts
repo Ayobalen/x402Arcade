@@ -202,7 +202,7 @@ export async function sequence(
   } catch (error) {
     if (suppressErrors) {
       // Suppress error logging in production - error is caught and sequence continues
-      // eslint-disable-next-line no-console
+       
       console.error('Error in animation sequence:', error);
     } else {
       throw error;

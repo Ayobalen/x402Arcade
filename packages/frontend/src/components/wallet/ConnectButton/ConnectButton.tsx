@@ -330,7 +330,7 @@ export const ConnectButton = forwardRef<HTMLButtonElement, ConnectButtonProps>(
             onAutoSwitchError?.(new Error('Chain switch was not completed'));
           }
         } catch (err) {
-          // eslint-disable-next-line no-console
+           
           console.error('Auto chain switch failed:', err);
           onAutoSwitchError?.(err instanceof Error ? err : new Error('Chain switch failed'));
         } finally {
@@ -387,7 +387,7 @@ export const ConnectButton = forwardRef<HTMLButtonElement, ConnectButtonProps>(
         await switchChain(REQUIRED_CHAIN_ID);
       } catch (err) {
         // Error already handled in store
-        // eslint-disable-next-line no-console
+         
         console.error('Network switch failed:', err);
       } finally {
         setIsSwitching(false);
