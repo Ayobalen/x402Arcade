@@ -249,6 +249,8 @@ export interface TetrisSpecificState {
 export interface TetrisState extends GameState<TetrisSpecificState> {
   /** Tetris games don't use traditional lives */
   lives: -1;
+  /** Tetris-specific state (required, not optional) */
+  gameSpecific: TetrisSpecificState;
 }
 
 // ============================================================================
