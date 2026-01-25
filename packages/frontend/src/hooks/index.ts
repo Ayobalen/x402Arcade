@@ -104,3 +104,9 @@ export {
 } from './useScoreSubmission';
 
 export { useFocusTrap, FOCUSABLE_SELECTORS, type UseFocusTrapOptions } from './useFocusTrap';
+
+export {
+  useLiveAnnouncer,
+  type AnnouncementOptions,
+  type UseLiveAnnouncerReturn,
+} from './useLiveAnnouncer';
