@@ -310,29 +310,32 @@ function renderParticles(ctx: CanvasRenderingContext2D, particles: Particle[]): 
  * Renders the score and lives UI.
  */
 function renderUI(ctx: CanvasRenderingContext2D, state: BreakoutState): void {
-  const { score, lives, level, currentCombo, currentMultiplier } = state.gameSpecific;
-
   // Score (top-left)
   ctx.fillStyle = BREAKOUT_COLORS.text;
   ctx.font = FONTS.score;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText(`Score: ${score.points}`, 20, 20);
+  ctx.fillText(`Score: ${state.score}`, 20, 20);
 
   // Level (top-center)
   ctx.textAlign = 'center';
-  ctx.fillText(`Level ${level}`, GAME_WIDTH / 2, 20);
+  ctx.fillText(`Level ${state.level}`, GAME_WIDTH / 2, 20);
 
   // Lives (top-right)
   ctx.textAlign = 'right';
-  ctx.fillText(`Lives: ${lives}`, GAME_WIDTH - 20, 20);
+  ctx.fillText(`Lives: ${state.lives}`, GAME_WIDTH - 20, 20);
 
-  // Combo indicator (if active)
-  if (currentCombo > 1) {
+  // Combo indicator (if active) - use scoreState for combo/multiplier
+  const { scoreState } = state.gameSpecific;
+  if (scoreState.combo > 1) {
     ctx.fillStyle = '#ffff00';
     ctx.font = FONTS.combo;
     ctx.textAlign = 'center';
-    ctx.fillText(`Combo x${currentCombo} (${currentMultiplier}x points)`, GAME_WIDTH / 2, 60);
+    ctx.fillText(
+      `Combo x${scoreState.combo} (${scoreState.multiplier}x points)`,
+      GAME_WIDTH / 2,
+      60
+    );
   }
 }
 
@@ -373,7 +376,7 @@ export const BreakoutGame: React.FC<BreakoutGameProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<BreakoutState>(() =>
-    initializeBreakoutState({ difficulty })
+    initializeBreakoutState(difficulty)
   );
   const [particles, setParticles] = useState<Particle[]>([]);
   const [isPaused, setIsPaused] = useState(false);
