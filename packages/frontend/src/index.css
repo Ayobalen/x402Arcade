@@ -8,8 +8,45 @@
 /* Import accessibility styles */
 @import './styles/accessibility.css';
 
-/* Import fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/*
+ * Font Loading Strategy:
+ * - Google Fonts URL already includes &display=swap for FOUT prevention
+ * - Only load weights that are actually used:
+ *   - Inter: 400, 500, 600, 700 (body text)
+ *   - Orbitron: 400, 600, 700, 800 (display headings)
+ *   - JetBrains Mono: 400, 500 (code/addresses)
+ * - Critical fonts are preloaded in index.html
+ * - font-display: swap ensures text remains visible during font load
+ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/*
+ * Fallback @font-face declarations with font-display: swap
+ * These ensure proper fallback behavior if Google Fonts fails
+ */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: local('Inter');
+}
+
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: local('Orbitron');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: local('JetBrains Mono');
+}
 
 /* ============================================
    BASE RESET
