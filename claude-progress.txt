@@ -21,6 +21,8 @@
 - Test documentation: docs/TESTING.md
 - Shared package: packages/shared - Test factories and shared utilities
 - CI workflow: .github/workflows/test.yml - Runs tests on push/PR
+- **GAMES COMPLETED:** Snake ✅ | Pong ✅ | Tetris ✅ (all with wrappers, difficulty selection, integration)
+- **GAMES PENDING:** Breakout ⏳ | Space Invaders ⏳
 
 ---
 
