@@ -14,13 +14,14 @@
  */
 
 import { Router, type Request, type Response } from 'express';
+import type { Router as RouterType } from 'express';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { getDatabase } from '../db/index.js';
 import { getEnv } from '../config/env.js';
 
-const router = Router();
+const router: RouterType = Router();
 
 // Get package.json version
 const __filename = fileURLToPath(import.meta.url);
@@ -30,7 +31,8 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'
   name: string;
 };
 
-const APP_NAME = packageJson.name;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _APP_NAME = packageJson.name;
 const APP_VERSION = packageJson.version;
 
 // Build info (set by CI/CD)
