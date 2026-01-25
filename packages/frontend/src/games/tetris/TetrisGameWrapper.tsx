@@ -431,12 +431,10 @@ export function TetrisGameWrapper({
    * Handle game over
    */
   const handleGameOver = useCallback(
-    (score: number, sessionId?: string) => {
+    (score: number, level: number, lines: number, sessionId?: string) => {
       setFinalScore(score);
-      // Store level and lines from game state if available
-      // (These would be passed from TetrisGame component ideally)
-      setFinalLevel(1); // Default - will be updated if TetrisGame provides it
-      setFinalLines(0); // Default - will be updated if TetrisGame provides it
+      setFinalLevel(level);
+      setFinalLines(lines);
 
       setPhase('game-over');
 
@@ -528,10 +526,8 @@ export function TetrisGameWrapper({
    * Enhanced callback to capture level and lines from TetrisGame
    */
   const enhancedGameOverCallback = useCallback(
-    (score: number, sessionId?: string) => {
-      // Try to extract level and lines from game (if TetrisGame provides them)
-      // For now, we'll use defaults - can be enhanced later
-      handleGameOver(score, sessionId);
+    (score: number, level: number, lines: number, sessionId?: string) => {
+      handleGameOver(score, level, lines, sessionId);
     },
     [handleGameOver]
   );

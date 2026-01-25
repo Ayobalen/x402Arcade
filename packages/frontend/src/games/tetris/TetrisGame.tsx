@@ -56,8 +56,8 @@ import type { TetrisState, Piece, Board } from './types';
 export interface TetrisGameProps {
   /** Game difficulty level */
   difficulty?: TetrisDifficulty;
-  /** Callback when game ends */
-  onGameOver?: (score: number, sessionId?: string) => void;
+  /** Callback when game ends (score, level, lines, sessionId) */
+  onGameOver?: (score: number, level: number, lines: number, sessionId?: string) => void;
   /** Optional CSS class name */
   className?: string;
   /** Show ghost piece */
@@ -530,9 +530,17 @@ export function TetrisGame({
   // Game over callback
   useEffect(() => {
     if (gameState.isGameOver && onGameOver) {
-      onGameOver(gameState.score, sessionId);
+      const gs = gameState.gameSpecific;
+      onGameOver(gameState.score, gameState.level, gs.totalLines, sessionId);
     }
-  }, [gameState.isGameOver, gameState.score, sessionId, onGameOver]);
+  }, [
+    gameState.isGameOver,
+    gameState.score,
+    gameState.level,
+    gameState.gameSpecific,
+    sessionId,
+    onGameOver,
+  ]);
 
   // ============================================================================
   // Rendering

@@ -21,6 +21,9 @@ import {
   PREVIEW_COUNT,
   WALL_KICKS_I,
   WALL_KICKS_JLSTZ,
+  LINES_PER_LEVEL,
+  LEVEL_SPEED_MULTIPLIER,
+  MIN_DROP_SPEED,
   type TetrominoType,
 } from './constants';
 import type {
@@ -469,15 +472,30 @@ export function completeLineClear(state: TetrisState): TetrisState {
   const linePoints = [0, 100, 300, 500, 800]; // Points for 0-4 lines
   const points = linePoints[clearingLines.length] * state.level;
 
+  // Calculate new total lines and level
+  const newTotalLines = gameSpecific.totalLines + clearingLines.length;
+  const newLevel = Math.floor(newTotalLines / LINES_PER_LEVEL) + 1;
+
+  // Calculate new drop speed based on level
+  // Use difficulty settings or defaults
+  const initialSpeed = INITIAL_DROP_SPEED;
+  const speedMultiplier = LEVEL_SPEED_MULTIPLIER;
+  const newDropSpeed = Math.max(
+    MIN_DROP_SPEED,
+    initialSpeed * Math.pow(speedMultiplier, newLevel - 1)
+  );
+
   return {
     ...state,
     score: state.score + points,
+    level: newLevel,
     gameSpecific: {
       ...gameSpecific,
       board: newBoard,
       clearingLines: [],
       clearingTimer: 0,
-      totalLines: gameSpecific.totalLines + clearingLines.length,
+      totalLines: newTotalLines,
+      dropSpeed: newDropSpeed,
       stats: newStats,
     },
   };
