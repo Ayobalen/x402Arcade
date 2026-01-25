@@ -72,6 +72,73 @@ export const durationMs = {
 } as const;
 
 /**
+ * Duration Presets
+ *
+ * Named duration presets for common animation scenarios.
+ * Designed for the retro arcade aesthetic.
+ */
+export const DURATION_PRESETS = {
+  /** Instant - immediate feedback (100ms) */
+  instant: durations.fast,
+  /** Fast - micro-interactions (200ms) */
+  fast: durations.DEFAULT,
+  /** Normal - standard transitions (300ms) */
+  normal: durations.moderate,
+  /** Slow - emphasis animations (500ms) */
+  slow: durations.slower,
+  /** Very Slow - dramatic effects (800ms) */
+  verySlow: '800ms',
+} as const;
+
+/**
+ * Spring Physics Configuration
+ *
+ * Configuration for spring-based animations.
+ * Based on physics simulation parameters.
+ */
+export interface SpringConfig {
+  /** Stiffness - how quickly the spring moves (higher = faster) */
+  stiffness: number;
+  /** Damping - how quickly the spring settles (higher = less bouncy) */
+  damping: number;
+  /** Mass - weight of the animated object (higher = slower) */
+  mass?: number;
+}
+
+/**
+ * Spring Physics Presets
+ *
+ * Pre-configured spring physics for various animation feels.
+ * Tuned for the retro arcade aesthetic.
+ */
+export const SPRING_PRESETS = {
+  /** Bouncy - high stiffness, low damping (playful, energetic) */
+  bouncy: {
+    stiffness: 300,
+    damping: 10,
+    mass: 1,
+  } as SpringConfig,
+  /** Gentle - low stiffness, high damping (soft, smooth) */
+  gentle: {
+    stiffness: 100,
+    damping: 20,
+    mass: 1,
+  } as SpringConfig,
+  /** Stiff - very high stiffness (snappy, responsive) */
+  stiff: {
+    stiffness: 400,
+    damping: 30,
+    mass: 1,
+  } as SpringConfig,
+  /** Wobbly - moderate stiffness, low damping (playful interactions) */
+  wobbly: {
+    stiffness: 180,
+    damping: 12,
+    mass: 1,
+  } as SpringConfig,
+} as const;
+
+/**
  * Easing Functions
  *
  * CSS timing functions for natural-feeling animations.
@@ -107,6 +174,28 @@ export const easings = {
   spring: 'cubic-bezier(0.5, 1.5, 0.5, 1)',
   /** Elastic - pronounced spring effect */
   elastic: 'cubic-bezier(0.68, -0.6, 0.32, 1.6)',
+  /** Sharp - snappy UI feedback */
+  sharp: 'cubic-bezier(0.4, 0, 0.6, 1)',
+  /** Crypto - custom easing for brand feel (neon pulse) */
+  crypto: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+} as const;
+
+/**
+ * Easing Function Presets
+ *
+ * Curated easing functions for common animation scenarios.
+ */
+export const EASING_PRESETS = {
+  /** Ease Out - natural deceleration (cubic-bezier) */
+  easeOut: easings.cubicOut,
+  /** Ease In - acceleration (cubic-bezier) */
+  easeIn: easings.cubicIn,
+  /** Ease In-Out - smooth transitions (cubic-bezier) */
+  easeInOut: easings.cubicInOut,
+  /** Sharp - snappy UI feedback */
+  sharp: easings.sharp,
+  /** Crypto - custom easing for brand feel */
+  crypto: easings.crypto,
 } as const;
 
 /**
@@ -222,7 +311,10 @@ export const transitions = {
 export const animationTokens = {
   durations,
   durationMs,
+  DURATION_PRESETS,
+  SPRING_PRESETS,
   easings,
+  EASING_PRESETS,
   keyframes,
   animations,
   transitions,
@@ -233,7 +325,10 @@ export const animationTokens = {
  */
 export type Durations = typeof durations;
 export type DurationMs = typeof durationMs;
+export type DurationPresets = typeof DURATION_PRESETS;
+export type SpringPresets = typeof SPRING_PRESETS;
 export type Easings = typeof easings;
+export type EasingPresets = typeof EASING_PRESETS;
 export type Keyframes = typeof keyframes;
 export type Animations = typeof animations;
 export type Transitions = typeof transitions;
