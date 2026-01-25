@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline - x402 Arcade</title>
+    <meta name="description" content="You're currently offline. Check your connection and try again." />
+    <meta name="theme-color" content="#0a0a0f" />
+
+    <style>
+      /* Design tokens from x402Arcade design system */
+      :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: #12121a;
+        --bg-surface: #16162a;
+        --primary: #00ffff;
+        --secondary: #ff00ff;
+        --warning: #ffaa00;
+        --text-primary: #ffffff;
+        --text-secondary: #e0e0e0;
+        --text-muted: #808080;
+        --border: #2d2d4a;
+        --glow-cyan: rgba(0, 255, 255, 0.3);
+        --glow-warning: rgba(255, 170, 0, 0.3);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        text-align: center;
+        overflow: hidden;
+      }
+
+      /* Animated background grid */
+      .background-grid {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image:
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px);
+        background-size: 40px 40px;
+        opacity: 0.15;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Scanlines effect */
+      .scanlines {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0) 0px,
+          rgba(0, 0, 0, 0) 1px,
+          rgba(0, 0, 0, 0.03) 1px,
+          rgba(0, 0, 0, 0.03) 2px
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .container {
+        position: relative;
+        z-index: 2;
+        max-width: 480px;
+        width: 100%;
+      }
+
+      /* Wifi icon with animated pulse */
+      .icon-container {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .icon-container::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: var(--glow-warning);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          transform: scale(0.95);
+          opacity: 0.5;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.8;
+        }
+      }
+
+      .wifi-icon {
+        width: 64px;
+        height: 64px;
+        color: var(--warning);
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Title with arcade font style */
+      h1 {
+        font-family: 'Orbitron', 'Arial Black', sans-serif;
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--warning);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 20px var(--glow-warning);
+      }
+
+      .subtitle {
+        font-size: 1.125rem;
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+        line-height: 1.6;
+      }
+
+      /* Cached content section */
+      .cached-content {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .cached-content h2 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 1rem;
+      }
+
+      .cached-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .cached-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+      }
+
+      .cached-item .checkmark {
+        width: 20px;
+        height: 20px;
+        background: rgba(0, 255, 136, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .cached-item .checkmark svg {
+        width: 12px;
+        height: 12px;
+        color: #00ff88;
+      }
+
+      /* Retry button */
+      .retry-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.875rem 2rem;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: var(--bg-primary);
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        box-shadow: 0 0 20px var(--glow-cyan);
+      }
+
+      .retry-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 30px var(--glow-cyan), 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      .retry-button:active {
+        transform: translateY(0);
+      }
+
+      .retry-button svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Footer info */
+      .footer-info {
+        margin-top: 2rem;
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+      }
+
+      /* Reduced motion support */
+      @media (prefers-reduced-motion: reduce) {
+        .icon-container::before {
+          animation: none;
+        }
+        .retry-button {
+          transition: none;
+        }
+      }
+
+      /* Mobile adjustments */
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 1.5rem;
+        }
+        .subtitle {
+          font-size: 1rem;
+        }
+        .icon-container {
+          width: 100px;
+          height: 100px;
+        }
+        .wifi-icon {
+          width: 48px;
+          height: 48px;
+        }
+      }
+    </style>
+
+    <!-- Load Google Fonts for offline (fallback to system fonts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Background effects -->
+    <div class="background-grid" aria-hidden="true"></div>
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <main class="container" role="main">
+      <!-- Animated wifi icon -->
+      <div class="icon-container" aria-hidden="true">
+        <svg class="wifi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+          <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+      </div>
+
+      <h1>You're Offline</h1>
+
+      <p class="subtitle">
+        It looks like you've lost your connection. Don't worry — some features are still available offline.
+      </p>
+
+      <!-- Cached content indicator -->
+      <div class="cached-content">
+        <h2>Available Offline</h2>
+        <div class="cached-list">
+          <div class="cached-item">
+            <span class="checkmark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span>Previous leaderboard data</span>
+          </div>
+          <div class="cached-item">
+            <span class="checkmark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span>Game rules and instructions</span>
+          </div>
+          <div class="cached-item">
+            <span class="checkmark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span>Your wallet information</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Retry button -->
+      <button type="button" class="retry-button" onclick="window.location.reload()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        Try Again
+      </button>
+
+      <p class="footer-info">
+        Playing games and submitting scores requires an internet connection.
+      </p>
+    </main>
+
+    <script>
+      // Auto-reload when connection is restored
+      window.addEventListener('online', function() {
+        window.location.reload();
+      });
+    </script>
+  </body>
+</html>

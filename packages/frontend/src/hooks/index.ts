@@ -141,3 +141,13 @@ export {
   type UseServiceWorkerOptions,
   type UseServiceWorkerReturn,
 } from './useServiceWorker';
+
+export {
+  useApiCache,
+  invalidateCache,
+  getCacheStorageUsage,
+  CACHE_KEYS,
+  CACHE_TTL,
+  type CacheOptions,
+  type UseApiCacheReturn,
+} from './useApiCache';
