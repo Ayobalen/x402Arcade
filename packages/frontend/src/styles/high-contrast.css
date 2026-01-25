@@ -1,0 +1,246 @@
+/**
+ * High Contrast Mode Styles
+ *
+ * Applied when .high-contrast-mode class is added to <html> element.
+ * Provides maximum contrast for users with visual impairments.
+ *
+ * Features:
+ * - Maximum contrast colors (pure white/black)
+ * - Enhanced focus indicators
+ * - Simplified gradients (solid colors)
+ * - Increased border visibility
+ * - Reduced transparency
+ *
+ * Usage:
+ * This file is automatically imported in globals.css
+ * Enable via useHighContrastMode() hook
+ */
+
+.high-contrast-mode {
+  /* Background colors - pure black */
+  --bg-primary: #000000;
+  --bg-secondary: #000000;
+  --bg-tertiary: #000000;
+  --bg-surface: #000000;
+  --bg-main: #000000;
+
+  /* Text colors - pure white */
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff;
+  --text-tertiary: #e0e0e0;
+  --text-muted: #c0c0c0;
+  --text-disabled: #a0a0a0;
+
+  /* Primary colors - bright cyan */
+  --primary: #00ffff;
+  --primary-hover: #66ffff;
+  --primary-active: #00cccc;
+
+  /* Secondary colors - bright magenta */
+  --secondary: #ff00ff;
+  --secondary-hover: #ff66ff;
+  --secondary-active: #cc00cc;
+
+  /* Semantic colors - pure, bright hues */
+  --success: #00ff00;
+  --warning: #ffff00;
+  --error: #ff0000;
+  --info: #0099ff;
+
+  /* Borders - pure white */
+  --border-default: #ffffff;
+  --border-subtle: #c0c0c0;
+  --border-focus: #ffff00; /* Yellow for maximum visibility */
+
+  /* Surfaces - high contrast borders */
+  --surface-primary: #000000;
+  --surface-secondary: #000000;
+  --surface-tertiary: #000000;
+  --surface-border: #ffffff;
+}
+
+/* Enhanced focus indicators in high contrast mode */
+.high-contrast-mode *:focus-visible {
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 3px !important;
+  box-shadow:
+    0 0 0 3px #000000,
+    0 0 0 6px #ffff00 !important;
+}
+
+/* Remove gradients - use solid colors */
+.high-contrast-mode [class*='gradient'],
+.high-contrast-mode [class*='from-'],
+.high-contrast-mode [class*='to-'],
+.high-contrast-mode [class*='via-'] {
+  background-image: none !important;
+}
+
+/* Ensure all borders are visible */
+.high-contrast-mode [class*='border'] {
+  border-color: #ffffff !important;
+}
+
+/* Remove transparency */
+.high-contrast-mode [class*='opacity-'],
+.high-contrast-mode [class*='bg-opacity-'] {
+  opacity: 1 !important;
+}
+
+/* Simplify shadows - solid outlines instead */
+.high-contrast-mode [class*='shadow'] {
+  box-shadow: 0 0 0 2px #ffffff !important;
+}
+
+/* Button high contrast overrides */
+.high-contrast-mode button {
+  border: 2px solid #ffffff !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast-mode button:hover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.high-contrast-mode button:disabled {
+  border-color: #808080 !important;
+  color: #808080 !important;
+}
+
+/* Link high contrast */
+.high-contrast-mode a {
+  color: #00ffff !important;
+  text-decoration: underline !important;
+}
+
+.high-contrast-mode a:hover {
+  color: #ffff00 !important;
+}
+
+.high-contrast-mode a:visited {
+  color: #ff00ff !important;
+}
+
+/* Input high contrast */
+.high-contrast-mode input,
+.high-contrast-mode textarea,
+.high-contrast-mode select {
+  border: 2px solid #ffffff !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast-mode input:focus,
+.high-contrast-mode textarea:focus,
+.high-contrast-mode select:focus {
+  border-color: #ffff00 !important;
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 2px !important;
+}
+
+.high-contrast-mode input::placeholder,
+.high-contrast-mode textarea::placeholder {
+  color: #c0c0c0 !important;
+}
+
+/* Card high contrast */
+.high-contrast-mode [class*='card'],
+.high-contrast-mode [class*='surface'] {
+  background-color: #000000 !important;
+  border: 2px solid #ffffff !important;
+}
+
+/* Modal high contrast */
+.high-contrast-mode [class*='modal'],
+.high-contrast-mode [class*='dialog'] {
+  background-color: #000000 !important;
+  border: 3px solid #ffffff !important;
+}
+
+/* Toast/alert high contrast */
+.high-contrast-mode [class*='toast'],
+.high-contrast-mode [class*='alert'] {
+  border: 2px solid #ffffff !important;
+}
+
+.high-contrast-mode [class*='toast-success'] {
+  background-color: #003300 !important;
+  border-color: #00ff00 !important;
+  color: #00ff00 !important;
+}
+
+.high-contrast-mode [class*='toast-error'] {
+  background-color: #330000 !important;
+  border-color: #ff0000 !important;
+  color: #ff0000 !important;
+}
+
+.high-contrast-mode [class*='toast-warning'] {
+  background-color: #333300 !important;
+  border-color: #ffff00 !important;
+  color: #ffff00 !important;
+}
+
+.high-contrast-mode [class*='toast-info'] {
+  background-color: #000033 !important;
+  border-color: #0099ff !important;
+  color: #0099ff !important;
+}
+
+/* Disable animations and transitions (optional - some users prefer) */
+@media (prefers-reduced-motion: reduce) {
+  .high-contrast-mode * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Remove glow effects - replace with solid borders */
+.high-contrast-mode [class*='glow'] {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* 3D effects - remove or simplify */
+.high-contrast-mode [class*='3d'],
+.high-contrast-mode [class*='perspective'] {
+  transform: none !important;
+}
+
+/* Ensure icons have proper contrast */
+.high-contrast-mode svg {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Table high contrast */
+.high-contrast-mode table {
+  border: 2px solid #ffffff !important;
+}
+
+.high-contrast-mode th,
+.high-contrast-mode td {
+  border: 1px solid #ffffff !important;
+}
+
+.high-contrast-mode th {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+/* Skip link visibility in high contrast */
+.high-contrast-mode .skip-link:focus {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 9999;
+  padding: 1rem 1.5rem;
+  background: #ffff00 !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  text-decoration: none !important;
+  font-weight: bold;
+}

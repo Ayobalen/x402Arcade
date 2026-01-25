@@ -8,6 +8,9 @@
 /* Import accessibility styles */
 @import './styles/accessibility.css';
 
+/* Import high contrast mode styles */
+@import './styles/high-contrast.css';
+
 /*
  * Font Loading Strategy:
  * - Google Fonts URL already includes &display=swap for FOUT prevention
