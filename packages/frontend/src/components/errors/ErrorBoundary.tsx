@@ -1,5 +1,7 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { ErrorFallback } from './ErrorFallback';
+import { getErrorLogger } from '@/utils/errorLogger';
+import { getSentry } from '@/utils/sentry';
 
 /**
  * Props for ErrorBoundary component
@@ -39,7 +41,8 @@ interface ErrorBoundaryState {
  * Features:
  * - Catches errors during rendering, in lifecycle methods, and in constructors
  * - Logs errors to console in development
- * - Can send errors to monitoring service in production
+ * - Sends errors to Sentry in production
+ * - Logs errors to local error logger
  * - Provides error recovery actions (retry, go home, reload)
  * - Styled with x402Arcade design system
  *
@@ -102,25 +105,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       console.error('Component Stack:', errorInfo.componentStack);
     }
 
+    // Log to local error logger
+    const errorLogger = getErrorLogger();
+    errorLogger.logReactError(error, errorInfo.componentStack || undefined);
+
+    // Send to Sentry
+    const sentry = getSentry();
+    sentry.captureError(error, {
+      componentStack: errorInfo.componentStack,
+      errorBoundary: true,
+    });
+
     // Call custom error handler if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
-    }
-
-    // In production, you would send this to an error monitoring service
-    // Example: Sentry, LogRocket, Bugsnag, etc.
-    if (import.meta.env.PROD) {
-      // TODO: Send to monitoring service
-      // Example:
-      // Sentry.captureException(error, {
-      //   contexts: {
-      //     react: {
-      //       componentStack: errorInfo.componentStack,
-      //     },
-      //   },
-      // });
-      // eslint-disable-next-line no-console
-      console.error('Production error logged:', error.message);
     }
   }
 
