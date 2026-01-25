@@ -249,7 +249,6 @@ export default defineConfig(async () => {
             // Utility libraries
             if (
               id.includes('node_modules/zustand') ||
-              id.includes('node_modules/viem') ||
               id.includes('node_modules/clsx') ||
               id.includes('node_modules/tailwind-merge')
             ) {
@@ -339,7 +338,6 @@ export default defineConfig(async () => {
         'react-router-dom',
         'framer-motion',
         'zustand',
-        'viem',
         'clsx',
         'tailwind-merge',
       ],

@@ -6,8 +6,21 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { formatUnits } from 'viem';
 import type { BalanceData } from './Balance.types';
+
+/**
+ * Format a bigint value with decimals
+ * @param value - Raw bigint value
+ * @param decimals - Number of decimal places
+ * @returns Formatted string
+ */
+function formatUnits(value: bigint, decimals: number): string {
+  const divisor = BigInt(10 ** decimals);
+  const quotient = value / divisor;
+  const remainder = value % divisor;
+  const remainderStr = remainder.toString().padStart(decimals, '0');
+  return `${quotient}.${remainderStr}`;
+}
 
 /**
  * USDC contract address on Cronos Testnet
@@ -91,8 +104,6 @@ export function useBalance(address?: string, tokenAddress: string = USDC_ADDRESS
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch balance');
       setError(error);
-       
-      console.error('Error fetching balance:', error);
     } finally {
       setIsLoading(false);
     }
