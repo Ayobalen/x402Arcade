@@ -518,6 +518,118 @@ describe('useSnakeGame - Arrow Key Handling', () => {
 });
 
 // ============================================================================
+// WASD Key Handling Tests
+// ============================================================================
+
+describe('useSnakeGame - WASD Key Handling', () => {
+  it('should handle w/W key for UP direction', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Start the game first
+    act(() => {
+      result.current.state.isPlaying = true;
+      result.current.state.gameSpecific.direction = 'right';
+    });
+
+    // Press 'w' key
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'w' });
+      window.dispatchEvent(event);
+    });
+
+    // nextDirection should be set to up
+    expect(result.current.state.gameSpecific?.nextDirection).toBe('up');
+  });
+
+  it('should handle uppercase W key for UP direction', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Start the game first
+    act(() => {
+      result.current.state.isPlaying = true;
+      result.current.state.gameSpecific.direction = 'right';
+    });
+
+    // Press 'W' key
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'W' });
+      window.dispatchEvent(event);
+    });
+
+    // nextDirection should be set to up
+    expect(result.current.state.gameSpecific?.nextDirection).toBe('up');
+  });
+
+  it('should handle s/S key for DOWN direction', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Start the game first
+    act(() => {
+      result.current.state.isPlaying = true;
+      result.current.state.gameSpecific.direction = 'right';
+    });
+
+    // Press 's' key
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 's' });
+      window.dispatchEvent(event);
+    });
+
+    // nextDirection should be set to down
+    expect(result.current.state.gameSpecific?.nextDirection).toBe('down');
+  });
+
+  it('should handle a/A key for LEFT direction', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Start the game first
+    act(() => {
+      result.current.state.isPlaying = true;
+      result.current.state.gameSpecific.direction = 'down';
+    });
+
+    // Press 'a' key
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'a' });
+      window.dispatchEvent(event);
+    });
+
+    // nextDirection should be set to left
+    expect(result.current.state.gameSpecific?.nextDirection).toBe('left');
+  });
+
+  it('should handle d/D key for RIGHT direction', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Start the game first
+    act(() => {
+      result.current.state.isPlaying = true;
+      result.current.state.gameSpecific.direction = 'down';
+    });
+
+    // Press 'd' key
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'd' });
+      window.dispatchEvent(event);
+    });
+
+    // nextDirection should be set to right
+    expect(result.current.state.gameSpecific?.nextDirection).toBe('right');
+  });
+
+  it('should prevent default for WASD keys', () => {
+    renderHook(() => useSnakeGame());
+
+    const event = new KeyboardEvent('keydown', { key: 'w' });
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+
+    window.dispatchEvent(event);
+
+    expect(preventDefaultSpy).toHaveBeenCalled();
+  });
+});
+
+// ============================================================================
 // Space Key Handling Tests
 // ============================================================================
 
@@ -598,5 +710,88 @@ describe('useSnakeGame - Space Key Handling', () => {
     // State should remain game over
     expect(result.current.state.isGameOver).toBe(true);
     expect(result.current.state.isPaused).toBe(false);
+  });
+});
+
+// ============================================================================
+// Escape Key Handling Tests
+// ============================================================================
+
+describe('useSnakeGame - Escape Key Handling', () => {
+  it('should toggle pause when Escape is pressed during gameplay', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Start the game
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: ' ' });
+      window.dispatchEvent(event);
+    });
+
+    expect(result.current.state.isPlaying).toBe(true);
+    expect(result.current.state.isPaused).toBe(false);
+
+    // Press Escape to pause
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      window.dispatchEvent(event);
+    });
+
+    expect(result.current.state.isPaused).toBe(true);
+
+    // Press Escape again to unpause
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      window.dispatchEvent(event);
+    });
+
+    expect(result.current.state.isPaused).toBe(false);
+  });
+
+  it('should not do anything when Escape is pressed in menu', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Should be in menu
+    expect(result.current.state.isPlaying).toBe(false);
+
+    // Press Escape
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      window.dispatchEvent(event);
+    });
+
+    // Should still be in menu (no change)
+    expect(result.current.state.isPlaying).toBe(false);
+    expect(result.current.state.isPaused).toBe(false);
+  });
+
+  it('should not toggle pause when Escape is pressed and game is over', () => {
+    const { result } = renderHook(() => useSnakeGame());
+
+    // Set to game over
+    act(() => {
+      result.current.state.isPlaying = true;
+      result.current.state.isGameOver = true;
+    });
+
+    // Press Escape
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      window.dispatchEvent(event);
+    });
+
+    // State should remain game over (no pause toggle)
+    expect(result.current.state.isGameOver).toBe(true);
+    expect(result.current.state.isPaused).toBe(false);
+  });
+
+  it('should prevent default for Escape key', () => {
+    renderHook(() => useSnakeGame());
+
+    const event = new KeyboardEvent('keydown', { key: 'Escape' });
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+
+    window.dispatchEvent(event);
+
+    expect(preventDefaultSpy).toHaveBeenCalled();
   });
 });

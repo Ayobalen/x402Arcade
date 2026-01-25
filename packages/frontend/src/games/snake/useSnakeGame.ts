@@ -163,21 +163,21 @@ export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGa
 
   /**
    * Keyboard event handler.
-   * Handles arrow keys for direction changes and space for pause/start.
+   * Handles arrow keys, WASD keys for direction changes, and space/escape for pause/start.
    */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Arrow keys - change direction
-      if (event.key === 'ArrowUp') {
+      // Arrow keys and WASD - change direction
+      if (event.key === 'ArrowUp' || event.key === 'w' || event.key === 'W') {
         event.preventDefault();
         setState((prevState) => changeDirection(prevState, 'up'));
-      } else if (event.key === 'ArrowDown') {
+      } else if (event.key === 'ArrowDown' || event.key === 's' || event.key === 'S') {
         event.preventDefault();
         setState((prevState) => changeDirection(prevState, 'down'));
-      } else if (event.key === 'ArrowLeft') {
+      } else if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
         event.preventDefault();
         setState((prevState) => changeDirection(prevState, 'left'));
-      } else if (event.key === 'ArrowRight') {
+      } else if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') {
         event.preventDefault();
         setState((prevState) => changeDirection(prevState, 'right'));
       }
@@ -191,6 +191,17 @@ export function useSnakeGame(difficulty: SnakeDifficulty = 'normal'): UseSnakeGa
           }
           // If playing, toggle pause
           else if (prevState.isPlaying && !prevState.isGameOver) {
+            return togglePause(prevState);
+          }
+          return prevState;
+        });
+      }
+      // Escape - toggle pause (only during gameplay)
+      else if (event.key === 'Escape') {
+        event.preventDefault();
+        setState((prevState) => {
+          // Only toggle pause if playing and not game over
+          if (prevState.isPlaying && !prevState.isGameOver) {
             return togglePause(prevState);
           }
           return prevState;
