@@ -206,10 +206,15 @@ export {
   useUISound,
 } from './useSFX';
 
+export { useMusic, useMusicTrack, usePlaylist, useGameStateMusic, useMusicStats } from './useMusic';
+
 export {
-  useMusic,
-  useMusicTrack,
-  usePlaylist,
-  useGameStateMusic,
-  useMusicStats,
-} from './useMusic';
+  useUISoundEffects,
+  useButtonSound,
+  useMenuSound,
+  useNotificationSound,
+  useModalSound,
+  useToggleSound,
+  type UseUISoundEffectsResult,
+  type UseUISoundEffectsOptions,
+} from './useUISoundEffects';
