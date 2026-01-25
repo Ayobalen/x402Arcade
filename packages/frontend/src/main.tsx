@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { ErrorBoundary } from '@/components/errors';
+import { AudioAccessibilityProvider } from '@/contexts/AudioAccessibilityContext';
+import { SoundIndicator } from '@/components/accessibility/SoundIndicator';
+import { AudioSubtitles } from '@/components/accessibility/AudioSubtitles';
 
 // Validate environment variables at startup
 import { validateEnv, getEnv } from '@/lib/env';
@@ -40,7 +43,12 @@ if (import.meta.env.DEV) {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <AudioAccessibilityProvider>
+        <App />
+        {/* Global accessibility components */}
+        <SoundIndicator />
+        <AudioSubtitles />
+      </AudioAccessibilityProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
