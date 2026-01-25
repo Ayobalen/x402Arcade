@@ -1,0 +1,407 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Cancel in-progress runs when a new workflow run is queued
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
+
+jobs:
+  # =============================================================================
+  # Setup Job - Installs dependencies and caches them for other jobs
+  # =============================================================================
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        id: cache-deps
+        with:
+          path: |
+            ${{ env.STORE_PATH }}
+            **/node_modules
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+
+      # Cache node_modules for other jobs
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+            e2e/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+  # =============================================================================
+  # Lint Job - Runs ESLint on frontend and backend
+  # =============================================================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore pnpm store
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.pnpm-store
+            **/node_modules
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+            e2e/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies (if cache miss)
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint Frontend
+        run: pnpm lint:frontend
+        continue-on-error: false
+
+      - name: Lint Backend
+        run: pnpm lint:backend
+        continue-on-error: false
+
+  # =============================================================================
+  # Type Check Job - Runs TypeScript type checking
+  # =============================================================================
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore pnpm store
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.pnpm-store
+            **/node_modules
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+            e2e/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies (if cache miss)
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache TypeScript build info
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/frontend/tsconfig.tsbuildinfo
+            packages/backend/tsconfig.tsbuildinfo
+          key: tsc-${{ runner.os }}-${{ hashFiles('**/tsconfig.json') }}-${{ github.sha }}
+          restore-keys: |
+            tsc-${{ runner.os }}-${{ hashFiles('**/tsconfig.json') }}-
+            tsc-${{ runner.os }}-
+
+      - name: Type check Frontend
+        run: npx tsc --noEmit --project packages/frontend/tsconfig.json
+        continue-on-error: false
+
+      - name: Type check Backend
+        run: npx tsc --noEmit --project packages/backend/tsconfig.json
+        continue-on-error: false
+
+  # =============================================================================
+  # Test Frontend Job
+  # =============================================================================
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore pnpm store
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.pnpm-store
+            **/node_modules
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+            e2e/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies (if cache miss)
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Frontend Tests
+        run: pnpm test:ci:frontend
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: packages/frontend/coverage/
+          retention-days: 7
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-test-results
+          path: packages/frontend/test-reports/
+          retention-days: 7
+
+  # =============================================================================
+  # Test Backend Job
+  # =============================================================================
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore pnpm store
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.pnpm-store
+            **/node_modules
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+            e2e/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies (if cache miss)
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Backend Tests
+        run: pnpm test:ci:backend
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: packages/backend/coverage/
+          retention-days: 7
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: packages/backend/test-reports/
+          retention-days: 7
+
+  # =============================================================================
+  # Build Job - Ensures the project builds successfully
+  # =============================================================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test-frontend, test-backend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore pnpm store
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.pnpm-store
+            **/node_modules
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+            e2e/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies (if cache miss)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Frontend
+        run: pnpm build:frontend
+
+      - name: Build Backend
+        run: pnpm build:backend
+
+      - name: Upload Frontend Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: packages/frontend/dist/
+          retention-days: 7
+
+  # =============================================================================
+  # All Checks Passed - Summary job for branch protection
+  # =============================================================================
+  all-checks-passed:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test-frontend, test-backend, build]
+    if: always()
+    steps:
+      - name: Check all job results
+        run: |
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Type Check: ${{ needs.typecheck.result }}"
+          echo "Frontend Tests: ${{ needs.test-frontend.result }}"
+          echo "Backend Tests: ${{ needs.test-backend.result }}"
+          echo "Build: ${{ needs.build.result }}"
+
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "Lint failed!"
+            exit 1
+          fi
+
+          if [[ "${{ needs.typecheck.result }}" != "success" ]]; then
+            echo "Type check failed!"
+            exit 1
+          fi
+
+          if [[ "${{ needs.test-frontend.result }}" != "success" ]]; then
+            echo "Frontend tests failed!"
+            exit 1
+          fi
+
+          if [[ "${{ needs.test-backend.result }}" != "success" ]]; then
+            echo "Backend tests failed!"
+            exit 1
+          fi
+
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "Build failed!"
+            exit 1
+          fi
+
+          echo "All checks passed!"
