@@ -29,6 +29,16 @@ const pwaPlugin = VitePWA({
     // Files to precache (built assets)
     globPatterns: ['**/*.{js,css,html,ico,svg,png,jpg,jpeg,webp,woff,woff2}'],
 
+    // Navigate fallback for offline - serves offline.html for navigation requests
+    navigateFallback: '/offline.html',
+    // Only fallback for same-origin navigation requests
+    navigateFallbackDenylist: [
+      // Don't fallback for API routes
+      /^\/api\//,
+      // Don't fallback for static assets
+      /\.(?:png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|css|js)$/i,
+    ],
+
     // Runtime caching rules
     runtimeCaching: [
       // Cache-first for static assets (images, fonts, icons)
@@ -147,8 +157,8 @@ const pwaPlugin = VitePWA({
     cleanupOutdatedCaches: true,
   },
 
-  // Include assets for precaching
-  includeAssets: ['favicon.ico', 'vite.svg', 'robots.txt'],
+  // Include assets for precaching (offline.html is critical for offline fallback)
+  includeAssets: ['favicon.ico', 'vite.svg', 'robots.txt', 'offline.html'],
 
   // PWA Manifest
   manifest: {
