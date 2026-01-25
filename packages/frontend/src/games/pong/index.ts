@@ -100,5 +100,21 @@ export type { PongGameProps } from './PongGame';
 export { PongGameWrapper } from './PongGameWrapper';
 export type { PongGameWrapperProps } from './PongGameWrapper';
 
+// Sound System
+export {
+  PongSoundType,
+  PONG_SOUND_ASSETS,
+  initializePongSounds,
+  playPaddleHitSound,
+  playWallBounceSound,
+  playScoreSound,
+  playOpponentScoreSound,
+  playServeSound,
+  playGameStartSound,
+  playGameEndSound,
+  playRallySound,
+  playSpeedUpSound,
+} from './PongSounds';
+
 // Default export
 export { default } from './logic';
