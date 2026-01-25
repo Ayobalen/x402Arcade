@@ -174,3 +174,23 @@ export {
   type ErrorTrackingOptions,
   type ErrorTrackingMethods,
 } from './useErrorTracking';
+
+export {
+  useOnlineStatus,
+  type NetworkQuality,
+  type QueuedAction,
+  type SyncStatus,
+  type OnlineStatusState,
+  type UseOnlineStatusOptions,
+  type UseOnlineStatusReturn,
+} from './useOnlineStatus';
+
+export {
+  useNetworkRequest,
+  useFetch,
+  type RequestStatus,
+  type NetworkRequestState,
+  type UseNetworkRequestOptions,
+  type UseNetworkRequestResult,
+  type UseFetchOptions,
+} from './useNetworkRequest';
