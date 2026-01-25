@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { SnakeGame } from '@/games/snake/SnakeGame';
 import { PongGameWrapper } from '@/games/pong/PongGameWrapper';
 import { TetrisGameWrapper } from '@/games/tetris/TetrisGameWrapper';
+import { BreakoutGameWrapper } from '@/games/breakout/BreakoutGameWrapper';
 
 /**
  * Game metadata
@@ -54,7 +55,7 @@ const GAMES: Record<string, GameInfo> = {
     name: 'Breakout',
     emoji: '🧱',
     description: 'Break all the bricks with your paddle and ball. Classic arcade action.',
-    status: 'coming-soon',
+    status: 'available',
   },
   'space-invaders': {
     id: 'space-invaders',
@@ -170,6 +171,17 @@ export function Game() {
       <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
         <div className="max-w-4xl mx-auto w-full">
           <TetrisGameWrapper onExit={handleExit} />
+        </div>
+      </div>
+    );
+  }
+
+  // Render available game - Breakout
+  if (gameInfo.status === 'available' && gameId === 'breakout') {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="max-w-4xl mx-auto w-full">
+          <BreakoutGameWrapper onExit={handleExit} />
         </div>
       </div>
     );
