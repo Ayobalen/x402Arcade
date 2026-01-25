@@ -151,5 +151,30 @@ export {
 // Components
 export { SpaceInvadersGame } from './SpaceInvadersGame';
 export type { SpaceInvadersGameProps } from './SpaceInvadersGame';
+
+// ============================================================================
+// Sound System Exports
+// ============================================================================
+
+export {
+  SpaceInvadersSoundType,
+  SPACE_INVADERS_SOUND_ASSETS,
+  initializeSpaceInvadersSounds,
+  playPlayerShootSound,
+  playAlienShootSound,
+  playAlienMovementSound,
+  playAlienDeathSound,
+  playUFOFlybySound,
+  stopUFOFlybySound,
+  playUFODeathSound,
+  playShieldHitSound,
+  playShieldDestroySound,
+  playPlayerDeathSound,
+  playWaveCompleteSound,
+  playWaveStartSound,
+  playGameOverSound,
+  playExtraLifeSound,
+  playBonusPointsSound,
+} from './SpaceInvadersSounds';
 export { SpaceInvadersGameWrapper } from './SpaceInvadersGameWrapper';
 export type { SpaceInvadersGameWrapperProps } from './SpaceInvadersGameWrapper';
