@@ -45,6 +45,19 @@ import {
   calculateDropPosition,
 } from './logic';
 import type { TetrisState, Piece, Board } from './types';
+import { useSFX } from '../../hooks/useSFX';
+import {
+  initializeTetrisSounds,
+  playRotateSound,
+  playLockSound,
+  playHardDropSound,
+  playLineClearSound,
+  playComboSound,
+  playLevelUpSound,
+  playGameStartSound,
+  playGameOverSound,
+  playHoldSound,
+} from './TetrisSounds';
 
 // ============================================================================
 // Component Props
@@ -281,6 +294,103 @@ export function TetrisGame({
   const [clearAnimProgress, setClearAnimProgress] = useState(0);
   const [sessionId] = useState(() => `tetris-${Date.now()}`);
 
+  // Audio System
+  const sfx = useSFX();
+  const prevStateRef = useRef<TetrisState | null>(null);
+
+  // Initialize Tetris sounds
+  useEffect(() => {
+    initializeTetrisSounds(sfx);
+  }, [sfx]);
+
+  // Track state changes and play appropriate sounds
+  useEffect(() => {
+    const prevState = prevStateRef.current;
+    prevStateRef.current = gameState;
+
+    // Skip if no previous state (first render)
+    if (!prevState || !prevState.gameSpecific || !gameState.gameSpecific) {
+      return;
+    }
+
+    const prev = prevState.gameSpecific;
+    const curr = gameState.gameSpecific;
+
+    // Detect game start
+    const justStarted = gameState.isPlaying && !prevState.isPlaying;
+    if (justStarted && !prevState.isGameOver) {
+      playGameStartSound(sfx);
+    }
+
+    // Detect piece rotation (rotation state changed)
+    if (
+      curr.currentPiece &&
+      prev.currentPiece &&
+      curr.currentPiece.rotation !== prev.currentPiece.rotation
+    ) {
+      playRotateSound(sfx);
+    }
+
+    // Detect piece lock (piece was placed, new piece spawned)
+    const pieceLocked =
+      prev.currentPiece !== null &&
+      curr.currentPiece !== null &&
+      prev.stats.piecesPlaced < curr.stats.piecesPlaced;
+
+    if (pieceLocked) {
+      playLockSound(sfx);
+    }
+
+    // Detect line clears
+    if (curr.lastClear && curr.lastClear !== prev.lastClear) {
+      const { linesCleared, isTSpin, isBackToBack, combo } = curr.lastClear;
+
+      // Play line clear sound
+      playLineClearSound(sfx, linesCleared, isTSpin, isBackToBack);
+
+      // Play combo sound
+      if (combo > 0) {
+        playComboSound(sfx, combo, false);
+      }
+    }
+
+    // Detect combo break (combo went from > 0 to 0)
+    const comboJustBroke = prev.stats.currentCombo > 0 && curr.stats.currentCombo === 0;
+    if (comboJustBroke && curr.lastClear) {
+      playComboSound(sfx, 0, true);
+    }
+
+    // Detect level up
+    const leveledUp = gameState.level > prevState.level;
+    if (leveledUp) {
+      playLevelUpSound(sfx);
+    }
+
+    // Detect game over
+    const justGameOver = gameState.isGameOver && !prevState.isGameOver;
+    if (justGameOver) {
+      // Check if it was a top-out (currentPiece exists at top)
+      const isTopOut = curr.currentPiece !== null && curr.currentPiece.position.y <= 2;
+      playGameOverSound(sfx, isTopOut);
+    }
+
+    // Detect hold piece usage
+    const heldPieceChanged = curr.heldPiece !== prev.heldPiece;
+    if (heldPieceChanged && curr.heldPiece !== null) {
+      playHoldSound(sfx);
+    }
+  }, [
+    gameState.isPlaying,
+    gameState.isGameOver,
+    gameState.level,
+    gameState.gameSpecific?.currentPiece?.rotation,
+    gameState.gameSpecific?.stats.piecesPlaced,
+    gameState.gameSpecific?.lastClear,
+    gameState.gameSpecific?.stats.currentCombo,
+    gameState.gameSpecific?.heldPiece,
+    sfx,
+  ]);
+
   // Input handling
   const keysPressed = useRef<Set<string>>(new Set());
 
@@ -430,6 +540,7 @@ export function TetrisGame({
           case 'Space': {
             // Hard drop
             const droppedState = hardDrop(prevState);
+            playHardDropSound(sfx); // Play hard drop sound
             const droppedGs = droppedState.gameSpecific;
             if (droppedGs.currentPiece) {
               const boardWithPiece = placePiece(droppedGs.board, droppedGs.currentPiece);
