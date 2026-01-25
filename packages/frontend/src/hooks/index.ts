@@ -117,3 +117,12 @@ export {
   type GameAnnouncementOptions,
   type UseGameAnnouncementsReturn,
 } from './useGameAnnouncements';
+
+export {
+  useColorScheme,
+  getColorSchemeInitScript,
+  type ColorScheme,
+  type ColorSchemePreference,
+  type UseColorSchemeResult,
+  type UseColorSchemeOptions,
+} from './useColorScheme';

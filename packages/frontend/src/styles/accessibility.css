@@ -209,6 +209,130 @@ nav a:focus-visible,
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* Disable particle effects */
+  .particle-effect,
+  .particles,
+  [data-particles='true'],
+  .particle-burst {
+    display: none !important;
+  }
+
+  /* Replace slide animations with instant opacity changes */
+  .animate-slide-in,
+  .animate-slide-out,
+  .animate-slide-up,
+  .animate-slide-down {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Disable auto-playing animations */
+  .animate-pulse,
+  .animate-bounce,
+  .animate-spin,
+  .animate-ping,
+  [data-animate='true'] {
+    animation: none !important;
+  }
+
+  /* Reduce or disable game visual effects */
+  .screen-shake,
+  .camera-shake,
+  [data-shake='true'] {
+    transform: none !important;
+  }
+
+  /* Disable glow animations */
+  .glow-pulse,
+  .neon-flicker,
+  [data-glow-animate='true'] {
+    animation: none !important;
+  }
+
+  /* Provide static alternatives for animated backgrounds */
+  .animated-gradient,
+  .gradient-animate {
+    background-position: 0 0 !important;
+    animation: none !important;
+  }
+
+  /* Disable floating/hovering animations */
+  .float,
+  .hover-float,
+  [data-float='true'] {
+    transform: none !important;
+    animation: none !important;
+  }
+
+  /* Disable scanline animations */
+  .scanlines-animate,
+  [data-scanlines-animate='true'] {
+    animation: none !important;
+  }
+
+  /* Static CRT effect (no flicker) */
+  .crt-flicker,
+  [data-crt-flicker='true'] {
+    animation: none !important;
+  }
+
+  /* Disable cursor trails */
+  .cursor-trail,
+  [data-cursor-trail='true'] {
+    display: none !important;
+  }
+
+  /* Disable confetti and celebration effects */
+  .confetti,
+  .celebration-effect,
+  [data-celebration='true'] {
+    display: none !important;
+  }
+
+  /* Instant page transitions */
+  .page-transition {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Disable loading spinners - show static indicator */
+  .loading-spinner,
+  .spinner {
+    animation: none !important;
+  }
+
+  /* Disable 3D rotations */
+  .rotate-3d,
+  [data-rotate='true'] {
+    transform: none !important;
+    animation: none !important;
+  }
+}
+
+/* ========================================
+   REDUCED MOTION - DATA ATTRIBUTE TOGGLE
+   ======================================== */
+
+/**
+ * Allow programmatic control of reduced motion.
+ * Use data-reduce-motion="true" on html element to force reduced motion.
+ */
+[data-reduce-motion='true'] *,
+[data-reduce-motion='true'] *::before,
+[data-reduce-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+[data-reduce-motion='true'] .particle-effect,
+[data-reduce-motion='true'] .particles,
+[data-reduce-motion='true'] .cursor-trail,
+[data-reduce-motion='true'] .confetti,
+[data-reduce-motion='true'] .celebration-effect {
+  display: none !important;
 }
 
 /* ========================================
@@ -301,4 +425,172 @@ body.mouse-nav *:focus {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* ========================================
+   COLOR SCHEME SUPPORT
+   ======================================== */
+
+/**
+ * Prefers-color-scheme support (WCAG 2.1 SC 1.4.1).
+ * Dark mode is the default for this Web3 arcade application.
+ * Light mode is available for users who prefer it.
+ */
+
+/* Default: Dark theme */
+:root {
+  color-scheme: dark;
+
+  /* Dark theme colors (from design system) */
+  --color-bg-primary: #0a0a0a;
+  --color-bg-surface: #1a1a2e;
+  --color-bg-card: #16162a;
+  --color-text-primary: #ffffff;
+  --color-text-muted: #94a3b8;
+  --color-border: #2d2d4a;
+  --color-accent-primary: #00ffff;
+  --color-accent-secondary: #ff00ff;
+  --color-success: #00ff00;
+  --color-warning: #ffff00;
+  --color-error: #ff4444;
+}
+
+/* Light theme when explicitly set */
+[data-theme='light'],
+.light {
+  color-scheme: light;
+
+  /* Light theme colors - adjusted for contrast */
+  --color-bg-primary: #f8fafc;
+  --color-bg-surface: #ffffff;
+  --color-bg-card: #f1f5f9;
+  --color-text-primary: #0f172a;
+  --color-text-muted: #475569;
+  --color-border: #e2e8f0;
+  --color-accent-primary: #0891b2;
+  --color-accent-secondary: #a855f7;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+
+  /* Adjust focus colors for light mode */
+  --focus-color-primary: #0891b2;
+  --focus-offset-bg: #ffffff;
+}
+
+/* System preference - light mode */
+@media (prefers-color-scheme: light) {
+  /* Only apply when no explicit theme is set */
+  :root:not([data-theme='dark']):not(.dark) {
+    color-scheme: light;
+
+    --color-bg-primary: #f8fafc;
+    --color-bg-surface: #ffffff;
+    --color-bg-card: #f1f5f9;
+    --color-text-primary: #0f172a;
+    --color-text-muted: #475569;
+    --color-border: #e2e8f0;
+    --color-accent-primary: #0891b2;
+    --color-accent-secondary: #a855f7;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+    --focus-color-primary: #0891b2;
+    --focus-offset-bg: #ffffff;
+  }
+}
+
+/* System preference - dark mode (explicit, for override) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not(.light) {
+    color-scheme: dark;
+
+    /* Ensure dark theme colors are applied */
+    --color-bg-primary: #0a0a0a;
+    --color-bg-surface: #1a1a2e;
+    --color-bg-card: #16162a;
+    --color-text-primary: #ffffff;
+    --color-text-muted: #94a3b8;
+    --color-border: #2d2d4a;
+    --color-accent-primary: #00ffff;
+    --color-accent-secondary: #ff00ff;
+    --color-success: #00ff00;
+    --color-warning: #ffff00;
+    --color-error: #ff4444;
+    --focus-color-primary: #00ffff;
+    --focus-offset-bg: rgba(10, 10, 15, 1);
+  }
+}
+
+/* Light mode focus adjustments */
+[data-theme='light'] *:focus-visible,
+.light *:focus-visible {
+  --focus-color-primary: #0891b2;
+  --focus-offset-bg: #ffffff;
+}
+
+[data-theme='light'] button:focus-visible,
+[data-theme='light'] [role='button']:focus-visible,
+.light button:focus-visible,
+.light [role='button']:focus-visible {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #0891b2,
+    0 0 12px 4px rgba(8, 145, 178, 0.3);
+}
+
+[data-theme='light'] a:focus-visible,
+.light a:focus-visible {
+  box-shadow: 0 0 8px 2px rgba(8, 145, 178, 0.2);
+}
+
+/* ========================================
+   ARIA DESCRIPTION VISIBILITY
+   ======================================== */
+
+/**
+ * Hidden descriptions for aria-describedby elements.
+ * These are visually hidden but read by screen readers.
+ */
+[id$='-description'],
+[id*='-description-'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ========================================
+   FORCED COLORS MODE SUPPORT
+   ======================================== */
+
+/**
+ * Support for Windows High Contrast Mode and forced colors.
+ * Ensures UI elements remain visible and functional.
+ */
+@media (forced-colors: active) {
+  *:focus-visible {
+    outline: 3px solid CanvasText !important;
+    outline-offset: 3px;
+  }
+
+  button,
+  [role='button'] {
+    border: 2px solid ButtonBorder;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+
+  /* Ensure disabled states are visible */
+  button:disabled,
+  [role='button'][aria-disabled='true'] {
+    opacity: 0.5;
+  }
 }
