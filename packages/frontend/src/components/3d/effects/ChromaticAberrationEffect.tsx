@@ -290,7 +290,7 @@ export const ChromaticAberrationEffect = forwardRef<
     <EffectComposer>
       <ChromaticAberration
         offset={offsetVector}
-        radialModulation={radialModulation}
+        radialModulation={radialModulation === true ? true : false}
         modulationOffset={modulationOffset}
         blendFunction={blendFunctionValue}
         opacity={currentOpacity}

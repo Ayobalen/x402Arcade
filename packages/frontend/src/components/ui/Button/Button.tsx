@@ -256,6 +256,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Create motion component as button
     const MotionButton = motion.button;
 
+    // Separate motion props from native button props to avoid conflicts
+    const {
+      onAnimationStart,
+      onAnimationEnd,
+      onDrag,
+      onDragEnd,
+      onDragStart,
+      ...nativeButtonProps
+    } = props;
+
     return (
       <MotionButton
         ref={ref as React.Ref<HTMLButtonElement>}
@@ -292,7 +302,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           stiffness: 400,
           damping: 25,
         }}
-        {...props}
+        {...nativeButtonProps}
       >
         {isLoading ? (
           <>

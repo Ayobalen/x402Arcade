@@ -246,7 +246,7 @@ export const Scanlines = forwardRef<ScanlinesHandle, ScanlinesProps>((props, ref
   }, [opacity, lineCount, lineWidth, colorRGB]);
 
   // Animation loop
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (!meshRef.current || !animationEnabledRef.current) return;
 
     // Update offset for scrolling animation

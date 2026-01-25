@@ -2,7 +2,12 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "Dockerfile",
+    "watchPatterns": [
+      "src/**",
+      "package.json",
+      "tsconfig.json"
+    ]
   },
   "deploy": {
     "startCommand": "node dist/index.js",
@@ -11,6 +16,10 @@
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 10
+    "healthcheckTimeout": 10,
+    "healthcheckInterval": 30
+  },
+  "observability": {
+    "logRetention": "7d"
   }
 }

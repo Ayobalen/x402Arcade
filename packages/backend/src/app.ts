@@ -28,9 +28,8 @@ import { dirname, join } from 'path';
 
 // Import environment configuration
 import { getEnv } from './config/env.js';
-import { getDatabase } from './db/index.js';
 
-// Get package.json version
+// Get package.json version for API info endpoint
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8')) as {
@@ -43,19 +42,23 @@ import playRoutes from './routes/play.routes.js';
 import scoreRoutes from './routes/score.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
 import prizeRoutes from './routes/prize.routes.js';
+import healthRoutes from './routes/health.routes.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
+import { requestIdMiddleware } from './middleware/requestId.js';
+import { httpLogger } from './middleware/httpLogger.js';
 // import { x402Middleware } from './middleware/x402.js'; // Will be added when implementing x402 routes
 
 /**
  * Create and configure the Express application.
  *
  * Middleware stack (in order):
- * 1. Helmet - Security headers
- * 2. CORS - Cross-origin resource sharing
- * 3. Morgan - HTTP request logging
- * 4. express.json() - JSON body parsing
+ * 1. Request ID - Generate unique ID for request tracing
+ * 2. Helmet - Security headers
+ * 3. CORS - Cross-origin resource sharing
+ * 4. Morgan/HTTP Logger - HTTP request logging (morgan in dev, structured JSON in prod)
+ * 5. express.json() - JSON body parsing
  *
  * @returns Configured Express application
  */
@@ -66,6 +69,10 @@ export function createApp(): Express {
   // ============================================================================
   // Middleware Configuration
   // ============================================================================
+
+  // Request ID: Generate unique request IDs for tracing
+  // Must be first to ensure all logs include request ID
+  app.use(requestIdMiddleware);
 
   // Security: Set security-related HTTP headers
   // Configure CSP to allow WebGL and Canvas for arcade games
@@ -140,22 +147,25 @@ export function createApp(): Express {
   }
 
   // Logging: HTTP request logging
-  // Use 'combined' format in production for detailed logs
-  // Use 'dev' format in development for concise, colorized output
-  // Skip logging for health check endpoint to reduce noise
-  app.use(
-    morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev', {
-      skip: (req: Request) => req.path === '/health',
-      stream: {
-        write: (message: string) => {
-          // Strip trailing newline from morgan output
-          // In the future, integrate with structured logging (pino/winston)
-          // eslint-disable-next-line no-console
-          console.log(message.trim());
+  // In production: Use structured JSON logging with request ID tracing
+  // In development: Use morgan for concise, colorized output
+  if (env.NODE_ENV === 'production') {
+    // Structured JSON logging for production (log aggregation)
+    app.use(httpLogger);
+  } else {
+    // Morgan for development (human-readable)
+    app.use(
+      morgan('dev', {
+        skip: (req: Request) => req.path.startsWith('/health'),
+        stream: {
+          write: (message: string) => {
+            // eslint-disable-next-line no-console
+            console.log(message.trim());
+          },
         },
-      },
-    })
-  );
+      })
+    );
+  }
 
   // Body parsing: Parse JSON request bodies
   // Set 10kb limit to prevent large payload attacks
@@ -170,34 +180,9 @@ export function createApp(): Express {
   // Routes
   // ============================================================================
 
-  // Health check endpoint
-  // Used by load balancers and monitoring systems to verify service health
-  app.get('/health', (_req: Request, res: Response) => {
-    const healthCheck = {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      version: APP_VERSION,
-      uptime: process.uptime(),
-      database: 'unknown' as 'ok' | 'error' | 'unknown',
-    };
-
-    // Check database connectivity (optional check)
-    try {
-      const db = getDatabase();
-      // Simple query to verify database is accessible
-      db.prepare('SELECT 1').get();
-      healthCheck.database = 'ok';
-    } catch (error) {
-      // Database not initialized or error - still return 200
-      // Load balancers should only fail on 5xx errors
-      healthCheck.database = 'error';
-      // Log the error for debugging
-      // eslint-disable-next-line no-console
-      console.error('Health check database error:', error);
-    }
-
-    res.json(healthCheck);
-  });
+  // Health check routes
+  // Comprehensive health monitoring with /health, /health/detailed, /health/ready, /health/live
+  app.use('/health', healthRoutes);
 
   // API info endpoint
   app.get('/api', (_req: Request, res: Response) => {

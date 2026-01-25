@@ -349,7 +349,7 @@ export function useSnakeGame(
       renderGrid(ctx);
 
       // Render game elements if playing
-      if (state.isPlaying || state.isGameOver) {
+      if ((state.isPlaying || state.isGameOver) && state.gameSpecific) {
         // Render food
         renderFood(ctx, state.gameSpecific.food);
 
@@ -440,13 +440,13 @@ export function useSnakeGame(
    * Clears rankings from previous game.
    */
   const reset = useCallback(() => {
-    const currentDifficulty = state.gameSpecific.difficulty || difficulty;
+    const currentDifficulty = state.gameSpecific?.difficulty || difficulty;
     setState(createMenuState(currentDifficulty));
     // Clear previous game's rankings
     setRankings([]);
     setPlayerRank(null);
     setIsLoadingRankings(false);
-  }, [state.gameSpecific.difficulty, difficulty]);
+  }, [state.gameSpecific?.difficulty, difficulty]);
 
   /**
    * Start the game from menu state.

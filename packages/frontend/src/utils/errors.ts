@@ -13,7 +13,6 @@ import type {
   ErrorCategory,
   ErrorSeverity,
   RecoverySuggestion,
-  RecoveryAction,
 } from '../types/errors'
 import {
   getErrorCategory,
