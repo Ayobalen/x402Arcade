@@ -3,6 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "sideEffects": [
+    "*.css",
+    "*.scss",
+    "src/index.css",
+    "src/styles/**/*.css"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -20,7 +26,10 @@
     "storybook:build": "storybook build",
     "storybook:test": "test-storybook",
     "storybook:test:ci": "test-storybook --ci --browsers chromium",
-    "storybook:test:coverage": "test-storybook --coverage"
+    "storybook:test:coverage": "test-storybook --coverage",
+    "optimize:images": "tsx scripts/optimize-images.ts",
+    "images:webp": "tsx scripts/optimize-images.ts --webp true",
+    "images:all": "tsx scripts/optimize-images.ts --webp true --avif true"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
