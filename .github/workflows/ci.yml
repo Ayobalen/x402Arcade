@@ -228,7 +228,18 @@ jobs:
       - name: Run Frontend Tests
         run: pnpm test:ci:frontend
 
-      - name: Upload coverage report
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./packages/frontend/coverage/coverage-final.json
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload coverage report (artifact)
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -290,7 +301,18 @@ jobs:
       - name: Run Backend Tests
         run: pnpm test:ci:backend
 
-      - name: Upload coverage report
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./packages/backend/coverage/coverage-final.json
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload coverage report (artifact)
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -307,12 +329,114 @@ jobs:
           retention-days: 7
 
   # =============================================================================
-  # Build Job - Ensures the project builds successfully
+  # Build Backend Job
   # =============================================================================
-  build:
-    name: Build
+  build-backend:
+    name: Build Backend
     runs-on: ubuntu-latest
-    needs: [test-frontend, test-backend]
+    needs: [test-backend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore pnpm store
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.pnpm-store
+            **/node_modules
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+            e2e/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies (if cache miss)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Backend
+        run: pnpm build:backend
+
+      - name: Verify build artifacts
+        run: |
+          echo "Verifying backend build artifacts..."
+          if [ ! -d "packages/backend/dist" ]; then
+            echo "Error: Backend build directory not found!"
+            exit 1
+          fi
+
+          echo "Build directory contents:"
+          ls -lah packages/backend/dist/
+
+          # Count built files
+          file_count=$(find packages/backend/dist -type f | wc -l)
+          echo "Total files in build: $file_count"
+
+          if [ "$file_count" -eq 0 ]; then
+            echo "Error: No files in build output!"
+            exit 1
+          fi
+
+          echo "Backend build verification passed!"
+
+      - name: Upload Backend Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: packages/backend/dist/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Report build metrics
+        run: |
+          echo "### Backend Build Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+
+          # Total size
+          total_size=$(du -sh packages/backend/dist/ | cut -f1)
+          echo "| Total Size | $total_size |" >> $GITHUB_STEP_SUMMARY
+
+          # File count
+          file_count=$(find packages/backend/dist -type f | wc -l)
+          echo "| File Count | $file_count |" >> $GITHUB_STEP_SUMMARY
+
+          # Largest files
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### Largest Files" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          find packages/backend/dist -type f -exec du -h {} + | sort -rh | head -5 | while read size file; do
+            filename=$(basename "$file")
+            echo "| $filename | $size |" >> $GITHUB_STEP_SUMMARY
+          done
+
+  # =============================================================================
+  # Build Frontend Job
+  # =============================================================================
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: [test-frontend]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -352,8 +476,57 @@ jobs:
       - name: Build Frontend
         run: pnpm build:frontend
 
-      - name: Build Backend
-        run: pnpm build:backend
+      - name: Verify build output
+        run: |
+          echo "Verifying frontend build output..."
+          if [ ! -d "packages/frontend/dist" ]; then
+            echo "Error: Frontend build directory not found!"
+            exit 1
+          fi
+
+          if [ ! -f "packages/frontend/dist/index.html" ]; then
+            echo "Error: index.html not found in build output!"
+            exit 1
+          fi
+
+          echo "Build directory structure:"
+          tree -L 3 packages/frontend/dist/ || ls -lah packages/frontend/dist/
+
+          echo "Frontend build verification passed!"
+
+      - name: Check bundle size
+        run: |
+          echo "Analyzing bundle size..."
+
+          # Calculate total JS bundle size
+          js_size=$(find packages/frontend/dist/assets -name "*.js" -type f -exec du -ch {} + | grep total$ | cut -f1)
+          echo "Total JS bundle size: $js_size"
+
+          # Calculate total CSS bundle size
+          css_size=$(find packages/frontend/dist/assets -name "*.css" -type f -exec du -ch {} + | grep total$ | cut -f1)
+          echo "Total CSS bundle size: $css_size"
+
+          # List largest JS files
+          echo "Largest JS bundles:"
+          find packages/frontend/dist/assets -name "*.js" -type f -exec du -h {} + | sort -rh | head -10
+
+          # Check against performance budget (500KB total JS, 50KB total CSS)
+          js_bytes=$(find packages/frontend/dist/assets -name "*.js" -type f -exec du -b {} + | awk '{sum += $1} END {print sum}')
+          css_bytes=$(find packages/frontend/dist/assets -name "*.css" -type f -exec du -b {} + | awk '{sum += $1} END {print sum}')
+
+          js_kb=$((js_bytes / 1024))
+          css_kb=$((css_bytes / 1024))
+
+          echo "JS size: ${js_kb}KB (budget: 500KB)"
+          echo "CSS size: ${css_kb}KB (budget: 50KB)"
+
+          if [ "$js_kb" -gt 500 ]; then
+            echo "⚠️ Warning: JS bundle exceeds 500KB budget!"
+          fi
+
+          if [ "$css_kb" -gt 50 ]; then
+            echo "⚠️ Warning: CSS bundle exceeds 50KB budget!"
+          fi
 
       - name: Upload Frontend Build
         uses: actions/upload-artifact@v4
@@ -361,6 +534,49 @@ jobs:
           name: frontend-build
           path: packages/frontend/dist/
           retention-days: 7
+          if-no-files-found: error
+
+      - name: Report build metrics
+        run: |
+          echo "### Frontend Build Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value | Budget | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Calculate sizes in KB
+          js_bytes=$(find packages/frontend/dist/assets -name "*.js" -type f -exec du -b {} + | awk '{sum += $1} END {print sum}')
+          css_bytes=$(find packages/frontend/dist/assets -name "*.css" -type f -exec du -b {} + | awk '{sum += $1} END {print sum}')
+          total_bytes=$(du -sb packages/frontend/dist/ | cut -f1)
+
+          js_kb=$((js_bytes / 1024))
+          css_kb=$((css_bytes / 1024))
+          total_kb=$((total_bytes / 1024))
+
+          # Determine status
+          js_status="✅"
+          [ "$js_kb" -gt 500 ] && js_status="⚠️"
+
+          css_status="✅"
+          [ "$css_kb" -gt 50 ] && css_status="⚠️"
+
+          echo "| Total JS | ${js_kb}KB | 500KB | $js_status |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total CSS | ${css_kb}KB | 50KB | $css_status |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Size | ${total_kb}KB | - | - |" >> $GITHUB_STEP_SUMMARY
+
+          # File count
+          file_count=$(find packages/frontend/dist -type f | wc -l)
+          echo "| File Count | $file_count | - | - |" >> $GITHUB_STEP_SUMMARY
+
+          # Largest bundles
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### Largest JS Bundles" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          find packages/frontend/dist/assets -name "*.js" -type f -exec du -h {} + | sort -rh | head -5 | while read size file; do
+            filename=$(basename "$file")
+            echo "| $filename | $size |" >> $GITHUB_STEP_SUMMARY
+          done
 
   # =============================================================================
   # All Checks Passed - Summary job for branch protection
@@ -368,40 +584,53 @@ jobs:
   all-checks-passed:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test-frontend, test-backend, build]
+    needs: [lint, typecheck, test-frontend, test-backend, build-frontend, build-backend]
     if: always()
     steps:
       - name: Check all job results
         run: |
-          echo "Lint: ${{ needs.lint.result }}"
-          echo "Type Check: ${{ needs.typecheck.result }}"
-          echo "Frontend Tests: ${{ needs.test-frontend.result }}"
-          echo "Backend Tests: ${{ needs.test-backend.result }}"
-          echo "Build: ${{ needs.build.result }}"
+          echo "### CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type Check | ${{ needs.typecheck.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Tests | ${{ needs.test-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Tests | ${{ needs.test-backend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Build | ${{ needs.build-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Build | ${{ needs.build-backend.result }} |" >> $GITHUB_STEP_SUMMARY
 
+          # Check each job
           if [[ "${{ needs.lint.result }}" != "success" ]]; then
-            echo "Lint failed!"
+            echo "❌ Lint failed!"
             exit 1
           fi
 
           if [[ "${{ needs.typecheck.result }}" != "success" ]]; then
-            echo "Type check failed!"
+            echo "❌ Type check failed!"
             exit 1
           fi
 
           if [[ "${{ needs.test-frontend.result }}" != "success" ]]; then
-            echo "Frontend tests failed!"
+            echo "❌ Frontend tests failed!"
             exit 1
           fi
 
           if [[ "${{ needs.test-backend.result }}" != "success" ]]; then
-            echo "Backend tests failed!"
+            echo "❌ Backend tests failed!"
             exit 1
           fi
 
-          if [[ "${{ needs.build.result }}" != "success" ]]; then
-            echo "Build failed!"
+          if [[ "${{ needs.build-frontend.result }}" != "success" ]]; then
+            echo "❌ Frontend build failed!"
             exit 1
           fi
 
-          echo "All checks passed!"
+          if [[ "${{ needs.build-backend.result }}" != "success" ]]; then
+            echo "❌ Backend build failed!"
+            exit 1
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All checks passed!"
