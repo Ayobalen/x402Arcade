@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { BackgroundEffects, NoiseOverlay } from '@/components/layout/BackgroundEffects';
+import { usePerformanceScaling } from '@/hooks/usePerformanceScaling';
 import type { LayoutProps } from './Layout.types';
 
 /**
@@ -69,6 +70,9 @@ export function Layout({
   showNoiseOverlay = true,
   noiseIntensity = 0.08,
 }: LayoutProps) {
+  // Performance scaling - automatically adjusts effect quality based on FPS
+  const { settings } = usePerformanceScaling();
+
   return (
     <div
       className={cn(
@@ -83,10 +87,14 @@ export function Layout({
       )}
     >
       {/* Background Effects - positioned behind all content */}
-      {showBackgroundEffects && <BackgroundEffects glowIntensity={glowIntensity} />}
+      {showBackgroundEffects && settings.backgroundGlows && (
+        <BackgroundEffects glowIntensity={glowIntensity} animateGlows={settings.animateGlows} />
+      )}
 
       {/* Noise/Grain Overlay */}
-      {showNoiseOverlay && <NoiseOverlay intensity={noiseIntensity} />}
+      {showNoiseOverlay && settings.noiseOverlay && (
+        <NoiseOverlay intensity={noiseIntensity} fps={settings.noiseFps} />
+      )}
 
       {/* Header */}
       {showHeader && (customHeader || <Header showBalance={showBalance} />)}

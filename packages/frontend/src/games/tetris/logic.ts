@@ -390,6 +390,109 @@ export function clearRows(board: Board, rowIndices: number[]): Board {
   return newBoard;
 }
 
+/**
+ * Initiates line clearing by marking lines for animation.
+ *
+ * This function checks for complete lines and marks them for clearing.
+ * The actual removal happens after the animation delay completes.
+ *
+ * @param state - The current game state
+ * @returns Updated state with clearingLines marked, or original state if no lines to clear
+ */
+export function startLineClear(state: TetrisState): TetrisState {
+  const { gameSpecific } = state;
+  const fullRows = getFullRows(gameSpecific.board);
+
+  // If no lines to clear, return original state
+  if (fullRows.length === 0) {
+    return state;
+  }
+
+  // Mark lines for clearing
+  return {
+    ...state,
+    gameSpecific: {
+      ...gameSpecific,
+      clearingLines: fullRows,
+      clearingTimer: 0,
+    },
+  };
+}
+
+/**
+ * Completes line clearing by removing marked lines and updating score.
+ *
+ * This should be called after the animation delay has elapsed.
+ * Removes the marked lines, updates statistics, and resumes gameplay.
+ *
+ * @param state - The current game state with clearingLines marked
+ * @returns Updated state with lines removed and score updated
+ */
+export function completeLineClear(state: TetrisState): TetrisState {
+  const { gameSpecific } = state;
+  const { clearingLines, stats } = gameSpecific;
+
+  // If no lines are being cleared, return original state
+  if (clearingLines.length === 0) {
+    return state;
+  }
+
+  // Remove the cleared lines
+  const newBoard = clearRows(gameSpecific.board, clearingLines);
+
+  // Update statistics
+  const newStats = { ...stats };
+  newStats.linesCleared += clearingLines.length;
+
+  switch (clearingLines.length) {
+    case 1:
+      newStats.singles++;
+      break;
+    case 2:
+      newStats.doubles++;
+      break;
+    case 3:
+      newStats.triples++;
+      break;
+    case 4:
+      newStats.tetrises++;
+      break;
+  }
+
+  // Update combo
+  newStats.currentCombo++;
+  if (newStats.currentCombo > newStats.maxCombo) {
+    newStats.maxCombo = newStats.currentCombo;
+  }
+
+  // Calculate score (basic scoring)
+  const linePoints = [0, 100, 300, 500, 800]; // Points for 0-4 lines
+  const points = linePoints[clearingLines.length] * state.level;
+
+  return {
+    ...state,
+    score: state.score + points,
+    gameSpecific: {
+      ...gameSpecific,
+      board: newBoard,
+      clearingLines: [],
+      clearingTimer: 0,
+      totalLines: gameSpecific.totalLines + clearingLines.length,
+      stats: newStats,
+    },
+  };
+}
+
+/**
+ * Checks if lines are currently being cleared (animation in progress).
+ *
+ * @param state - The current game state
+ * @returns true if line clear animation is in progress, false otherwise
+ */
+export function isClearing(state: TetrisState): boolean {
+  return state.gameSpecific.clearingLines.length > 0;
+}
+
 // ============================================================================
 // Game State Creation
 // ============================================================================
@@ -439,6 +542,8 @@ export function createInitialTetrisState(): TetrisSpecificState {
     totalLines: 0,
     stats: createInitialStats(),
     lastClear: null,
+    clearingLines: [],
+    clearingTimer: 0,
   };
 }
 
@@ -810,5 +915,6 @@ export function cloneTetrisState(state: TetrisSpecificState): TetrisSpecificStat
       : null,
     nextPieces: [...state.nextPieces],
     stats: { ...state.stats },
+    clearingLines: [...state.clearingLines],
   };
 }

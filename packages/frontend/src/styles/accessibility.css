@@ -1,0 +1,304 @@
+/**
+ * Accessibility Styles
+ *
+ * Global accessibility styles including focus-visible indicators,
+ * screen reader utilities, and reduced motion support.
+ *
+ * WCAG 2.1 Compliance:
+ * - SC 2.4.7 Focus Visible (Level AA)
+ * - SC 2.1.1 Keyboard (Level A)
+ * - SC 2.3.3 Animation from Interactions (Level AAA)
+ */
+
+/* ========================================
+   FOCUS-VISIBLE STYLES
+   ======================================== */
+
+/**
+ * Remove default browser focus outline and use custom focus-visible styles.
+ * This ensures keyboard users get clear focus indicators while avoiding
+ * focus rings on mouse clicks.
+ */
+
+/* Base focus-visible setup */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--focus-color-primary, #00ffff);
+  outline-offset: 2px;
+  transition:
+    outline 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+/* Buttons */
+button:focus-visible,
+[role='button']:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(10, 10, 15, 1),
+    0 0 0 4px var(--focus-color-primary, #00ffff),
+    0 0 12px 4px rgba(0, 255, 255, 0.3);
+}
+
+/* Links */
+a:focus-visible {
+  outline: 2px solid var(--focus-color-primary, #00ffff);
+  outline-offset: 2px;
+  border-radius: 2px;
+  box-shadow: 0 0 8px 2px rgba(0, 255, 255, 0.2);
+}
+
+/* Form inputs */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--focus-color-primary, #00ffff);
+  box-shadow:
+    inset 0 0 0 1px var(--focus-color-primary, #00ffff),
+    0 0 12px 2px rgba(0, 255, 255, 0.3);
+}
+
+/* Checkboxes and radio buttons */
+input[type='checkbox']:focus-visible,
+input[type='radio']:focus-visible {
+  outline: 2px solid var(--focus-color-primary, #00ffff);
+  outline-offset: 2px;
+  box-shadow: 0 0 8px 2px rgba(0, 255, 255, 0.3);
+}
+
+/* Cards and clickable surfaces */
+[role='article']:focus-visible,
+[role='region']:focus-visible,
+.card:focus-visible {
+  outline: 2px solid var(--focus-color-primary, #00ffff);
+  outline-offset: 2px;
+  box-shadow: 0 0 16px 4px rgba(0, 255, 255, 0.2);
+}
+
+/* Navigation items */
+nav a:focus-visible,
+[role='navigation'] a:focus-visible {
+  outline: 2px solid var(--focus-color-primary, #00ffff);
+  outline-offset: 2px;
+  box-shadow: 0 0 12px 3px rgba(0, 255, 255, 0.3);
+}
+
+/* Tabs */
+[role='tab']:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(10, 10, 15, 1),
+    0 0 0 4px var(--focus-color-primary, #00ffff),
+    0 0 10px 3px rgba(0, 255, 255, 0.3);
+}
+
+/* Menu items */
+[role='menuitem']:focus-visible,
+[role='menuitemcheckbox']:focus-visible,
+[role='menuitemradio']:focus-visible {
+  outline: none;
+  background-color: rgba(0, 255, 255, 0.1);
+  border-left: 3px solid var(--focus-color-primary, #00ffff);
+}
+
+/* ========================================
+   DARK BACKGROUND FOCUS SUPPORT
+   ======================================== */
+
+/**
+ * Ensure focus indicators are visible on dark backgrounds.
+ * Uses a contrasting offset to create separation.
+ */
+
+.dark *:focus-visible,
+[data-theme='dark'] *:focus-visible {
+  --focus-color-primary: #00ffff;
+  --focus-offset-bg: rgba(10, 10, 15, 1);
+}
+
+/* ========================================
+   VARIANT FOCUS COLORS
+   ======================================== */
+
+/**
+ * Special focus colors for different button variants and contexts.
+ */
+
+/* Secondary/Magenta focus */
+.focus-secondary:focus-visible,
+[data-focus='secondary']:focus-visible {
+  --focus-color-primary: #ff00ff;
+  box-shadow:
+    0 0 0 2px rgba(10, 10, 15, 1),
+    0 0 0 4px var(--focus-color-primary),
+    0 0 12px 4px rgba(255, 0, 255, 0.3);
+}
+
+/* Success/Green focus */
+.focus-success:focus-visible,
+[data-focus='success']:focus-visible {
+  --focus-color-primary: #00ff88;
+  box-shadow:
+    0 0 0 2px rgba(10, 10, 15, 1),
+    0 0 0 4px var(--focus-color-primary),
+    0 0 12px 4px rgba(0, 255, 136, 0.3);
+}
+
+/* Error/Red focus */
+.focus-error:focus-visible,
+[data-focus='error']:focus-visible {
+  --focus-color-primary: #ff3366;
+  box-shadow:
+    0 0 0 2px rgba(10, 10, 15, 1),
+    0 0 0 4px var(--focus-color-primary),
+    0 0 12px 4px rgba(255, 51, 102, 0.3);
+}
+
+/* ========================================
+   SCREEN READER UTILITIES
+   ======================================== */
+
+/**
+ * Screen reader only content - visually hidden but accessible to assistive tech.
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/**
+ * Focusable screen reader only content.
+ * Becomes visible when focused (e.g., skip links).
+ */
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ========================================
+   REDUCED MOTION SUPPORT
+   ======================================== */
+
+/**
+ * Respect user's motion preferences (WCAG 2.1 SC 2.3.3).
+ * Disable animations for users who prefer reduced motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========================================
+   HIGH CONTRAST MODE SUPPORT
+   ======================================== */
+
+/**
+ * Support for Windows High Contrast Mode.
+ * Ensures UI elements remain visible and functional.
+ */
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline: 3px solid;
+    outline-offset: 3px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible {
+    outline: 3px solid;
+  }
+}
+
+/* ========================================
+   SKIP TO CONTENT LINK
+   ======================================== */
+
+/**
+ * Skip link for keyboard users to bypass navigation.
+ * Hidden by default, visible on focus.
+ */
+.skip-to-content {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  z-index: 9999;
+  padding: 1rem 2rem;
+  background: var(--focus-color-primary, #00ffff);
+  color: #0a0a0f;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: top 0.2s ease-out;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* ========================================
+   KEYBOARD NAVIGATION INDICATORS
+   ======================================== */
+
+/**
+ * Show keyboard navigation mode indicator.
+ * Helps users understand when keyboard navigation is active.
+ */
+body.keyboard-nav *:focus {
+  outline: 2px solid var(--focus-color-primary, #00ffff);
+  outline-offset: 2px;
+}
+
+/* Remove focus indicators for mouse users */
+body.mouse-nav *:focus {
+  outline: none;
+}
+
+/* ========================================
+   ACCESSIBLE HIDING
+   ======================================== */
+
+/**
+ * Hide elements from both visual and assistive technology.
+ */
+.hidden {
+  display: none;
+}
+
+/**
+ * Hide elements visually but keep them accessible to screen readers.
+ */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

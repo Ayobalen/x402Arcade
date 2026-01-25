@@ -741,3 +741,310 @@ export function createOrchestrated(
   const orchestrationOptions = PAGE_ORCHESTRATION_PRESETS[orchestrationPreset];
   return createOrchestration(baseTransition, orchestrationOptions);
 }
+
+/**
+ * LOADING AND ERROR TRANSITION STATES
+ *
+ * Special transition states for loading and error scenarios during page transitions.
+ */
+
+/**
+ * Loading Transition State
+ *
+ * Creates a skeleton/loading animation variant for page content.
+ * Use while content is being fetched or page is loading.
+ *
+ * Features:
+ * - Skeleton shimmer effect
+ * - Smooth transition from loading to loaded state
+ * - No jarring jumps during load
+ * - Optimized for perceived performance
+ *
+ * @example
+ * ```tsx
+ * <motion.div
+ *   variants={loadingTransition}
+ *   initial="loading"
+ *   animate={isLoaded ? "loaded" : "loading"}
+ * >
+ *   {isLoaded ? <Content /> : <Skeleton />}
+ * </motion.div>
+ * ```
+ */
+export const loadingTransition: Variants = {
+  /**
+   * Loading state - subtle pulsing shimmer effect
+   */
+  loading: {
+    opacity: 0.6,
+    scale: 1,
+    filter: 'brightness(0.9)',
+    transition: {
+      duration: 0.3,
+      ease: [0.645, 0.045, 0.355, 1], // easeInOut
+    },
+  },
+
+  /**
+   * Loaded state - full visibility
+   */
+  loaded: {
+    opacity: 1,
+    scale: 1,
+    filter: 'brightness(1)',
+    transition: {
+      duration: 0.4,
+      ease: [0.215, 0.61, 0.355, 1], // easeOut
+    },
+  },
+};
+
+/**
+ * Skeleton Animation Variant
+ *
+ * Pulsing shimmer effect for skeleton/placeholder content.
+ * Use for loading states to indicate content is being fetched.
+ *
+ * @example
+ * ```tsx
+ * <motion.div
+ *   variants={skeletonAnimation}
+ *   animate="pulse"
+ * >
+ *   <div className="skeleton-content" />
+ * </motion.div>
+ * ```
+ */
+export const skeletonAnimation: Variants = {
+  /**
+   * Pulsing shimmer effect
+   */
+  pulse: {
+    opacity: [0.5, 1, 0.5],
+    transition: {
+      duration: 1.5,
+      repeat: Infinity,
+      ease: 'easeInOut',
+    },
+  },
+};
+
+/**
+ * Error Transition State
+ *
+ * Attention-grabbing animation for error scenarios.
+ * Includes shake effect to draw user attention to errors.
+ *
+ * Features:
+ * - Shake animation for errors
+ * - Smooth transition from loading to error
+ * - Red glow effect (arcade theme)
+ * - Icon entrance animation
+ *
+ * @example
+ * ```tsx
+ * <motion.div
+ *   variants={errorTransition}
+ *   initial="loading"
+ *   animate={hasError ? "error" : "loaded"}
+ * >
+ *   {hasError ? <ErrorMessage /> : <Content />}
+ * </motion.div>
+ * ```
+ */
+export const errorTransition: Variants = {
+  /**
+   * Loading state (before error)
+   */
+  loading: {
+    opacity: 0.6,
+    x: 0,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+    },
+  },
+
+  /**
+   * Error state - shake + red glow effect
+   */
+  error: {
+    opacity: 1,
+    x: [0, -10, 10, -10, 10, -5, 5, 0],
+    scale: 1,
+    filter: 'brightness(1.1)',
+    transition: {
+      duration: 0.5,
+      ease: 'easeInOut',
+      x: {
+        type: 'spring',
+        stiffness: 500,
+        damping: 10,
+      },
+    },
+  },
+
+  /**
+   * Loaded state (recovery from error)
+   */
+  loaded: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    filter: 'brightness(1)',
+    transition: {
+      duration: 0.4,
+      ease: [0.215, 0.61, 0.355, 1], // easeOut
+    },
+  },
+};
+
+/**
+ * Error Icon Entrance Animation
+ *
+ * Dramatic entrance for error icons with scale and rotation.
+ * Use for error indicators, warning symbols, etc.
+ *
+ * @example
+ * ```tsx
+ * <motion.div
+ *   variants={errorIconEntrance}
+ *   initial="hidden"
+ *   animate="visible"
+ * >
+ *   <ErrorIcon />
+ * </motion.div>
+ * ```
+ */
+export const errorIconEntrance: Variants = {
+  /**
+   * Hidden state
+   */
+  hidden: {
+    scale: 0,
+    rotate: -180,
+    opacity: 0,
+  },
+
+  /**
+   * Visible state - pop in with rotation
+   */
+  visible: {
+    scale: 1,
+    rotate: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 260,
+      damping: 20,
+      duration: 0.5,
+    },
+  },
+};
+
+/**
+ * Combined Loading-to-Error Transition
+ *
+ * Handles smooth transition from loading to error state.
+ * Ensures no jarring jumps when an error occurs during loading.
+ *
+ * @example
+ * ```tsx
+ * <motion.div
+ *   variants={loadingErrorTransition}
+ *   initial="loading"
+ *   animate={hasError ? "error" : (isLoaded ? "loaded" : "loading")}
+ * >
+ *   {hasError ? <Error /> : (isLoaded ? <Content /> : <Loading />)}
+ * </motion.div>
+ * ```
+ */
+export const loadingErrorTransition: Variants = {
+  /**
+   * Loading state
+   */
+  loading: {
+    opacity: 0.6,
+    scale: 1,
+    x: 0,
+    filter: 'brightness(0.9)',
+    transition: {
+      duration: 0.3,
+    },
+  },
+
+  /**
+   * Loaded state (successful)
+   */
+  loaded: {
+    opacity: 1,
+    scale: 1,
+    x: 0,
+    filter: 'brightness(1)',
+    transition: {
+      duration: 0.4,
+      ease: [0.215, 0.61, 0.355, 1], // easeOut
+    },
+  },
+
+  /**
+   * Error state (failed during loading)
+   */
+  error: {
+    opacity: 1,
+    scale: 1,
+    x: [0, -8, 8, -8, 8, -4, 4, 0],
+    filter: 'brightness(1.1)',
+    transition: {
+      duration: 0.5,
+      x: {
+        type: 'spring',
+        stiffness: 500,
+        damping: 10,
+      },
+    },
+  },
+};
+
+/**
+ * Loading Indicator Animation
+ *
+ * Spinning/pulsing animation for loading indicators.
+ * Use for spinners, progress indicators, etc.
+ *
+ * @example
+ * ```tsx
+ * <motion.div
+ *   variants={loadingIndicator}
+ *   animate="spinning"
+ * >
+ *   <Spinner />
+ * </motion.div>
+ * ```
+ */
+export const loadingIndicator: Variants = {
+  /**
+   * Spinning animation
+   */
+  spinning: {
+    rotate: 360,
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: 'linear',
+    },
+  },
+
+  /**
+   * Pulsing animation (alternative to spinning)
+   */
+  pulsing: {
+    scale: [1, 1.1, 1],
+    opacity: [0.8, 1, 0.8],
+    transition: {
+      duration: 1.5,
+      repeat: Infinity,
+      ease: 'easeInOut',
+    },
+  },
+};
