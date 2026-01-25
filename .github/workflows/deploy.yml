@@ -1,0 +1,240 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual triggers
+
+# Prevent concurrent deployments
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
+
+jobs:
+  # =============================================================================
+  # Check Prerequisites - Ensure all CI checks passed
+  # =============================================================================
+  check-prerequisites:
+    name: Check Prerequisites
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if CI passed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: checkRuns } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+            });
+
+            const ciCheck = checkRuns.check_runs.find(run => run.name === 'All Checks Passed');
+
+            if (!ciCheck) {
+              core.setFailed('CI check not found. Please ensure CI workflow has run.');
+              return;
+            }
+
+            if (ciCheck.conclusion !== 'success') {
+              core.setFailed(`CI checks did not pass. Status: ${ciCheck.conclusion}`);
+              return;
+            }
+
+            core.info('✅ All CI checks passed. Proceeding with deployment.');
+
+  # =============================================================================
+  # Deploy Frontend to Vercel
+  # =============================================================================
+  deploy-frontend:
+    name: Deploy Frontend (Vercel)
+    runs-on: ubuntu-latest
+    needs: check-prerequisites
+    environment:
+      name: production-frontend
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm build:frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_CHAIN_ID: ${{ secrets.VITE_CHAIN_ID }}
+          VITE_USDC_ADDRESS: ${{ secrets.VITE_USDC_ADDRESS }}
+          VITE_EXPLORER_URL: ${{ secrets.VITE_EXPLORER_URL }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./packages/frontend
+
+      - name: Comment deployment URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const body = `### ✅ Frontend Deployed Successfully\n\n🚀 **Production URL:** ${url}\n\nDeployment completed at: ${new Date().toISOString()}`;
+
+            // Create deployment status
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: body
+            });
+
+  # =============================================================================
+  # Deploy Backend to Railway
+  # =============================================================================
+  deploy-backend:
+    name: Deploy Backend (Railway)
+    runs-on: ubuntu-latest
+    needs: check-prerequisites
+    environment:
+      name: production-backend
+      url: ${{ secrets.RAILWAY_APP_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build backend
+        run: pnpm build:backend
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service ${{ secrets.RAILWAY_SERVICE_NAME }}
+        working-directory: ./packages/backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Comment deployment status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ secrets.RAILWAY_APP_URL }}';
+            const body = `### ✅ Backend Deployed Successfully\n\n🚀 **Production API:** ${url}\n\nDeployment completed at: ${new Date().toISOString()}`;
+
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: body
+            });
+
+  # =============================================================================
+  # Post-Deployment Health Check
+  # =============================================================================
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-backend]
+    steps:
+      - name: Wait for deployment propagation
+        run: sleep 30
+
+      - name: Check backend health
+        run: |
+          echo "Checking backend health..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.RAILWAY_APP_URL }}/health || echo "000")
+
+          if [ "$response" == "200" ]; then
+            echo "✅ Backend is healthy (HTTP $response)"
+          else
+            echo "⚠️ Backend health check failed (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Check frontend deployment
+        run: |
+          echo "Checking frontend deployment..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ steps.deploy-frontend.outputs.url }} || echo "000")
+
+          if [ "$response" == "200" ]; then
+            echo "✅ Frontend is accessible (HTTP $response)"
+          else
+            echo "⚠️ Frontend deployment check failed (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Post health check summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `### ✅ Deployment Health Check Passed\n\n- ✅ Backend API is responding\n- ✅ Frontend is accessible\n\nAll systems operational.`;
+
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: body
+            });
+
+  # =============================================================================
+  # Notify Deployment Complete
+  # =============================================================================
+  notify-complete:
+    name: Notify Complete
+    runs-on: ubuntu-latest
+    needs: [health-check]
+    if: always()
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "### 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ${{ needs.deploy-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ${{ needs.deploy-backend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Health Check | ${{ needs.health-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed at:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: needs.health-check.result != 'success'
+        run: |
+          echo "⚠️ Deployment encountered issues. Please check logs."
+          exit 1
