@@ -195,9 +195,13 @@ export {
   type UseFetchOptions,
 } from './useNetworkRequest';
 
+export { useAudio, useSound, useBackgroundMusic, useUISounds } from './useAudio';
+
 export {
-  useAudio,
-  useSound,
-  useBackgroundMusic,
-  useUISounds,
-} from './useAudio';
+  useSFX,
+  useSoundEffect,
+  useGameSounds,
+  useSFXStats,
+  useSoundVariants,
+  useUISound,
+} from './useSFX';
