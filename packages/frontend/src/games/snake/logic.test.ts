@@ -1375,3 +1375,324 @@ describe('Edge Case Tests', () => {
     });
   });
 });
+
+// ============================================================================
+// Performance Tests (Feature #728)
+// ============================================================================
+
+describe('Performance Tests', () => {
+  function createLargeTestState(): SnakeState {
+    const gameSpecific = createInitialSnakeState();
+    // Create a large snake
+    const longSnake: SnakeSegment[] = [];
+    for (let i = 0; i < 100; i++) {
+      longSnake.push({
+        x: i % GRID_SIZE,
+        y: Math.floor(i / GRID_SIZE),
+        isHead: i === 0,
+        isTail: i === 99,
+      });
+    }
+    gameSpecific.segments = longSnake;
+
+    return {
+      score: 1000,
+      isPlaying: true,
+      isPaused: false,
+      isGameOver: false,
+      level: 10,
+      lives: 3,
+      highScore: 5000,
+      startTime: Date.now(),
+      elapsedTime: 60000,
+      gameSpecific,
+    };
+  }
+
+  describe('moveSnake performance with long snake', () => {
+    it('should handle moving snake with 100+ segments efficiently', () => {
+      // Create a very long snake (150 segments)
+      const longSnake: SnakeSegment[] = [];
+      for (let i = 0; i < 150; i++) {
+        longSnake.push({
+          x: i % GRID_SIZE,
+          y: Math.floor(i / GRID_SIZE),
+          isHead: i === 0,
+          isTail: i === 149,
+        });
+      }
+
+      // Measure performance
+      const iterations = 1000;
+      const startTime = performance.now();
+
+      for (let i = 0; i < iterations; i++) {
+        moveSnake(longSnake, 'right', false, false, GRID_SIZE);
+      }
+
+      const endTime = performance.now();
+      const avgTime = (endTime - startTime) / iterations;
+
+      // Should complete in under 1ms per operation on average
+      expect(avgTime).toBeLessThan(1);
+
+      // Verify correctness
+      const result = moveSnake(longSnake, 'right', false, false, GRID_SIZE);
+      expect(result.length).toBe(150);
+      expect(result[0].x).toBe(1);
+    });
+
+    it('should handle growing snake efficiently', () => {
+      let snake: SnakeSegment[] = createInitialSnake(3);
+
+      // Grow snake 100 times
+      const startTime = performance.now();
+
+      for (let i = 0; i < 100; i++) {
+        snake = moveSnake(snake, 'right', true);
+      }
+
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+
+      // Should complete in under 50ms total
+      expect(totalTime).toBeLessThan(50);
+      expect(snake.length).toBe(103);
+    });
+
+    it('should not have memory leaks with repeated moves', () => {
+      let snake = createInitialSnake();
+
+      // Perform many moves to check for memory accumulation
+      for (let i = 0; i < 10000; i++) {
+        snake = moveSnake(snake, 'right', false, true);
+      }
+
+      expect(snake.length).toBe(INITIAL_SNAKE_LENGTH);
+      snake.forEach((segment) => {
+        expect(segment.x).toBeGreaterThanOrEqual(0);
+        expect(segment.x).toBeLessThan(GRID_SIZE);
+        expect(segment.y).toBeGreaterThanOrEqual(0);
+        expect(segment.y).toBeLessThan(GRID_SIZE);
+      });
+    });
+  });
+
+  describe('generateFood performance with nearly-full grid', () => {
+    it('should generate food efficiently when grid is 95% full', () => {
+      const gridArea = GRID_SIZE * GRID_SIZE;
+      const snakeLength = Math.floor(gridArea * 0.95);
+      const snake: SnakeSegment[] = [];
+
+      for (let i = 0; i < snakeLength; i++) {
+        snake.push({
+          x: i % GRID_SIZE,
+          y: Math.floor(i / GRID_SIZE),
+          isHead: i === 0,
+          isTail: i === snakeLength - 1,
+        });
+      }
+
+      const iterations = 100;
+      const startTime = performance.now();
+
+      for (let i = 0; i < iterations; i++) {
+        spawnFood(snake, GRID_SIZE);
+      }
+
+      const endTime = performance.now();
+      const avgTime = (endTime - startTime) / iterations;
+
+      expect(avgTime).toBeLessThan(5);
+
+      const food = spawnFood(snake, GRID_SIZE);
+      const collidesWithSnake = snake.some(
+        (segment) => segment.x === food.x && segment.y === food.y
+      );
+      expect(collidesWithSnake).toBe(false);
+    });
+
+    it('should handle worst-case food generation', () => {
+      const gridArea = GRID_SIZE * GRID_SIZE;
+      const snake: SnakeSegment[] = [];
+      const emptyCells = new Set([5, 10, 15]);
+
+      for (let i = 0; i < gridArea; i++) {
+        if (!emptyCells.has(i)) {
+          snake.push({
+            x: i % GRID_SIZE,
+            y: Math.floor(i / GRID_SIZE),
+            isHead: i === 0,
+            isTail: false,
+          });
+        }
+      }
+
+      const startTime = performance.now();
+      const food = spawnFood(snake, GRID_SIZE);
+      const endTime = performance.now();
+
+      expect(endTime - startTime).toBeLessThan(100);
+
+      const foodIndex = food.y * GRID_SIZE + food.x;
+      expect(emptyCells.has(foodIndex)).toBe(true);
+    });
+  });
+
+  describe('collision detection performance', () => {
+    it('should detect collisions efficiently with long snake', () => {
+      const longSnake: SnakeSegment[] = [];
+      for (let i = 0; i < 200; i++) {
+        longSnake.push({
+          x: i % GRID_SIZE,
+          y: Math.floor(i / GRID_SIZE),
+          isHead: i === 0,
+          isTail: i === 199,
+        });
+      }
+
+      const iterations = 10000;
+      const startTime = performance.now();
+
+      for (let i = 0; i < iterations; i++) {
+        checkSelfCollision(longSnake);
+        collidesWithSnake({ x: 5, y: 5 }, longSnake);
+      }
+
+      const endTime = performance.now();
+      const avgTime = (endTime - startTime) / iterations;
+
+      expect(avgTime).toBeLessThan(0.1);
+    });
+
+    it('should handle boundary checks efficiently', () => {
+      const positions = [
+        { x: 0, y: 0 },
+        { x: GRID_SIZE - 1, y: GRID_SIZE - 1 },
+        { x: -1, y: 0 },
+        { x: GRID_SIZE, y: 0 },
+        { x: 5, y: 5 },
+      ];
+
+      const iterations = 100000;
+      const startTime = performance.now();
+
+      for (let i = 0; i < iterations; i++) {
+        positions.forEach((pos) => {
+          isWithinBounds(pos);
+          wrapPosition(pos);
+        });
+      }
+
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+
+      expect(totalTime).toBeLessThan(100);
+    });
+  });
+
+  describe('state update performance', () => {
+    it('should process state updates efficiently', () => {
+      let state = createLargeTestState();
+
+      const iterations = 1000;
+      const startTime = performance.now();
+
+      for (let i = 0; i < iterations; i++) {
+        state = processSnakeMove(state);
+      }
+
+      const endTime = performance.now();
+      const avgTime = (endTime - startTime) / iterations;
+
+      expect(avgTime).toBeLessThan(1);
+    });
+
+    it('should ensure no memory leaks in state updates', () => {
+      let state = createLargeTestState();
+      const initialSegmentCount = state.gameSpecific!.segments.length;
+
+      for (let i = 0; i < 5000; i++) {
+        state = processSnakeMove(state);
+        state = changeDirection(state, i % 2 === 0 ? 'up' : 'down');
+      }
+
+      expect(state.gameSpecific!.segments.length).toBeLessThan(initialSegmentCount + 50);
+      expect(state.score).toBeGreaterThanOrEqual(0);
+      expect(state.level).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should handle rapid direction changes without performance degradation', () => {
+      let state = createLargeTestState();
+      const directions: ('up' | 'down' | 'left' | 'right')[] = ['up', 'right', 'down', 'left'];
+
+      const startTime = performance.now();
+
+      for (let i = 0; i < 10000; i++) {
+        state = changeDirection(state, directions[i % 4]);
+      }
+
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+
+      expect(totalTime).toBeLessThan(50);
+      expect(state.gameSpecific!.nextDirection).toBeDefined();
+    });
+  });
+
+  describe('performance baseline documentation', () => {
+    it('should document performance benchmarks', () => {
+      const benchmarks = {
+        moveSnake100Segments: 0,
+        generateFoodFullGrid: 0,
+        collisionCheck: 0,
+        stateUpdate: 0,
+      };
+
+      const longSnake = [];
+      for (let i = 0; i < 100; i++) {
+        longSnake.push({
+          x: i % GRID_SIZE,
+          y: Math.floor(i / GRID_SIZE),
+          isHead: i === 0,
+          isTail: i === 99,
+        });
+      }
+      let start = performance.now();
+      for (let i = 0; i < 1000; i++) moveSnake(longSnake, 'right');
+      benchmarks.moveSnake100Segments = (performance.now() - start) / 1000;
+
+      const fullSnake = [];
+      for (let i = 0; i < GRID_SIZE * GRID_SIZE * 0.9; i++) {
+        fullSnake.push({
+          x: i % GRID_SIZE,
+          y: Math.floor(i / GRID_SIZE),
+          isHead: i === 0,
+          isTail: false,
+        });
+      }
+      start = performance.now();
+      for (let i = 0; i < 100; i++) spawnFood(fullSnake);
+      benchmarks.generateFoodFullGrid = (performance.now() - start) / 100;
+
+      start = performance.now();
+      for (let i = 0; i < 10000; i++) checkSelfCollision(longSnake);
+      benchmarks.collisionCheck = (performance.now() - start) / 10000;
+
+      const state = createLargeTestState();
+      start = performance.now();
+      let updatedState = state;
+      for (let i = 0; i < 1000; i++) {
+        updatedState = processSnakeMove(updatedState);
+      }
+      benchmarks.stateUpdate = (performance.now() - start) / 1000;
+
+      console.log('Performance Benchmarks:', benchmarks);
+
+      expect(benchmarks.moveSnake100Segments).toBeLessThan(1);
+      expect(benchmarks.generateFoodFullGrid).toBeLessThan(5);
+      expect(benchmarks.collisionCheck).toBeLessThan(0.1);
+      expect(benchmarks.stateUpdate).toBeLessThan(1);
+    });
+  });
+});
