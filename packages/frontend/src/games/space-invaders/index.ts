@@ -147,3 +147,7 @@ export {
   createExplosionParticles,
   updateParticles,
 } from './logic';
+
+// Components
+export { SpaceInvadersGame } from './SpaceInvadersGame';
+export type { SpaceInvadersGameProps } from './SpaceInvadersGame';
