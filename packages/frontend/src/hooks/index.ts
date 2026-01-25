@@ -106,6 +106,18 @@ export {
 export { useFocusTrap, FOCUSABLE_SELECTORS, type UseFocusTrapOptions } from './useFocusTrap';
 
 export {
+  useKeyboardNavigation,
+  type UseKeyboardNavigationOptions,
+  type UseKeyboardNavigationReturn,
+} from './useKeyboardNavigation';
+
+export {
+  useRovingTabIndex,
+  type UseRovingTabIndexOptions,
+  type UseRovingTabIndexReturn,
+} from './useRovingTabIndex';
+
+export {
   useLiveAnnouncer,
   type AnnouncementOptions,
   type UseLiveAnnouncerReturn,
