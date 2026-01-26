@@ -216,7 +216,7 @@ export default defineConfig(async () => {
       },
     },
     server: {
-      port: 5173,
+      port: 3000,
       host: true,
     },
     // Asset handling configuration

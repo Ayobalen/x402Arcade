@@ -12,3 +12,6 @@ export type { AudioControlsProps, AudioSettings } from './AudioControls';
 
 export { AudioSettingsPanel } from './AudioSettingsPanel';
 export type { AudioSettingsPanelProps } from './AudioSettingsPanel';
+
+export { BackgroundMusic } from './BackgroundMusic';
+export type { BackgroundMusicProps } from './BackgroundMusic';

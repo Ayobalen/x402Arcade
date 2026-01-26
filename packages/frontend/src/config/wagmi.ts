@@ -45,8 +45,16 @@ const cronosTestnetCustom = {
 export const config = createConfig({
   chains: [cronosTestnetCustom],
   connectors: [
-    // Injected wallets (MetaMask, etc.)
-    injected(),
+    // Injected wallets with target specification for better detection
+    injected({
+      target() {
+        return {
+          id: 'injected',
+          name: 'Browser Wallet',
+          provider: typeof window !== 'undefined' ? window.ethereum : undefined,
+        };
+      },
+    }),
 
     // WalletConnect for mobile wallets
     walletConnect({
@@ -63,6 +71,7 @@ export const config = createConfig({
   transports: {
     [cronosTestnetCustom.id]: http(getRpcUrl()),
   },
+  multiInjectedProviderDiscovery: true, // Enable EIP-6963 for wallet detection
 });
 
 /**

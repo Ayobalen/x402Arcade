@@ -384,6 +384,9 @@ class PongScene extends Phaser.Scene {
   }
 }
 
+// Global flag to prevent multiple Phaser instances (survives React Strict Mode)
+let globalPhaserInstance: Phaser.Game | null = null;
+
 export function PongGamePhaser({
   difficulty = 'normal',
   onGameOver,
@@ -397,7 +400,8 @@ export function PongGamePhaser({
     if (!containerRef.current) return;
 
     // Prevent double initialization in React Strict Mode
-    if (isInitializedRef.current || gameRef.current) return;
+    // Check both component-level and global-level instances
+    if (isInitializedRef.current || gameRef.current || globalPhaserInstance) return;
 
     // Also check if there's already a canvas in the container
     if (containerRef.current.querySelector('canvas')) {
@@ -432,11 +436,13 @@ export function PongGamePhaser({
     };
 
     gameRef.current = new Phaser.Game(phaserConfig);
+    globalPhaserInstance = gameRef.current;
 
     return () => {
       if (gameRef.current) {
         gameRef.current.destroy(true);
         gameRef.current = null;
+        globalPhaserInstance = null;
       }
       isInitializedRef.current = false;
     };
