@@ -29,11 +29,18 @@ export const envSchema = z.object({
     .string()
     .default('http://localhost:5173')
     .transform((val) => {
+      // eslint-disable-next-line no-console
+      console.log('🔍 Zod transform - input:', val, 'hasComma:', val.includes(','));
       // Handle comma-separated list of origins
       if (val.includes(',')) {
-        return val.split(',').map((origin) => origin.trim());
+        const result = val.split(',').map((origin) => origin.trim());
+        // eslint-disable-next-line no-console
+        console.log('🔍 Zod transform - output (array):', result);
+        return result;
       }
       // Single origin - return as string for cors middleware
+      // eslint-disable-next-line no-console
+      console.log('🔍 Zod transform - output (string):', val);
       return val;
     })
     .describe(
