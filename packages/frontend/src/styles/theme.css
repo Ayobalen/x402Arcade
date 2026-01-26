@@ -1,0 +1,248 @@
+/**
+ * Theme-Aware Styles
+ *
+ * This file contains theme-responsive styles that adapt to the selected theme variation.
+ * All styles use CSS custom properties set by the theme store.
+ */
+
+/* ============================================
+   THEME-AWARE BACKGROUND
+   ============================================ */
+
+body {
+  background: linear-gradient(
+    180deg,
+    var(--color-bg-gradient-start) 0%,
+    var(--color-bg-gradient-end) 100%
+  );
+  background-attachment: fixed;
+  position: relative;
+}
+
+/* Background noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ============================================
+   UTILITY CLASSES FOR THEME COLORS
+   ============================================ */
+
+/* Background colors */
+.bg-main {
+  background-color: var(--color-bg-main);
+}
+
+.bg-surface {
+  background-color: var(--color-bg-surface);
+}
+
+.bg-elevated {
+  background-color: var(--color-bg-elevated);
+}
+
+.bg-hover {
+  background-color: var(--color-bg-hover);
+}
+
+/* Text colors */
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+/* Border colors */
+.border-default {
+  border-color: var(--color-border);
+}
+
+.border-hover {
+  border-color: var(--color-border-hover);
+}
+
+.border-focus {
+  border-color: var(--color-border-focus);
+}
+
+/* Primary/Secondary colors */
+.text-theme-primary {
+  color: var(--color-primary);
+}
+
+.text-theme-secondary {
+  color: var(--color-secondary);
+}
+
+.bg-theme-primary {
+  background-color: var(--color-primary);
+}
+
+.bg-theme-secondary {
+  background-color: var(--color-secondary);
+}
+
+/* ============================================
+   THEME-AWARE COMPONENT STYLES
+   ============================================ */
+
+/* Cards and Panels */
+.theme-card {
+  background-color: var(--color-bg-surface);
+  border: 2px solid var(--color-border);
+  transition: all 0.2s ease;
+}
+
+.theme-card:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-border-hover);
+}
+
+/* Buttons */
+.theme-button-primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.theme-button-primary:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: var(--color-primary-glow);
+}
+
+.theme-button-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-text-inverse);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.theme-button-secondary:hover {
+  background-color: var(--color-secondary-hover);
+  box-shadow: var(--color-secondary-glow);
+}
+
+.theme-button-outline {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  transition: all 0.2s ease;
+}
+
+.theme-button-outline:hover {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  box-shadow: var(--color-primary-glow);
+}
+
+/* Inputs */
+.theme-input {
+  background-color: var(--color-bg-surface);
+  border: 2px solid var(--color-border);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+}
+
+.theme-input:hover {
+  border-color: var(--color-border-hover);
+}
+
+.theme-input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+}
+
+/* ============================================
+   GLOW EFFECTS
+   ============================================ */
+
+.glow-primary {
+  box-shadow: 0 0 20px var(--color-primary-glow);
+}
+
+.glow-secondary {
+  box-shadow: 0 0 20px var(--color-secondary-glow);
+}
+
+.glow-primary-intense {
+  box-shadow:
+    0 0 10px var(--color-primary-glow),
+    0 0 30px var(--color-primary-glow),
+    0 0 50px var(--color-primary-glow);
+}
+
+.glow-secondary-intense {
+  box-shadow:
+    0 0 10px var(--color-secondary-glow),
+    0 0 30px var(--color-secondary-glow),
+    0 0 50px var(--color-secondary-glow);
+}
+
+/* ============================================
+   THEME TRANSITIONS
+   ============================================ */
+
+/* Smooth transitions for theme changes */
+* {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+/* Exclude animations and transforms from theme transitions */
+*:where(:not([class*='animate-'])) {
+  transition-property: background-color, border-color, color, box-shadow;
+}
+
+/* ============================================
+   STATE COLORS
+   ============================================ */
+
+.theme-success {
+  color: var(--color-success);
+}
+
+.theme-warning {
+  color: var(--color-warning);
+}
+
+.theme-error {
+  color: var(--color-error);
+}
+
+.theme-info {
+  color: var(--color-info);
+}
+
+.bg-theme-success {
+  background-color: var(--color-success);
+}
+
+.bg-theme-warning {
+  background-color: var(--color-warning);
+}
+
+.bg-theme-error {
+  background-color: var(--color-error);
+}
+
+.bg-theme-info {
+  background-color: var(--color-info);
+}

@@ -258,11 +258,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     // Separate motion props from native button props to avoid conflicts
     const {
-      onAnimationStart,
-      onAnimationEnd,
-      onDrag,
-      onDragEnd,
-      onDragStart,
+      onAnimationStart: _onAnimationStart,
+      onAnimationEnd: _onAnimationEnd,
+      onDrag: _onDrag,
+      onDragEnd: _onDragEnd,
+      onDragStart: _onDragStart,
       ...nativeButtonProps
     } = props;
 
@@ -282,19 +282,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         aria-disabled={isDisabled}
         // Press animation
         whileTap={isDisabled ? undefined : pressVariants.pressed}
-        // Hover glow animation (subtle purple glow)
+        // Hover glow animation (theme-aware glow)
         whileHover={
           isDisabled
             ? undefined
             : {
-                boxShadow:
-                  variant === 'primary'
-                    ? '0 0 20px rgba(139, 92, 246, 0.6)'
+                filter:
+                  variant === 'primary' || variant === 'outline'
+                    ? 'drop-shadow(0 0 8px var(--color-primary-glow))'
                     : variant === 'secondary'
-                      ? '0 0 20px rgba(236, 72, 153, 0.6)'
-                      : variant === 'outline'
-                        ? '0 0 15px rgba(139, 92, 246, 0.4)'
-                        : '0 0 12px rgba(139, 92, 246, 0.3)',
+                      ? 'drop-shadow(0 0 8px var(--color-secondary-glow))'
+                      : variant === 'danger'
+                        ? 'drop-shadow(0 0 8px rgba(220, 38, 38, 0.4))'
+                        : variant === 'success'
+                          ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.4))'
+                          : 'drop-shadow(0 0 6px var(--color-primary-glow))',
               }
         }
         transition={{

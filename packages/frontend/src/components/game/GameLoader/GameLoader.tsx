@@ -48,7 +48,7 @@ export function GameLoadingState({ className }: { className?: string }) {
     <div
       className={cn(
         'flex flex-col items-center justify-center min-h-[400px]',
-        'bg-[#16162a] rounded-xl border border-[#2d2d4a]',
+        'bg-[var(--color-bg-surface)] rounded-xl border border-[var(--color-border)]',
         'p-8',
         className
       )}
@@ -61,39 +61,41 @@ export function GameLoadingState({ className }: { className?: string }) {
         <div
           className={cn(
             'w-16 h-20 rounded-lg',
-            'bg-gradient-to-b from-[#2d2d4a] to-[#1a1a2e]',
-            'border-2 border-[#3d3d5a]',
+            'bg-gradient-to-b from-[var(--color-border)] to-[var(--color-bg-elevated)]',
+            'border-2 border-[var(--color-border)]',
             'flex flex-col items-center justify-center',
             'animate-pulse'
           )}
         >
           {/* Screen */}
-          <div className="w-10 h-8 bg-[#0a0a0a] rounded border border-[#00ffff]/30 mb-1">
+          <div className="w-10 h-8 bg-[var(--color-bg-main)] rounded border border-[var(--color-primary)]/30 mb-1">
             <div className="w-full h-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-[#00ffff] rounded-full animate-ping" />
+              <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-ping" />
             </div>
           </div>
           {/* Controls */}
           <div className="flex gap-1">
-            <div className="w-2 h-2 bg-[#ff00ff]/50 rounded-full" />
-            <div className="w-2 h-2 bg-[#00ffff]/50 rounded-full" />
+            <div className="w-2 h-2 bg-[var(--color-secondary)]/50 rounded-full" />
+            <div className="w-2 h-2 bg-[var(--color-primary)]/50 rounded-full" />
           </div>
         </div>
 
         {/* Glow effect */}
-        <div className="absolute -inset-4 bg-[#00ffff]/10 rounded-xl blur-xl animate-pulse" />
+        <div className="absolute -inset-4 bg-[var(--color-primary)]/10 rounded-xl blur-xl animate-pulse" />
       </div>
 
       {/* Loading text */}
-      <p className="text-lg font-semibold text-white/80 mb-2">Loading Game Engine</p>
-      <p className="text-sm text-white/50">Please wait...</p>
+      <p className="text-lg font-semibold text-[var(--color-text-primary)]/80 mb-2">
+        Loading Game Engine
+      </p>
+      <p className="text-sm text-[var(--color-text-muted)]">Please wait...</p>
 
       {/* Loading dots animation */}
       <div className="flex gap-2 mt-4">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className={cn('w-2 h-2 rounded-full bg-[#00ffff]', 'animate-bounce')}
+            className={cn('w-2 h-2 rounded-full bg-[var(--color-primary)]', 'animate-bounce')}
             style={{ animationDelay: `${i * 150}ms` }}
           />
         ))}
@@ -118,7 +120,7 @@ export function GameErrorState({
     <div
       className={cn(
         'flex flex-col items-center justify-center min-h-[400px]',
-        'bg-[#16162a] rounded-xl border border-[#ff4444]/30',
+        'bg-[var(--color-bg-surface)] rounded-xl border border-[var(--color-error)]/30',
         'p-8',
         className
       )}
@@ -130,13 +132,13 @@ export function GameErrorState({
         <div
           className={cn(
             'w-16 h-16 rounded-full',
-            'bg-[#ff4444]/20',
+            'bg-[var(--color-error)]/20',
             'flex items-center justify-center',
-            'border-2 border-[#ff4444]/50'
+            'border-2 border-[var(--color-error)]/50'
           )}
         >
           <svg
-            className="w-8 h-8 text-[#ff4444]"
+            className="w-8 h-8 text-[var(--color-error)]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -153,8 +155,8 @@ export function GameErrorState({
       </div>
 
       {/* Error message */}
-      <h3 className="text-xl font-bold text-[#ff4444] mb-2">Failed to Load Game</h3>
-      <p className="text-sm text-white/60 mb-4 text-center max-w-md">
+      <h3 className="text-xl font-bold text-[var(--color-error)] mb-2">Failed to Load Game</h3>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4 text-center max-w-md">
         {error.message || 'An unexpected error occurred while loading the game.'}
       </p>
 
@@ -163,11 +165,11 @@ export function GameErrorState({
         onClick={retry}
         className={cn(
           'px-6 py-3 rounded-lg',
-          'bg-gradient-to-r from-[#00ffff] to-[#ff00ff]',
-          'text-black font-bold',
+          'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]',
+          'text-[var(--color-text-inverse)] font-bold',
           'hover:scale-105 transition-transform duration-200',
-          'hover:shadow-[0_0_20px_rgba(0,255,255,0.5)]',
-          'focus:outline-none focus:ring-2 focus:ring-[#00ffff] focus:ring-offset-2 focus:ring-offset-[#16162a]'
+          'hover:shadow-[0_0_20px_var(--color-primary-glow)]',
+          'focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:ring-offset-[var(--color-bg-surface)]'
         )}
       >
         Try Again

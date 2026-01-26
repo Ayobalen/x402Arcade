@@ -37,7 +37,6 @@ import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { BackgroundEffects, NoiseOverlay } from '@/components/layout/BackgroundEffects';
-import { SkipLink } from '@/components/ui/SkipLink';
 import { usePerformanceScaling } from '@/hooks/usePerformanceScaling';
 import type { LayoutProps } from './Layout.types';
 
@@ -81,15 +80,12 @@ export function Layout({
         'min-h-screen',
         'flex flex-col',
         // Retro arcade theme background
-        'bg-[#0a0a0a]',
+        'bg-[var(--color-bg-main)]',
         'text-white',
         // Ensure content is above background effects
         'relative'
       )}
     >
-      {/* Skip to Content Link - First focusable element for accessibility */}
-      <SkipLink href="#main-content" />
-
       {/* Background Effects - positioned behind all content */}
       {showBackgroundEffects && settings.backgroundGlows && (
         <BackgroundEffects glowIntensity={glowIntensity} animateGlows={settings.animateGlows} />

@@ -330,7 +330,7 @@ export const ConnectButton = forwardRef<HTMLButtonElement, ConnectButtonProps>(
             onAutoSwitchError?.(new Error('Chain switch was not completed'));
           }
         } catch (err) {
-           
+          // eslint-disable-next-line no-console
           console.error('Auto chain switch failed:', err);
           onAutoSwitchError?.(err instanceof Error ? err : new Error('Chain switch failed'));
         } finally {
@@ -387,7 +387,7 @@ export const ConnectButton = forwardRef<HTMLButtonElement, ConnectButtonProps>(
         await switchChain(REQUIRED_CHAIN_ID);
       } catch (err) {
         // Error already handled in store
-         
+        // eslint-disable-next-line no-console
         console.error('Network switch failed:', err);
       } finally {
         setIsSwitching(false);
@@ -558,13 +558,13 @@ export const ConnectButton = forwardRef<HTMLButtonElement, ConnectButtonProps>(
           className={cn(
             // Base styles
             'gap-2',
-            // Connected state styling with neon glow
-            'bg-surface-primary/50',
-            'border border-border',
-            'hover:bg-surface-primary',
-            'hover:border-primary/50',
-            'shadow-[0_0_10px_rgba(0,255,255,0.15)]',
-            'hover:shadow-[0_0_15px_rgba(0,255,255,0.3)]',
+            // Connected state styling with theme-aware neon glow
+            'bg-[var(--color-bg-surface)]/50',
+            'border border-[var(--color-border)]',
+            'hover:bg-[var(--color-bg-surface)]',
+            'hover:border-[var(--color-primary)]/50',
+            'shadow-[0_0_10px_var(--color-primary-glow)]',
+            'hover:shadow-[0_0_15px_var(--color-primary-glow)]',
             'transition-shadow duration-200',
             className
           )}

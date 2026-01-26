@@ -18,6 +18,7 @@ import { type ReactElement, useCallback } from 'react';
 import { useGameSession } from '../hooks/useGameSession';
 import { PaymentGate } from './PaymentGate';
 import { AudioControls } from '@/components/audio/AudioControls';
+import { LeaderboardWidget } from '@/components/leaderboard/LeaderboardWidget';
 import type { GameMetadata } from '../types/GameMetadata';
 
 // ============================================================================
@@ -170,12 +171,20 @@ export function GameWrapper<T = object>({
         <AudioControls compact />
       </div>
 
-      <div className="max-w-4xl mx-auto">
-        <GameComponent
-          {...(gameProps as T)}
-          sessionId={session.sessionId}
-          onGameOver={handleGameOver}
-        />
+      <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 items-start justify-center">
+        {/* Game Component */}
+        <div className="flex-1 max-w-4xl w-full">
+          <GameComponent
+            {...(gameProps as T)}
+            sessionId={session.sessionId}
+            onGameOver={handleGameOver}
+          />
+        </div>
+
+        {/* Leaderboard Widget - Desktop only */}
+        <div className="hidden lg:block w-80 shrink-0 sticky top-6">
+          <LeaderboardWidget gameType={metadata.id} periodType="daily" />
+        </div>
       </div>
     </div>
   );
