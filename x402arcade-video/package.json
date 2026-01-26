@@ -1,0 +1,24 @@
+{
+  "name": "x402arcade-video",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion render Main out/x402arcade-demo.mp4 --codec=h264",
+    "upgrade": "remotion upgrade"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@remotion/cli": "^4.0.409",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "remotion": "^4.0.409"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.9",
+    "typescript": "^5.9.3"
+  }
+}
