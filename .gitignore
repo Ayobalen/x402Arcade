@@ -10,7 +10,6 @@ build/
 # Test coverage and reports
 coverage/
 test-reports/
-.playwright-mcp/
 
 # Environment files
 .env
