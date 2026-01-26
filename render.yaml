@@ -1,11 +1,11 @@
 services:
   - type: web
     name: x402arcade-backend
-    runtime: docker
+    runtime: node
     region: oregon
     plan: free
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    buildCommand: pnpm install && pnpm --filter @x402arcade/backend exec pnpm rebuild better-sqlite3 && pnpm --filter @x402arcade/backend build
+    startCommand: cd packages/backend && node dist/index.js
     healthCheckPath: /health
     envVars:
       - key: BETTER_SQLITE3_USE_PREBUILDS
