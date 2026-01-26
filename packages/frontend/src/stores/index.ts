@@ -56,3 +56,23 @@ export {
   type OnboardingTooltip,
   type GameTutorialStep,
 } from './onboarding';
+
+export {
+  useThemeStore,
+  useThemeVariation,
+  useThemeMode,
+  useActiveTheme,
+  useAllThemes,
+  useThemeActions,
+  initializeTheme,
+  selectThemeVariation,
+  selectThemeMode,
+  selectActiveTheme,
+  selectAllThemes,
+  selectGameThemes,
+  type ThemeState,
+  type ThemeVariation,
+  type ThemeMode,
+  type ThemeConfig,
+  type GameTheme,
+} from './themeStore';

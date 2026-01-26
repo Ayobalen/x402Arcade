@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { config } from '@/config/wagmi';
 import { Layout } from '@/components/layout/Layout';
 import { PageTransition } from '@/components/transitions';
 import { ProtectedRoute } from '@/components/guards';
@@ -33,6 +35,7 @@ const Home = lazy(() => import('@/pages/Home'));
 const Play = lazy(() => import('@/pages/Play'));
 const Game = lazy(() => import('@/pages/Game'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
+const Settings = lazy(() => import('@/pages/Settings'));
 const ComponentShowcase = lazy(() => import('@/pages/ComponentShowcase'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
@@ -109,6 +112,18 @@ function AnimatedRoutes() {
         }
       />
 
+      {/* Settings Page - User preferences and theme customization */}
+      <Route
+        path="/settings"
+        element={
+          <PageSuspense fallback={<HomePageSkeleton />}>
+            <PageTransition>
+              <Settings />
+            </PageTransition>
+          </PageSuspense>
+        }
+      />
+
       {/* Component Showcase - Extended component library demo */}
       <Route
         path="/components"
@@ -144,17 +159,19 @@ function AnimatedRoutes() {
  */
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Layout showBalance maxWidth="full">
-        <AnimatedRoutes />
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <Layout showBalance maxWidth="full">
+          <AnimatedRoutes />
 
-        {/* Onboarding & Help Components */}
-        <OnboardingFlow />
-        <HelpModal />
-        <GameTutorial />
-        <KeyboardShortcutsGuide />
-      </Layout>
-    </QueryClientProvider>
+          {/* Onboarding & Help Components */}
+          <OnboardingFlow />
+          <HelpModal />
+          <GameTutorial />
+          <KeyboardShortcutsGuide />
+        </Layout>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
 

@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/errors';
 import { AudioAccessibilityProvider } from '@/contexts/AudioAccessibilityContext';
 import { SoundIndicator } from '@/components/accessibility/SoundIndicator';
 import { AudioSubtitles } from '@/components/accessibility/AudioSubtitles';
+import { initializeTheme } from '@/stores/themeStore';
 
 // Validate environment variables at startup
 import { validateEnv, getEnv } from '@/lib/env';
@@ -40,6 +41,9 @@ if (import.meta.env.DEV) {
     console.log('🔧 Debug mode enabled');
   }
 }
+
+// Initialize theme from localStorage before rendering
+initializeTheme();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
