@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @x402arcade/backend build
+    buildCommand: pnpm install && pnpm --filter @x402arcade/backend rebuild better-sqlite3 && pnpm --filter @x402arcade/backend build
     startCommand: cd packages/backend && node dist/index.js
     healthCheckPath: /health
     envVars:
