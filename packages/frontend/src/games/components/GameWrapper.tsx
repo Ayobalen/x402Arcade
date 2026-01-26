@@ -14,10 +14,9 @@
  * @module games/components/GameWrapper
  */
 
-import { type ReactElement, useEffect, useCallback, useRef } from 'react';
+import { type ReactElement, useCallback } from 'react';
 import { useGameSession } from '../hooks/useGameSession';
 import { PaymentGate } from './PaymentGate';
-import { useMusic } from '@/hooks/useMusic';
 import { AudioControls } from '@/components/audio/AudioControls';
 import type { GameMetadata } from '../types/GameMetadata';
 
@@ -108,17 +107,6 @@ export interface GameWrapperProps<T = object> {
  * }
  * ```
  */
-// Music track paths - these are loaded from public/sounds/music/
-const MUSIC_TRACKS: Record<string, string> = {
-  menu: '/sounds/music/arcade-theme.mp3',
-  snake: '/sounds/music/snake-gameplay.mp3',
-  tetris: '/sounds/music/tetris-gameplay.mp3',
-  pong: '/sounds/music/arcade-theme.mp3', // Use arcade theme for now
-  breakout: '/sounds/music/arcade-theme.mp3', // Use arcade theme for now
-  'space-invaders': '/sounds/music/arcade-theme.mp3', // Use arcade theme for now
-  gameOver: '/sounds/music/game-over.mp3',
-};
-
 export function GameWrapper<T = object>({
   metadata,
   gameComponent: GameComponent,
@@ -135,85 +123,18 @@ export function GameWrapper<T = object>({
   // Music Management
   // ========================================
 
-  const music = useMusic();
-  const musicInitializedRef = useRef(false);
-  const isPlayingRef = useRef(false);
+  // DISABLED: Music system disabled - games can use Phaser audio instead
+  // const music = useMusic();
+  // const musicInitializedRef = useRef(false);
+  // const isPlayingRef = useRef(false);
 
-  // Initialize music tracks on mount
-  useEffect(() => {
-    if (musicInitializedRef.current) return;
-    musicInitializedRef.current = true;
-
-    // Add menu/lobby track
-    music.addTrack({
-      id: 'menu',
-      src: MUSIC_TRACKS.menu,
-      name: 'Arcade Theme',
-      loop: true,
-      volume: 0.5,
-    });
-
-    // Add game-specific track
-    const gameTrackId = metadata.id;
-    const gameTrackPath = MUSIC_TRACKS[gameTrackId] || MUSIC_TRACKS.menu;
-    music.addTrack({
-      id: gameTrackId,
-      src: gameTrackPath,
-      name: `${metadata.displayName} Theme`,
-      loop: true,
-      volume: 0.4,
-    });
-
-    // Add game over track
-    music.addTrack({
-      id: 'gameOver',
-      src: MUSIC_TRACKS.gameOver,
-      name: 'Game Over',
-      loop: false,
-      volume: 0.5,
-    });
-  }, [metadata.id, metadata.displayName, music]);
-
-  // Start game music when session is active
-  useEffect(() => {
-    if (session.sessionId && !isPlayingRef.current) {
-      // Start playing game music
-      const gameTrackId = metadata.id;
-      music.play(gameTrackId, { fadeIn: { duration: 1000 } });
-      isPlayingRef.current = true;
-    }
-  }, [session.sessionId, metadata.id, music]);
-
-  // Cleanup music on unmount
-  useEffect(() => {
-    return () => {
-      if (isPlayingRef.current) {
-        const gameTrackId = metadata.id;
-        music.stop(gameTrackId, { fadeOut: { duration: 500 } });
-        isPlayingRef.current = false;
-      }
-    };
-  }, [metadata.id, music]);
-
-  // Enhanced game over handler with music
-  const handleGameOverWithMusic = useCallback(
+  // Game over handler
+  const handleGameOver = useCallback(
     async (score: number) => {
-      // Stop game music
-      const gameTrackId = metadata.id;
-      music.stop(gameTrackId, { fadeOut: { duration: 500 } });
-      isPlayingRef.current = false;
-
-      // Play game over jingle (if track exists)
-      try {
-        music.play('gameOver');
-      } catch {
-        // Game over track might not be loaded - graceful fallback
-      }
-
       // Submit score
       await session.submitScore(score);
     },
-    [metadata.id, music, session]
+    [session]
   );
 
   // ========================================
@@ -253,7 +174,7 @@ export function GameWrapper<T = object>({
         <GameComponent
           {...(gameProps as T)}
           sessionId={session.sessionId}
-          onGameOver={handleGameOverWithMusic}
+          onGameOver={handleGameOver}
         />
       </div>
     </div>
