@@ -227,6 +227,21 @@ export function Header({
           >
             Settings
           </Link>
+          <Link
+            to="/history"
+            className={cn(
+              'text-sm font-medium',
+              'text-white/80 hover:text-[#00ffff]',
+              'transition-colors duration-150',
+              'relative',
+              'after:absolute after:bottom-[-4px] after:left-0 after:right-0',
+              'after:h-[2px] after:bg-[#00ffff]',
+              'after:scale-x-0 hover:after:scale-x-100',
+              'after:transition-transform after:duration-150'
+            )}
+          >
+            History
+          </Link>
         </nav>
       )}
 
@@ -390,6 +405,21 @@ export function Header({
             >
               <Settings size={18} />
               Settings
+            </Link>
+            <Link
+              to="/history"
+              onClick={closeMobileMenu}
+              className={cn(
+                'px-4 py-3',
+                'text-base font-medium',
+                'text-white/80 hover:text-[#00ffff]',
+                'hover:bg-[#00ffff]/5',
+                'rounded-lg',
+                'transition-all duration-150',
+                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]'
+              )}
+            >
+              History
             </Link>
           </div>
         </nav>
