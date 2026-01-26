@@ -9,6 +9,12 @@ import type { Database as DatabaseType } from 'better-sqlite3';
 import { initializeSchema } from '../../db/schema';
 import { GameService } from '../game';
 
+// Helper to generate valid 66-char tx hash (0x + 64 hex chars)
+const makeTxHash = (prefix: string): string => {
+  const hex = prefix.toLowerCase().replace(/[^a-f0-9]/g, '');
+  return '0x' + hex.padEnd(64, '0').slice(0, 64);
+};
+
 describe('GameService', () => {
   let db: DatabaseType;
   let gameService: GameService;
@@ -56,7 +62,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xduplicate',
+        paymentTxHash: makeTxHash(
+          'd0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -73,7 +81,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'tetris' as const,
         playerAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
-        paymentTxHash: '0xpersisttest',
+        paymentTxHash: makeTxHash(
+          'pe12121212121212121212121212121212121212121212121212121212121212'
+        ),
         amountPaidUsdc: 0.02,
       };
 
@@ -98,7 +108,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xgettest',
+        paymentTxHash: makeTxHash(
+          '9e12121212121212121212121212121212121212121212121212121212121212'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -119,7 +131,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xcompletetest',
+        paymentTxHash: makeTxHash(
+          'c012121212121212121212121212121212121212121212121212121212121212'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -139,7 +153,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xfailtest',
+        paymentTxHash: makeTxHash(
+          'fa11111111111111111111111111111111111111111111111111111111111111'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -164,7 +180,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xdurationtest',
+        paymentTxHash: makeTxHash(
+          'd012121212121212121212121212121212121212121212121212121212121212'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -188,7 +206,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xactivetest',
+        paymentTxHash: makeTxHash(
+          'ac11111111111111111111111111111111111111111111111111111111111111'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -213,7 +233,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xcompletedtest',
+        paymentTxHash: makeTxHash(
+          'c0de111111111111111111111111111111111111111111111111111111111111'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -238,7 +260,7 @@ describe('GameService', () => {
         'stale-session-id',
         'snake',
         '0x1234567890abcdef1234567890abcdef12345678',
-        '0xstaletest',
+        makeTxHash('5a1e111111111111111111111111111111111111111111111111111111111111'),
         0.01,
         'active',
         oldTimestamp
@@ -263,7 +285,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xexpiretest',
+        paymentTxHash: makeTxHash(
+          'e012121212121212121212121212121212121212121212121212121212121212'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -286,7 +310,9 @@ describe('GameService', () => {
       const params = {
         gameType: 'snake' as const,
         playerAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        paymentTxHash: '0xalreadycompleted',
+        paymentTxHash: makeTxHash(
+          'a1c0111111111111111111111111111111111111111111111111111111111111'
+        ),
         amountPaidUsdc: 0.01,
       };
 
@@ -308,21 +334,27 @@ describe('GameService', () => {
       gameService.createSession({
         gameType: 'snake',
         playerAddress: player1,
-        paymentTxHash: '0xp1s1',
+        paymentTxHash: makeTxHash(
+          '1111111111111111111111111111111111111111111111111111111111111111'
+        ),
         amountPaidUsdc: 0.01,
       });
 
       gameService.createSession({
         gameType: 'snake',
         playerAddress: player1,
-        paymentTxHash: '0xp1s2',
+        paymentTxHash: makeTxHash(
+          '2222222222222222222222222222222222222222222222222222222222222222'
+        ),
         amountPaidUsdc: 0.01,
       });
 
       const tetrisSession = gameService.createSession({
         gameType: 'tetris',
         playerAddress: player1,
-        paymentTxHash: '0xp1t1',
+        paymentTxHash: makeTxHash(
+          '3333333333333333333333333333333333333333333333333333333333333333'
+        ),
         amountPaidUsdc: 0.02,
       });
 
@@ -333,7 +365,9 @@ describe('GameService', () => {
       gameService.createSession({
         gameType: 'snake',
         playerAddress: player2,
-        paymentTxHash: '0xp2s1',
+        paymentTxHash: makeTxHash(
+          '4444444444444444444444444444444444444444444444444444444444444444'
+        ),
         amountPaidUsdc: 0.01,
       });
     });
@@ -414,7 +448,7 @@ describe('GameService', () => {
         'old-session-id',
         'snake',
         '0x1234567890abcdef1234567890abcdef12345678',
-        '0xoldtxhash',
+        makeTxHash('01d0111111111111111111111111111111111111111111111111111111111111'),
         0.01,
         'active',
         oldTimestamp
@@ -433,7 +467,7 @@ describe('GameService', () => {
         'recent-session-id',
         'tetris',
         '0xabcdef1234567890abcdef1234567890abcdef12',
-        '0xrecenttxhash',
+        makeTxHash('1ece111111111111111111111111111111111111111111111111111111111111'),
         0.02,
         'active',
         recentTimestamp
@@ -472,7 +506,7 @@ describe('GameService', () => {
         'old-session-id',
         'snake',
         '0x1234567890abcdef1234567890abcdef12345678',
-        '0xoldtxhash',
+        makeTxHash('01d0222222222222222222222222222222222222222222222222222222222222'),
         0.01,
         'active',
         oldTimestamp
@@ -503,7 +537,7 @@ describe('GameService', () => {
         'completed-session-id',
         'snake',
         '0x1234567890abcdef1234567890abcdef12345678',
-        '0xcompletedtxhash',
+        makeTxHash('c0de222222222222222222222222222222222222222222222222222222222222'),
         0.01,
         'completed',
         oldTimestamp,
@@ -536,7 +570,7 @@ describe('GameService', () => {
         'expired-session-id',
         'snake',
         '0x1234567890abcdef1234567890abcdef12345678',
-        '0xexpiredtxhash',
+        makeTxHash('e012222222222222222222222222222222222222222222222222222222222222'),
         0.01,
         'expired',
         oldTimestamp,
@@ -568,7 +602,7 @@ describe('GameService', () => {
         'recent-session-id',
         'tetris',
         '0x1234567890abcdef1234567890abcdef12345678',
-        '0xrecenttxhash',
+        makeTxHash('1ece222222222222222222222222222222222222222222222222222222222222'),
         0.02,
         'active',
         recentTimestamp
@@ -601,7 +635,7 @@ describe('GameService', () => {
           `old-session-${i}`,
           'snake',
           `0x${i.toString().padStart(40, '0')}`,
-          `0xtxhash${i}`,
+          makeTxHash(`${i.toString(16).padStart(64, '0')}`),
           0.01,
           'active',
           oldTimestamp
@@ -636,7 +670,7 @@ describe('GameService', () => {
         'old-session-id',
         'snake',
         '0x1234567890abcdef1234567890abcdef12345678',
-        '0xoldtxhash',
+        makeTxHash('01d0333333333333333333333333333333333333333333333333333333333333'),
         0.01,
         'active',
         oldTimestamp
