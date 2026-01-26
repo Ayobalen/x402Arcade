@@ -49,3 +49,10 @@ export {
   type StandardOperationKey,
   type StartLoadingOptions,
 } from './loadingStore';
+
+export {
+  useOnboardingStore,
+  type OnboardingStep,
+  type OnboardingTooltip,
+  type GameTutorialStep,
+} from './onboarding';
