@@ -1,0 +1,80 @@
+services:
+  - type: web
+    name: x402arcade-backend
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: packages/backend
+    buildCommand: pnpm install && pnpm build
+    startCommand: node dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8000
+      - key: HOST
+        value: 0.0.0.0
+      - key: CHAIN_ID
+        value: 338
+      - key: RPC_URL
+        value: https://evm-t3.cronos.org
+      - key: EXPLORER_URL
+        value: https://explorer.cronos.org/testnet
+      - key: USDC_CONTRACT_ADDRESS
+        value: 0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
+      - key: USDC_DECIMALS
+        value: 6
+      - key: USDC_DOMAIN_VERSION
+        value: 1
+      - key: FACILITATOR_URL
+        value: https://facilitator.cronoslabs.org
+      - key: SNAKE_PRICE_USDC
+        value: 0.01
+      - key: PONG_PRICE_USDC
+        value: 0.01
+      - key: TETRIS_PRICE_USDC
+        value: 0.02
+      - key: BREAKOUT_PRICE_USDC
+        value: 0.01
+      - key: SPACE_INVADERS_PRICE_USDC
+        value: 0.02
+      - key: PRIZE_POOL_PERCENTAGE
+        value: 70
+      - key: PLATFORM_FEE_PERCENTAGE
+        value: 30
+      - key: SESSION_EXPIRY_MINUTES
+        value: 30
+      - key: MAX_SESSIONS_PER_PLAYER
+        value: 5
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: ENABLE_METRICS
+        value: true
+      - key: ENABLE_HELMET
+        value: true
+      - key: TRUST_PROXY
+        value: true
+      - key: ENABLE_RATE_LIMITING
+        value: true
+      - key: LOG_LEVEL
+        value: info
+      - key: LOG_FORMAT
+        value: json
+      - key: ENABLE_REQUEST_LOGGING
+        value: true
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/data/arcade.db
+      - key: DATABASE_BACKUP_ENABLED
+        value: true
+      - key: DATABASE_BACKUP_INTERVAL
+        value: 3600000
+      # IMPORTANT: Add these secrets via Render dashboard
+      - key: CORS_ORIGIN
+        sync: false
+      - key: ARCADE_WALLET_ADDRESS
+        sync: false
+      - key: ARCADE_PRIVATE_KEY
+        sync: false
