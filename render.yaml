@@ -4,9 +4,8 @@ services:
     runtime: node
     region: oregon
     plan: free
-    rootDir: packages/backend
-    buildCommand: pnpm install && pnpm rebuild better-sqlite3 && pnpm build
-    startCommand: node dist/index.js
+    buildCommand: pnpm install && pnpm --filter @x402arcade/backend rebuild better-sqlite3 && pnpm --filter @x402arcade/backend build
+    startCommand: cd packages/backend && node dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
