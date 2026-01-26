@@ -114,6 +114,17 @@ export function useBalance(address?: string, tokenAddress: string = USDC_ADDRESS
     fetchBalance();
   }, [fetchBalance]);
 
+  // Auto-refresh balance every 10 seconds (Issue #1: Balance refresh after payment)
+  useEffect(() => {
+    if (!address) return;
+
+    const interval = setInterval(() => {
+      fetchBalance();
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval);
+  }, [address, fetchBalance]);
+
   // Return balance data and manual refresh function
   return {
     balance,

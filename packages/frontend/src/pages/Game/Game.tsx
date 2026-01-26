@@ -148,6 +148,28 @@ export function Game() {
     fetchDailyPool();
   }, [gameId]);
 
+  // Restore session from localStorage on mount (Issue #2: Session Restoration)
+  useEffect(() => {
+    if (!gameId || sessionId) return;
+
+    const storedSessionId = localStorage.getItem(`game_session_${gameId}`);
+    const storedTimestamp = localStorage.getItem(`game_session_${gameId}_timestamp`);
+
+    if (storedSessionId && storedTimestamp) {
+      const sessionAge = Date.now() - parseInt(storedTimestamp);
+      const FIFTEEN_MINUTES = 15 * 60 * 1000;
+
+      // If session is less than 15 minutes old, restore it
+      if (sessionAge < FIFTEEN_MINUTES) {
+        setSessionId(storedSessionId);
+      } else {
+        // Session expired, clean up
+        localStorage.removeItem(`game_session_${gameId}`);
+        localStorage.removeItem(`game_session_${gameId}_timestamp`);
+      }
+    }
+  }, [gameId, sessionId]);
+
   // Handle exit from game wrapper
   const handleExit = () => {
     navigate('/play');

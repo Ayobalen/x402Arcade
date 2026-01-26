@@ -6,6 +6,28 @@ A gasless arcade gaming platform on Cronos blockchain using x402 protocol for mi
 
 Built for the **Cronos x402 Hackathon** – Main Track + Ecosystem Integration.
 
+## Why x402 Changes Everything
+
+Traditional blockchain makes $0.01 games **economically impossible**. Gas fees cost 50-200x more than the game itself:
+
+| Payment Method             | Cost Per $0.01 Game                            | Settlement Time | Player Experience             |
+| -------------------------- | ---------------------------------------------- | --------------- | ----------------------------- |
+| **Traditional Blockchain** | $0.01 game + $0.50-$2.00 gas = **$0.51-$2.01** | 5-30 seconds    | "Waiting for confirmation..." |
+| **x402 Protocol**          | $0.01 game + $0.00 gas = **$0.01**             | <1 second       | Instant gameplay              |
+
+**The Result:** x402 enables **50x-200x cost reduction**, making micropayment gaming viable for the first time on blockchain.
+
+### Perfect Product-Market Fit
+
+Arcade gaming requires:
+
+- ✅ **Micropayments at scale** - Players make 10-100 payments per session
+- ✅ **Instant gratification** - No "waiting for block confirmation" screens
+- ✅ **True pay-per-play** - No deposits, no bulk purchases, just pennies
+- ✅ **Repeatable transactions** - EIP-3009 signatures enable seamless replays
+
+x402 is the **only technology** that makes this economically viable.
+
 ## Features
 
 - **Pay a penny** ($0.01-$0.02 USDC per game)

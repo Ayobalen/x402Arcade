@@ -177,9 +177,10 @@ export const GAME_DESCRIPTIONS: Record<GameType, string> = {
 };
 
 /**
- * Session timeout in milliseconds (30 minutes).
+ * Session timeout in milliseconds (15 minutes).
+ * Optimized for arcade gaming - balances value perception with engagement.
  */
-export const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+export const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
 
 // ============================================================================
 // In-Memory Session Store (for MVP - replace with database in production)
