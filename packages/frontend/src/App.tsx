@@ -19,6 +19,7 @@ import {
   LeaderboardPageSkeleton,
   NotFoundPageSkeleton,
 } from '@/components/ui/PageSkeleton';
+import { BackgroundMusic } from '@/components/audio';
 
 // Create QueryClient instance
 const queryClient = new QueryClient();
@@ -182,6 +183,9 @@ function App() {
           <HelpModal />
           <GameTutorial />
           <KeyboardShortcutsGuide />
+
+          {/* Background Music with Mute Control */}
+          <BackgroundMusic autoPlay initialVolume={0.3} />
         </Layout>
       </QueryClientProvider>
     </WagmiProvider>

@@ -33,13 +33,11 @@ import {
   renderGameOverOverlay,
   renderScore,
 } from './renderer';
-import { useSFX } from '../../hooks/useSFX';
 import {
   initializeSnakeSounds,
-  playEatSound,
-  playDeathSound,
-  playLevelUpSound,
-} from './SnakeSounds';
+  SnakeSoundType,
+  type SnakeSoundsManager,
+} from './SnakeSoundsPhaser';
 
 // ============================================================================
 // Hook Interface
@@ -163,9 +161,9 @@ export function useSnakeGame(
   // ============================================================================
 
   /**
-   * SFX Engine for playing sound effects.
+   * Snake sounds manager ref.
    */
-  const sfx = useSFX();
+  const soundsManagerRef = useRef<SnakeSoundsManager | null>(null);
 
   /**
    * Previous state ref for detecting changes (for audio triggers).
@@ -176,8 +174,18 @@ export function useSnakeGame(
    * Initialize Snake sounds on mount.
    */
   useEffect(() => {
-    initializeSnakeSounds(sfx);
-  }, [sfx]);
+    initializeSnakeSounds().then((manager) => {
+      soundsManagerRef.current = manager;
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (soundsManagerRef.current) {
+        soundsManagerRef.current.dispose();
+        soundsManagerRef.current = null;
+      }
+    };
+  }, []);
 
   /**
    * Track state changes and play appropriate sounds.
@@ -185,9 +193,10 @@ export function useSnakeGame(
   useEffect(() => {
     const prevState = prevStateRef.current;
     prevStateRef.current = state;
+    const sounds = soundsManagerRef.current;
 
-    // Skip if no previous state (first render)
-    if (!prevState || !prevState.gameSpecific || !state.gameSpecific) {
+    // Skip if no previous state (first render) or sounds not initialized
+    if (!prevState || !prevState.gameSpecific || !state.gameSpecific || !sounds) {
       return;
     }
 
@@ -196,21 +205,21 @@ export function useSnakeGame(
     const comboCount = state.gameSpecific.currentCombo || 0;
 
     if (scoreIncreased) {
-      playEatSound(sfx, comboCount);
+      sounds.playEatSound(comboCount);
     }
 
     // Detect level up
     const leveledUp = state.level > prevState.level;
     if (leveledUp) {
-      playLevelUpSound(sfx);
+      sounds.play(SnakeSoundType.LEVEL_UP);
     }
 
     // Detect death (game over triggered)
     const justDied = state.isGameOver && !prevState.isGameOver;
     if (justDied) {
-      playDeathSound(sfx);
+      sounds.play(SnakeSoundType.DEATH);
     }
-  }, [state.score, state.level, state.isGameOver, state.gameSpecific?.currentCombo, sfx]);
+  }, [state.score, state.level, state.isGameOver, state.gameSpecific?.currentCombo]);
 
   // ============================================================================
   // Canvas Context Management
