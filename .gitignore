@@ -41,6 +41,10 @@ session-*.txt
 .session-*.txt
 claude-progress.txt
 
+# Spec documents (contains implementation details)
+prompts/app_spec.txt
+prompts/*.md
+
 # Temporary files
 *.tmp
 *.temp
