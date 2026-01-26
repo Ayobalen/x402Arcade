@@ -171,7 +171,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
 
     // Step 6: Create game session
     const session = gameService.createSession({
-      gameType: gameType as 'snake' | 'tetris' | 'pong-phaser',
+      gameType,
       playerAddress,
       paymentTxHash,
       amountPaidUsdc,

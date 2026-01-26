@@ -1437,35 +1437,37 @@ export function createSettlementRequest(request: X402SettlementRequest): Settlem
  */
 export function createSettlementRequestFromPayload(
   payload: PaymentPayload,
-  config: X402Config,
-  paymentHeader: string,
-  resource: string
+  config: X402Config
 ): SettlementRequest {
-  // Determine network name from chain ID
-  const networkMap: Record<number, string> = {
-    338: 'cronos-testnet',
-    25: 'cronos-mainnet',
-  };
-  const network = networkMap[config.chainId] || `chain-${config.chainId}`;
-
   return {
-    x402Version: 1,
-    paymentHeader,
-    paymentRequirements: {
-      scheme: 'exact',
-      network,
-      maxAmountRequired:
-        typeof config.paymentAmount === 'bigint'
-          ? config.paymentAmount.toString()
-          : config.paymentAmount,
-      payTo: config.payTo,
-      asset: config.tokenAddress,
-      resource,
-      description: `Payment for ${resource}`,
-      mimeType: 'application/json',
-      maxTimeoutSeconds: 300,
+    authorization: {
+      from: payload.from,
+      to: payload.to,
+      value: payload.value,
+      validAfter: payload.validAfter,
+      validBefore: payload.validBefore,
+      nonce: payload.nonce,
+      v: payload.v,
+      r: payload.r,
+      s: payload.s,
     },
+    chainId: config.chainId,
+    tokenAddress: config.tokenAddress,
   };
+}
+
+/**
+ * DEPRECATED: Old function signature kept for backwards compatibility.
+ * Use createSettlementRequestFromPayload(payload, config) instead.
+ */
+export function createSettlementRequestFromPayloadLegacy(
+  payload: PaymentPayload,
+  config: X402Config,
+  _paymentHeader: string,
+  _resource: string
+): SettlementRequest {
+  // Ignore unused parameters and delegate to the new implementation
+  return createSettlementRequestFromPayload(payload, config);
 }
 
 /**
@@ -1875,6 +1877,7 @@ export type X402ValidationErrorCode =
   | 'INVALID_SCHEME'
   | 'INVALID_NETWORK'
   | 'INVALID_PAYLOAD'
+  | 'INVALID_SIGNATURE'
   | 'AMOUNT_MISMATCH'
   | 'RECIPIENT_MISMATCH'
   | 'AUTHORIZATION_EXPIRED'

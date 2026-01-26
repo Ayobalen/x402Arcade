@@ -26,7 +26,14 @@ import { assertValidScore } from '../lib/score-validation.js';
 /**
  * Supported game types in the arcade.
  */
-export type GameType = 'snake' | 'tetris' | 'pong' | 'breakout' | 'space_invaders';
+export type GameType =
+  | 'snake'
+  | 'tetris'
+  | 'pong'
+  | 'pong-phaser'
+  | 'breakout'
+  | 'space_invaders'
+  | 'space-invaders';
 
 /**
  * Game session status.
@@ -43,7 +50,7 @@ export interface GameSession {
   /** Unique session identifier (maps to: id) */
   id: string;
   /** Type of game being played (maps to: game_type) */
-  gameType: 'snake' | 'tetris';
+  gameType: GameType;
   /** Player's wallet address (maps to: player_address) */
   playerAddress: string;
   /** Payment transaction hash (maps to: payment_tx_hash) */
@@ -94,7 +101,7 @@ export interface GamePaymentRequirement {
  */
 export interface CreateSessionParams {
   /** Type of game being played */
-  gameType: 'snake' | 'tetris';
+  gameType: GameType;
   /** Player's wallet address */
   playerAddress: string;
   /** Blockchain transaction hash for the payment */
@@ -161,8 +168,10 @@ export const GAME_PRICES: Record<GameType, string> = {
   snake: '10000', // $0.01
   tetris: '20000', // $0.02
   pong: '10000', // $0.01
+  'pong-phaser': '10000', // $0.01
   breakout: '15000', // $0.015
   space_invaders: '25000', // $0.025
+  'space-invaders': '25000', // $0.025
 };
 
 /**
@@ -172,8 +181,10 @@ export const GAME_DESCRIPTIONS: Record<GameType, string> = {
   snake: 'Play Snake - Classic arcade action',
   tetris: 'Play Tetris - Stack and clear',
   pong: 'Play Pong - Retro paddle game',
+  'pong-phaser': 'Play Pong (Phaser) - Modern paddle game',
   breakout: 'Play Breakout - Break the bricks',
   space_invaders: 'Play Space Invaders - Defend Earth',
+  'space-invaders': 'Play Space Invaders - Defend Earth',
 };
 
 /**

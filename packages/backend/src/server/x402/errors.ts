@@ -75,7 +75,7 @@ export class X402Error extends Error {
     message: string,
     errorCode: X402ErrorCode,
     httpStatus: number = 400,
-    details?: Record<string, unknown>,
+    details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'X402Error';
@@ -146,11 +146,7 @@ export class X402Error extends Error {
    * Used when X-Payment header is missing.
    */
   static missingHeader(): X402Error {
-    return new X402Error(
-      'X-Payment header is required',
-      'MISSING_HEADER',
-      402,
-    );
+    return new X402Error('X-Payment header is required', 'MISSING_HEADER', 402);
   }
 
   /**
@@ -165,7 +161,7 @@ export class X402Error extends Error {
       'Invalid payment header format',
       'INVALID_JSON',
       400,
-      parseError ? { parseError } : undefined,
+      parseError ? { parseError } : undefined
     );
   }
 
@@ -177,12 +173,10 @@ export class X402Error extends Error {
    * @param version - The invalid version received
    */
   static invalidVersion(version: string): X402Error {
-    return new X402Error(
-      `Unsupported x402 version: ${version}`,
-      'INVALID_VERSION',
-      400,
-      { receivedVersion: version, supportedVersion: '1' },
-    );
+    return new X402Error(`Unsupported x402 version: ${version}`, 'INVALID_VERSION', 400, {
+      receivedVersion: version,
+      supportedVersion: '1',
+    });
   }
 
   /**
@@ -193,12 +187,10 @@ export class X402Error extends Error {
    * @param scheme - The invalid scheme received
    */
   static invalidScheme(scheme: string): X402Error {
-    return new X402Error(
-      `Unsupported payment scheme: ${scheme}`,
-      'INVALID_SCHEME',
-      400,
-      { receivedScheme: scheme, supportedSchemes: ['exact'] },
-    );
+    return new X402Error(`Unsupported payment scheme: ${scheme}`, 'INVALID_SCHEME', 400, {
+      receivedScheme: scheme,
+      supportedSchemes: ['exact'],
+    });
   }
 
   /**
@@ -210,12 +202,10 @@ export class X402Error extends Error {
    * @param expected - The expected network
    */
   static invalidNetwork(network: string, expected?: string): X402Error {
-    return new X402Error(
-      `Invalid network: ${network}`,
-      'INVALID_NETWORK',
-      400,
-      { receivedNetwork: network, ...(expected && { expectedNetwork: expected }) },
-    );
+    return new X402Error(`Invalid network: ${network}`, 'INVALID_NETWORK', 400, {
+      receivedNetwork: network,
+      ...(expected && { expectedNetwork: expected }),
+    });
   }
 
   /**
@@ -226,12 +216,9 @@ export class X402Error extends Error {
    * @param errors - List of validation errors
    */
   static invalidPayload(errors: string[]): X402Error {
-    return new X402Error(
-      'Invalid payment payload',
-      'INVALID_PAYLOAD',
-      400,
-      { validationErrors: errors },
-    );
+    return new X402Error('Invalid payment payload', 'INVALID_PAYLOAD', 400, {
+      validationErrors: errors,
+    });
   }
 
   /**
@@ -247,7 +234,7 @@ export class X402Error extends Error {
       `Payment amount mismatch: expected ${expected}, received ${received}`,
       'AMOUNT_MISMATCH',
       400,
-      { expectedAmount: expected, receivedAmount: received },
+      { expectedAmount: expected, receivedAmount: received }
     );
   }
 
@@ -295,15 +282,16 @@ export class X402Error extends Error {
     provided: string | bigint,
     formattedRequired?: string,
     formattedProvided?: string,
-    formattedShortfall?: string,
+    formattedShortfall?: string
   ): X402Error {
     const requiredBigInt = typeof required === 'bigint' ? required : BigInt(required);
     const providedBigInt = typeof provided === 'bigint' ? provided : BigInt(provided);
     const shortfall = requiredBigInt - providedBigInt;
 
-    const message = formattedRequired && formattedProvided
-      ? `Insufficient payment: required ${formattedRequired}, received ${formattedProvided}`
-      : `Insufficient payment: required ${required}, received ${provided}`;
+    const message =
+      formattedRequired && formattedProvided
+        ? `Insufficient payment: required ${formattedRequired}, received ${formattedProvided}`
+        : `Insufficient payment: required ${required}, received ${provided}`;
 
     return new X402Error(
       message,
@@ -316,7 +304,7 @@ export class X402Error extends Error {
         ...(formattedProvided && { providedFormatted: formattedProvided }),
         shortfall: shortfall.toString(),
         ...(formattedShortfall && { shortfallFormatted: formattedShortfall }),
-      },
+      }
     );
   }
 
@@ -329,12 +317,10 @@ export class X402Error extends Error {
    * @param received - Received recipient address
    */
   static recipientMismatch(expected: string, received: string): X402Error {
-    return new X402Error(
-      'Payment recipient mismatch',
-      'RECIPIENT_MISMATCH',
-      400,
-      { expectedRecipient: expected, receivedRecipient: received },
-    );
+    return new X402Error('Payment recipient mismatch', 'RECIPIENT_MISMATCH', 400, {
+      expectedRecipient: expected,
+      receivedRecipient: received,
+    });
   }
 
   /**
@@ -345,12 +331,10 @@ export class X402Error extends Error {
    * @param validBefore - The expiration timestamp
    */
   static authorizationExpired(validBefore: string): X402Error {
-    return new X402Error(
-      'Payment authorization has expired',
-      'AUTHORIZATION_EXPIRED',
-      400,
-      { validBefore, currentTime: new Date().toISOString() },
-    );
+    return new X402Error('Payment authorization has expired', 'AUTHORIZATION_EXPIRED', 400, {
+      validBefore,
+      currentTime: new Date().toISOString(),
+    });
   }
 
   /**
@@ -365,7 +349,7 @@ export class X402Error extends Error {
       'Payment authorization is not yet valid',
       'AUTHORIZATION_NOT_YET_VALID',
       400,
-      { validAfter, currentTime: new Date().toISOString() },
+      { validAfter, currentTime: new Date().toISOString() }
     );
   }
 
@@ -379,11 +363,7 @@ export class X402Error extends Error {
    * Used when the ECDSA signature verification fails.
    */
   static invalidSignature(): X402Error {
-    return new X402Error(
-      'Invalid payment signature',
-      'INVALID_SIGNATURE',
-      400,
-    );
+    return new X402Error('Invalid payment signature', 'INVALID_SIGNATURE', 400);
   }
 
   /**
@@ -398,7 +378,7 @@ export class X402Error extends Error {
       'Insufficient token balance',
       'INSUFFICIENT_BALANCE',
       400,
-      payer ? { payerAddress: payer } : undefined,
+      payer ? { payerAddress: payer } : undefined
     );
   }
 
@@ -414,7 +394,7 @@ export class X402Error extends Error {
       'Authorization nonce has already been used',
       'NONCE_ALREADY_USED',
       400,
-      nonce ? { nonce } : undefined,
+      nonce ? { nonce } : undefined
     );
   }
 
@@ -430,7 +410,7 @@ export class X402Error extends Error {
       'Token not supported for x402 payments',
       'INVALID_TOKEN',
       400,
-      tokenAddress ? { tokenAddress } : undefined,
+      tokenAddress ? { tokenAddress } : undefined
     );
   }
 
@@ -446,7 +426,7 @@ export class X402Error extends Error {
       'Chain not supported for x402 payments',
       'UNSUPPORTED_CHAIN',
       400,
-      chainId ? { chainId } : undefined,
+      chainId ? { chainId } : undefined
     );
   }
 
@@ -460,14 +440,9 @@ export class X402Error extends Error {
    */
   static facilitatorError(
     message: string = 'Facilitator service error',
-    details?: Record<string, unknown>,
+    details?: Record<string, unknown>
   ): X402Error {
-    return new X402Error(
-      message,
-      'FACILITATOR_ERROR',
-      502,
-      details,
-    );
+    return new X402Error(message, 'FACILITATOR_ERROR', 502, details);
   }
 
   /**
@@ -478,11 +453,7 @@ export class X402Error extends Error {
    * @param message - Error message
    */
   static networkError(message: string = 'Failed to communicate with facilitator'): X402Error {
-    return new X402Error(
-      message,
-      'NETWORK_ERROR',
-      502,
-    );
+    return new X402Error(message, 'NETWORK_ERROR', 502);
   }
 
   /**
@@ -513,7 +484,7 @@ export class X402Error extends Error {
   static networkConnectivityError(
     facilitatorUrl: string,
     errorType: string,
-    retryAfterSeconds: number = 30,
+    retryAfterSeconds: number = 30
   ): X402Error {
     const error = new X402Error(
       `Failed to connect to payment facilitator: ${errorType}`,
@@ -524,7 +495,7 @@ export class X402Error extends Error {
         errorType,
         retryAfterSeconds,
         suggestion: 'Please retry after the specified delay',
-      },
+      }
     );
 
     // Add retryAfterSeconds to the error for response handling
@@ -545,7 +516,7 @@ export class X402Error extends Error {
       'Settlement request timed out',
       'TIMEOUT',
       504,
-      timeoutMs ? { timeoutMs } : undefined,
+      timeoutMs ? { timeoutMs } : undefined
     );
   }
 
@@ -559,14 +530,9 @@ export class X402Error extends Error {
    */
   static internalError(
     message: string = 'Internal payment processing error',
-    details?: Record<string, unknown>,
+    details?: Record<string, unknown>
   ): X402Error {
-    return new X402Error(
-      message,
-      'INTERNAL_ERROR',
-      500,
-      details,
-    );
+    return new X402Error(message, 'INTERNAL_ERROR', 500, details);
   }
 
   // ============================================================
@@ -582,19 +548,12 @@ export class X402Error extends Error {
    * @param message - Optional custom message
    * @returns Appropriate X402Error instance
    */
-  static fromSettlementErrorCode(
-    code: X402SettlementErrorCode,
-    message?: string,
-  ): X402Error {
+  static fromSettlementErrorCode(code: X402SettlementErrorCode, message?: string): X402Error {
     switch (code) {
       case 'INVALID_SIGNATURE':
         return X402Error.invalidSignature();
       case 'EXPIRED_AUTHORIZATION':
-        return new X402Error(
-          message ?? 'Authorization has expired',
-          'AUTHORIZATION_EXPIRED',
-          400,
-        );
+        return new X402Error(message ?? 'Authorization has expired', 'AUTHORIZATION_EXPIRED', 400);
       case 'INSUFFICIENT_BALANCE':
         return X402Error.insufficientBalance();
       case 'NONCE_ALREADY_USED':
@@ -736,7 +695,7 @@ export class X402ValidationError extends X402Error {
   constructor(
     message: string,
     errorCode: X402ValidationErrorCode,
-    validationDetails: ValidationErrorDetails,
+    validationDetails: ValidationErrorDetails
   ) {
     // Build details object with validation info
     const details: Record<string, unknown> = {
@@ -830,7 +789,7 @@ export class X402ValidationError extends X402Error {
     return new X402ValidationError(
       `Invalid value for field '${field}': expected ${expected}`,
       'INVALID_PAYLOAD',
-      { field, expected, actual },
+      { field, expected, actual }
     );
   }
 
@@ -843,11 +802,11 @@ export class X402ValidationError extends X402Error {
    * @returns X402ValidationError with INVALID_PAYLOAD code
    */
   static missingField(field: string): X402ValidationError {
-    return new X402ValidationError(
-      `Missing required field: '${field}'`,
-      'INVALID_PAYLOAD',
-      { field, expected: 'present', actual: 'missing' },
-    );
+    return new X402ValidationError(`Missing required field: '${field}'`, 'INVALID_PAYLOAD', {
+      field,
+      expected: 'present',
+      actual: 'missing',
+    });
   }
 
   /**
@@ -863,12 +822,12 @@ export class X402ValidationError extends X402Error {
   static typeMismatch(
     field: string,
     expectedType: string,
-    actualType: string,
+    actualType: string
   ): X402ValidationError {
     return new X402ValidationError(
       `Type mismatch for field '${field}': expected ${expectedType}, got ${actualType}`,
       'INVALID_PAYLOAD',
-      { field, expected: expectedType, actual: actualType },
+      { field, expected: expectedType, actual: actualType }
     );
   }
 
@@ -886,11 +845,11 @@ export class X402ValidationError extends X402Error {
    * @returns X402ValidationError with INVALID_VERSION code
    */
   static versionMismatch(actual: string, expected: string = '1'): X402ValidationError {
-    return new X402ValidationError(
-      `Unsupported x402 version: ${actual}`,
-      'INVALID_VERSION',
-      { field: 'x402Version', expected, actual },
-    );
+    return new X402ValidationError(`Unsupported x402 version: ${actual}`, 'INVALID_VERSION', {
+      field: 'x402Version',
+      expected,
+      actual,
+    });
   }
 
   /**
@@ -903,11 +862,11 @@ export class X402ValidationError extends X402Error {
    * @returns X402ValidationError with INVALID_SCHEME code
    */
   static schemeMismatch(actual: string, expected: string = 'exact'): X402ValidationError {
-    return new X402ValidationError(
-      `Unsupported payment scheme: ${actual}`,
-      'INVALID_SCHEME',
-      { field: 'scheme', expected, actual },
-    );
+    return new X402ValidationError(`Unsupported payment scheme: ${actual}`, 'INVALID_SCHEME', {
+      field: 'scheme',
+      expected,
+      actual,
+    });
   }
 
   /**
@@ -923,7 +882,7 @@ export class X402ValidationError extends X402Error {
     return new X402ValidationError(
       `Invalid network: expected ${expected}, got ${actual}`,
       'INVALID_NETWORK',
-      { field: 'network', expected, actual },
+      { field: 'network', expected, actual }
     );
   }
 
@@ -948,7 +907,7 @@ export class X402ValidationError extends X402Error {
         field,
         expected: 'valid Ethereum address (0x + 40 hex characters)',
         actual,
-      },
+      }
     );
   }
 
@@ -965,7 +924,7 @@ export class X402ValidationError extends X402Error {
     return new X402ValidationError(
       'Payment recipient does not match expected address',
       'RECIPIENT_MISMATCH',
-      { field: 'to', expected, actual },
+      { field: 'to', expected, actual }
     );
   }
 
@@ -986,7 +945,7 @@ export class X402ValidationError extends X402Error {
   static amountMismatch(
     expected: string | bigint,
     actual: string | bigint,
-    context?: { currency?: string; minAmount?: string },
+    context?: { currency?: string; minAmount?: string }
   ): X402ValidationError {
     return new X402ValidationError(
       `Payment amount mismatch: expected ${expected}, received ${actual}`,
@@ -996,7 +955,7 @@ export class X402ValidationError extends X402Error {
         expected: String(expected),
         actual: String(actual),
         context,
-      },
+      }
     );
   }
 
@@ -1010,16 +969,12 @@ export class X402ValidationError extends X402Error {
    * @returns X402ValidationError with INVALID_PAYLOAD code
    */
   static invalidAmount(actual: unknown, reason: string): X402ValidationError {
-    return new X402ValidationError(
-      `Invalid payment amount: ${reason}`,
-      'INVALID_PAYLOAD',
-      {
-        field: 'value',
-        expected: 'positive numeric string (uint256)',
-        actual,
-        context: { reason },
-      },
-    );
+    return new X402ValidationError(`Invalid payment amount: ${reason}`, 'INVALID_PAYLOAD', {
+      field: 'value',
+      expected: 'positive numeric string (uint256)',
+      actual,
+      context: { reason },
+    });
   }
 
   // ============================================================
@@ -1039,7 +994,7 @@ export class X402ValidationError extends X402Error {
   static invalidSignatureComponent(
     component: 'v' | 'r' | 's',
     actual: unknown,
-    expected?: string,
+    expected?: string
   ): X402ValidationError {
     const expectedFormat =
       expected ??
@@ -1055,7 +1010,7 @@ export class X402ValidationError extends X402Error {
         expected: expectedFormat,
         actual,
         context: { signatureComponent: component },
-      },
+      }
     );
   }
 
@@ -1079,24 +1034,41 @@ export class X402ValidationError extends X402Error {
    */
   static invalidSignatureFormat(
     errors: string[],
-    components?: { v?: unknown; r?: unknown; s?: unknown },
+    components?: { v?: unknown; r?: unknown; s?: unknown }
   ): X402ValidationError {
+    return new X402ValidationError('Invalid signature format', 'INVALID_PAYLOAD', {
+      field: 'signature',
+      expected: {
+        v: '27, 28, or valid EIP-155 value',
+        r: '0x-prefixed 64 hex characters (32 bytes)',
+        s: '0x-prefixed 64 hex characters (32 bytes)',
+      },
+      actual: components,
+      context: {
+        signatureErrors: errors,
+        help: 'The signature v value must be 27, 28, or a valid EIP-155 value (chainId * 2 + 35/36). The r and s values must be 32-byte hex strings with 0x prefix.',
+      },
+    });
+  }
+
+  /**
+   * Create a Signature Invalid error
+   *
+   * Used when signature verification fails for any reason.
+   *
+   * @param reason - Why the signature is invalid
+   * @returns X402ValidationError with INVALID_SIGNATURE code
+   */
+  static signatureInvalid(reason: string): X402ValidationError {
     return new X402ValidationError(
-      'Invalid signature format',
-      'INVALID_PAYLOAD',
+      `Signature verification failed: ${reason}`,
+      'INVALID_SIGNATURE',
       {
         field: 'signature',
-        expected: {
-          v: '27, 28, or valid EIP-155 value',
-          r: '0x-prefixed 64 hex characters (32 bytes)',
-          s: '0x-prefixed 64 hex characters (32 bytes)',
-        },
-        actual: components,
-        context: {
-          signatureErrors: errors,
-          help: 'The signature v value must be 27, 28, or a valid EIP-155 value (chainId * 2 + 35/36). The r and s values must be 32-byte hex strings with 0x prefix.',
-        },
-      },
+        expected: 'valid ECDSA signature from authorized signer',
+        actual: 'invalid',
+        context: { reason },
+      }
     );
   }
 
@@ -1109,15 +1081,11 @@ export class X402ValidationError extends X402Error {
    * @returns X402ValidationError with INVALID_PAYLOAD code
    */
   static invalidNonce(actual: string): X402ValidationError {
-    return new X402ValidationError(
-      'Invalid nonce format',
-      'INVALID_PAYLOAD',
-      {
-        field: 'nonce',
-        expected: '0x-prefixed hex string (32 bytes / 64 hex characters)',
-        actual,
-      },
-    );
+    return new X402ValidationError('Invalid nonce format', 'INVALID_PAYLOAD', {
+      field: 'nonce',
+      expected: '0x-prefixed hex string (32 bytes / 64 hex characters)',
+      actual,
+    });
   }
 
   // ============================================================
@@ -1135,23 +1103,19 @@ export class X402ValidationError extends X402Error {
    */
   static authorizationExpired(
     validBefore: string | number,
-    currentTime?: number,
+    currentTime?: number
   ): X402ValidationError {
     const now = currentTime ?? Math.floor(Date.now() / 1000);
-    return new X402ValidationError(
-      'Payment authorization has expired',
-      'AUTHORIZATION_EXPIRED',
-      {
-        field: 'validBefore',
-        expected: `timestamp > ${now}`,
-        actual: String(validBefore),
-        context: {
-          currentTime: now,
-          expiredAt: String(validBefore),
-          expiredAgo: `${now - Number(validBefore)} seconds ago`,
-        },
+    return new X402ValidationError('Payment authorization has expired', 'AUTHORIZATION_EXPIRED', {
+      field: 'validBefore',
+      expected: `timestamp > ${now}`,
+      actual: String(validBefore),
+      context: {
+        currentTime: now,
+        expiredAt: String(validBefore),
+        expiredAgo: `${now - Number(validBefore)} seconds ago`,
       },
-    );
+    });
   }
 
   /**
@@ -1165,7 +1129,7 @@ export class X402ValidationError extends X402Error {
    */
   static authorizationNotYetValid(
     validAfter: string | number,
-    currentTime?: number,
+    currentTime?: number
   ): X402ValidationError {
     const now = currentTime ?? Math.floor(Date.now() / 1000);
     const validAfterNum = Number(validAfter);
@@ -1187,7 +1151,7 @@ export class X402ValidationError extends X402Error {
           retryAfterSeconds: Math.max(1, secondsUntilValid + 1),
           hint: `Retry request after ${Math.ceil(secondsUntilValid / 60)} minute(s) or use Retry-After: ${Math.max(1, secondsUntilValid + 1)} in your retry logic`,
         },
-      },
+      }
     );
   }
 
@@ -1202,17 +1166,13 @@ export class X402ValidationError extends X402Error {
    */
   static invalidTimestamp(
     field: 'validAfter' | 'validBefore',
-    actual: unknown,
+    actual: unknown
   ): X402ValidationError {
-    return new X402ValidationError(
-      `Invalid timestamp for '${field}'`,
-      'INVALID_PAYLOAD',
-      {
-        field,
-        expected: 'numeric string (Unix timestamp in seconds)',
-        actual,
-      },
-    );
+    return new X402ValidationError(`Invalid timestamp for '${field}'`, 'INVALID_PAYLOAD', {
+      field,
+      expected: 'numeric string (Unix timestamp in seconds)',
+      actual,
+    });
   }
 
   // ============================================================
@@ -1227,11 +1187,11 @@ export class X402ValidationError extends X402Error {
    * @returns X402ValidationError with MISSING_HEADER code
    */
   static missingHeader(): X402ValidationError {
-    return new X402ValidationError(
-      'X-Payment header is required',
-      'MISSING_HEADER',
-      { field: 'X-Payment', expected: 'base64-encoded JSON', actual: 'missing' },
-    );
+    return new X402ValidationError('X-Payment header is required', 'MISSING_HEADER', {
+      field: 'X-Payment',
+      expected: 'base64-encoded JSON',
+      actual: 'missing',
+    });
   }
 
   /**
@@ -1243,16 +1203,12 @@ export class X402ValidationError extends X402Error {
    * @returns X402ValidationError with INVALID_JSON code
    */
   static invalidJson(parseError?: string): X402ValidationError {
-    return new X402ValidationError(
-      'Invalid payment header format',
-      'INVALID_JSON',
-      {
-        field: 'X-Payment',
-        expected: 'valid base64-encoded JSON',
-        actual: 'unparseable',
-        context: parseError ? { parseError } : undefined,
-      },
-    );
+    return new X402ValidationError('Invalid payment header format', 'INVALID_JSON', {
+      field: 'X-Payment',
+      expected: 'valid base64-encoded JSON',
+      actual: 'unparseable',
+      context: parseError ? { parseError } : undefined,
+    });
   }
 
   // ============================================================
@@ -1296,7 +1252,7 @@ export class X402ValidationError extends X402Error {
         readonly type: string;
         readonly description: string;
       }[];
-    },
+    }
   ): X402ValidationError {
     const fieldList = missingFields.join(', ');
     const schemaForMissing = schema.requiredFields
@@ -1307,23 +1263,19 @@ export class X402ValidationError extends X402Error {
         description: f.description,
       }));
 
-    return new X402ValidationError(
-      `Missing required fields: ${fieldList}`,
-      'INVALID_PAYLOAD',
-      {
-        field: fieldList,
-        expected: 'all required fields present',
-        actual: `missing: ${fieldList}`,
-        context: {
-          missingFields,
-          missingCount: missingFields.length,
-          schema: {
-            missingFieldDefinitions: schemaForMissing,
-            allRequiredFields: schema.requiredFields.map((f) => f.name),
-          },
+    return new X402ValidationError(`Missing required fields: ${fieldList}`, 'INVALID_PAYLOAD', {
+      field: fieldList,
+      expected: 'all required fields present',
+      actual: `missing: ${fieldList}`,
+      context: {
+        missingFields,
+        missingCount: missingFields.length,
+        schema: {
+          missingFieldDefinitions: schemaForMissing,
+          allRequiredFields: schema.requiredFields.map((f) => f.name),
         },
       },
-    );
+    });
   }
 
   /**
@@ -1337,7 +1289,7 @@ export class X402ValidationError extends X402Error {
    */
   static fromMultipleErrors(
     errors: string[],
-    details?: ValidationErrorDetails[],
+    details?: ValidationErrorDetails[]
   ): X402ValidationError {
     const fields = details?.map((d) => d.field).join(', ') ?? 'multiple fields';
     return new X402ValidationError(
@@ -1350,7 +1302,7 @@ export class X402ValidationError extends X402Error {
           errors,
           fieldDetails: details,
         },
-      },
+      }
     );
   }
 
@@ -1508,7 +1460,7 @@ export class X402SettlementError extends X402Error {
       canRetry?: boolean;
       retryAfterMs?: number;
       phase?: 'request' | 'response' | 'timeout' | 'unknown';
-    },
+    }
   ) {
     // Settlement errors return 502 Bad Gateway by default
     // This indicates the facilitator (upstream) failed
@@ -1524,7 +1476,7 @@ export class X402SettlementError extends X402Error {
             requestId: facilitatorResponse.requestId,
             requestDurationMs: facilitatorResponse.requestDurationMs,
           }
-        : undefined,
+        : undefined
     );
 
     this.name = 'X402SettlementError';
@@ -1619,10 +1571,7 @@ export class X402SettlementError extends X402Error {
    * @param requestId - Optional request ID for tracking
    * @returns X402SettlementError with TIMEOUT code
    */
-  static timeout(
-    timeoutMs?: number,
-    requestId?: string,
-  ): X402SettlementError {
+  static timeout(timeoutMs?: number, requestId?: string): X402SettlementError {
     const error = new X402SettlementError(
       `Settlement request timed out${timeoutMs ? ` after ${timeoutMs}ms` : ''}`,
       'TIMEOUT',
@@ -1634,7 +1583,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: 1000, // Suggest 1s retry delay
         phase: 'timeout',
-      },
+      }
     );
 
     // Override to 504 Gateway Timeout for timeout errors
@@ -1660,7 +1609,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: 2000, // Suggest longer delay for connection issues
         phase: 'request',
-      },
+      }
     );
 
     Object.defineProperty(error, 'httpStatus', { value: 504 });
@@ -1682,10 +1631,7 @@ export class X402SettlementError extends X402Error {
    * @param requestId - Optional request ID for tracking
    * @returns X402SettlementError with NETWORK_ERROR code
    */
-  static networkError(
-    cause?: Error | string,
-    requestId?: string,
-  ): X402SettlementError {
+  static networkError(cause?: Error | string, requestId?: string): X402SettlementError {
     const message = cause instanceof Error ? cause.message : cause;
     return new X402SettlementError(
       `Failed to communicate with facilitator${message ? `: ${message}` : ''}`,
@@ -1698,7 +1644,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: 1000,
         phase: 'request',
-      },
+      }
     );
   }
 
@@ -1719,7 +1665,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: 5000, // Longer delay for DNS issues
         phase: 'request',
-      },
+      }
     );
   }
 
@@ -1740,7 +1686,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: 5000,
         phase: 'request',
-      },
+      }
     );
   }
 
@@ -1760,7 +1706,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: 1000,
         phase: 'request',
-      },
+      }
     );
   }
 
@@ -1777,12 +1723,8 @@ export class X402SettlementError extends X402Error {
    * @param response - Details from the facilitator response
    * @returns X402SettlementError with appropriate code
    */
-  static facilitatorRejection(
-    response: FacilitatorResponseDetails,
-  ): X402SettlementError {
-    const errorCode = X402SettlementError.mapFacilitatorErrorCode(
-      response.errorCode,
-    );
+  static facilitatorRejection(response: FacilitatorResponseDetails): X402SettlementError {
+    const errorCode = X402SettlementError.mapFacilitatorErrorCode(response.errorCode);
 
     const canRetry = X402SettlementError.isRetryableErrorCode(errorCode);
 
@@ -1794,7 +1736,7 @@ export class X402SettlementError extends X402Error {
         canRetry,
         retryAfterMs: canRetry ? 1000 : undefined,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -1807,10 +1749,7 @@ export class X402SettlementError extends X402Error {
    * @param requestId - Optional request ID for tracking
    * @returns X402SettlementError with FACILITATOR_ERROR code
    */
-  static facilitatorUnavailable(
-    retryAfterMs?: number,
-    requestId?: string,
-  ): X402SettlementError {
+  static facilitatorUnavailable(retryAfterMs?: number, requestId?: string): X402SettlementError {
     return new X402SettlementError(
       'Facilitator service is temporarily unavailable',
       'FACILITATOR_ERROR',
@@ -1823,7 +1762,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: retryAfterMs || 5000,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -1835,9 +1774,7 @@ export class X402SettlementError extends X402Error {
    * @param response - Details from the facilitator response
    * @returns X402SettlementError with FACILITATOR_ERROR code
    */
-  static facilitatorInternalError(
-    response?: FacilitatorResponseDetails,
-  ): X402SettlementError {
+  static facilitatorInternalError(response?: FacilitatorResponseDetails): X402SettlementError {
     return new X402SettlementError(
       'Facilitator experienced an internal error',
       'FACILITATOR_ERROR',
@@ -1849,7 +1786,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: 2000,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -1862,10 +1799,7 @@ export class X402SettlementError extends X402Error {
    * @param requestId - Optional request ID for tracking
    * @returns X402SettlementError with FACILITATOR_ERROR code
    */
-  static rateLimited(
-    retryAfterMs?: number,
-    requestId?: string,
-  ): X402SettlementError {
+  static rateLimited(retryAfterMs?: number, requestId?: string): X402SettlementError {
     return new X402SettlementError(
       'Facilitator rate limited the request',
       'FACILITATOR_ERROR',
@@ -1878,7 +1812,7 @@ export class X402SettlementError extends X402Error {
         canRetry: true,
         retryAfterMs: retryAfterMs || 10000,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -1895,9 +1829,7 @@ export class X402SettlementError extends X402Error {
    * @param response - Details from the facilitator response
    * @returns X402SettlementError with INVALID_SIGNATURE code
    */
-  static invalidSignature(
-    response?: FacilitatorResponseDetails,
-  ): X402SettlementError {
+  static invalidSignature(response?: FacilitatorResponseDetails): X402SettlementError {
     return new X402SettlementError(
       'Facilitator rejected payment: invalid signature',
       'INVALID_SIGNATURE',
@@ -1905,7 +1837,7 @@ export class X402SettlementError extends X402Error {
       {
         canRetry: false,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -1921,7 +1853,7 @@ export class X402SettlementError extends X402Error {
    */
   static insufficientBalance(
     payer?: string,
-    response?: FacilitatorResponseDetails,
+    response?: FacilitatorResponseDetails
   ): X402SettlementError {
     return new X402SettlementError(
       `Insufficient token balance${payer ? ` for ${payer}` : ''}`,
@@ -1930,7 +1862,7 @@ export class X402SettlementError extends X402Error {
       {
         canRetry: false,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -1946,7 +1878,7 @@ export class X402SettlementError extends X402Error {
    */
   static nonceAlreadyUsed(
     nonce?: string,
-    response?: FacilitatorResponseDetails,
+    response?: FacilitatorResponseDetails
   ): X402SettlementError {
     return new X402SettlementError(
       `Authorization nonce has already been used${nonce ? `: ${nonce}` : ''}`,
@@ -1955,7 +1887,7 @@ export class X402SettlementError extends X402Error {
       {
         canRetry: false,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -1971,7 +1903,7 @@ export class X402SettlementError extends X402Error {
    */
   static expiredAuthorization(
     validBefore?: string | number,
-    response?: FacilitatorResponseDetails,
+    response?: FacilitatorResponseDetails
   ): X402SettlementError {
     return new X402SettlementError(
       `Authorization has expired${validBefore ? `: validBefore=${validBefore}` : ''}`,
@@ -1980,7 +1912,7 @@ export class X402SettlementError extends X402Error {
       {
         canRetry: false,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -1996,7 +1928,7 @@ export class X402SettlementError extends X402Error {
    */
   static invalidToken(
     tokenAddress?: string,
-    response?: FacilitatorResponseDetails,
+    response?: FacilitatorResponseDetails
   ): X402SettlementError {
     return new X402SettlementError(
       `Token not supported${tokenAddress ? `: ${tokenAddress}` : ''}`,
@@ -2005,7 +1937,7 @@ export class X402SettlementError extends X402Error {
       {
         canRetry: false,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -2021,7 +1953,7 @@ export class X402SettlementError extends X402Error {
    */
   static unsupportedChain(
     chainId?: number,
-    response?: FacilitatorResponseDetails,
+    response?: FacilitatorResponseDetails
   ): X402SettlementError {
     return new X402SettlementError(
       `Chain not supported${chainId ? `: ${chainId}` : ''}`,
@@ -2030,7 +1962,7 @@ export class X402SettlementError extends X402Error {
       {
         canRetry: false,
         phase: 'response',
-      },
+      }
     );
   }
 
@@ -2046,9 +1978,7 @@ export class X402SettlementError extends X402Error {
    * @param code - The facilitator error code
    * @returns Standardized X402SettlementErrorCode
    */
-  static mapFacilitatorErrorCode(
-    code: string | undefined,
-  ): X402SettlementErrorCode {
+  static mapFacilitatorErrorCode(code: string | undefined): X402SettlementErrorCode {
     if (!code) return 'FACILITATOR_ERROR';
 
     const codeMap: Record<string, X402SettlementErrorCode> = {
@@ -2117,7 +2047,7 @@ export class X402SettlementError extends X402Error {
         {
           canRetry: false,
           phase: 'unknown',
-        },
+        }
       );
     }
 
@@ -2151,7 +2081,7 @@ export class X402SettlementError extends X402Error {
       {
         canRetry: false,
         phase: 'unknown',
-      },
+      }
     );
   }
 
@@ -2170,7 +2100,7 @@ export class X402SettlementError extends X402Error {
     statusCode: number,
     body: unknown,
     requestId?: string,
-    requestDurationMs?: number,
+    requestDurationMs?: number
   ): X402SettlementError {
     const response: FacilitatorResponseDetails = {
       statusCode,
@@ -2214,7 +2144,7 @@ export class X402SettlementError extends X402Error {
           canRetry: true,
           retryAfterMs: 2000,
           phase: 'response',
-        },
+        }
       );
     }
 

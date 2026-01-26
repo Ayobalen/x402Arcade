@@ -52,7 +52,14 @@ export type PeriodType = 'daily' | 'weekly';
 /**
  * Supported game types.
  */
-export type GameType = 'snake' | 'tetris' | 'pong' | 'breakout' | 'space_invaders';
+export type GameType =
+  | 'snake'
+  | 'tetris'
+  | 'pong'
+  | 'pong-phaser'
+  | 'breakout'
+  | 'space_invaders'
+  | 'space-invaders';
 
 /**
  * Prize pool status lifecycle.

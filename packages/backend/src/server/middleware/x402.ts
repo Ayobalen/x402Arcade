@@ -205,12 +205,7 @@ export function createX402Middleware(config: X402Config): X402Middleware {
       }
 
       // Create settlement request with original payment header and resource path
-      const settlementRequest = createSettlementRequestFromPayload(
-        payload,
-        config,
-        paymentHeader,
-        req.path
-      );
+      const settlementRequest = createSettlementRequestFromPayload(payload, config);
 
       // Bug #3 fix: Verify payment first before settling
       const verifyResponse = await verifyWithFacilitator(settlementRequest, config);
@@ -336,8 +331,12 @@ function decodePaymentHeader(header: string): X402PaymentHeader {
       throw X402ValidationError.missingField('payload');
     }
 
-    // Validate required fields in flat structure
-    if (!payment.payload.from || !payment.payload.to || !payment.payload.value) {
+    // Validate required fields - support both nested (message.from) and flat (from) structures
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payloadData = payment.payload as any;
+    const message = payloadData.message || payloadData;
+
+    if (!message.from || !message.to || !message.value) {
       throw X402ValidationError.missingField('payload fields (from/to/value)');
     }
 
