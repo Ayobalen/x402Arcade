@@ -218,6 +218,7 @@ export function Game() {
         v: authorization.v,
         r: authorization.r,
         s: authorization.s,
+        asset: paymentInfo.tokenAddress,
       });
 
       // Step 4: Retry request with signed payment
@@ -235,6 +236,13 @@ export function Game() {
       }
 
       const result = await paymentResponse.json();
+
+      // Store session ID in localStorage for restoration on page reload
+      if (result.sessionId && gameId) {
+        localStorage.setItem(`game_session_${gameId}`, result.sessionId);
+        localStorage.setItem(`game_session_${gameId}_timestamp`, Date.now().toString());
+      }
+
       setSessionId(result.sessionId);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Payment failed');

@@ -87,11 +87,7 @@ import {
   createPaymentInfo,
   isSuccessfulSettlement,
 } from '../x402/types.js';
-import {
-  X402Error,
-  X402ValidationError,
-  X402SettlementError,
-} from '../x402/errors.js';
+import { X402Error, X402ValidationError, X402SettlementError } from '../x402/errors.js';
 import { getFacilitatorSettleUrl } from '../../lib/chain/constants.js';
 import { getDefaultNonceStore } from '../x402/nonce-store.js';
 
@@ -135,13 +131,11 @@ export function createX402Middleware(config: X402Config): X402Middleware {
         const paymentRequired = createPaymentRequiredResponse(
           config,
           req.path,
-          `Pay to access ${req.path}`,
+          `Pay to access ${req.path}`
         );
 
         // Encode the payment requirements for X-Payment-Required header
-        const encodedRequirements = Buffer.from(
-          JSON.stringify(paymentRequired),
-        ).toString('base64');
+        const encodedRequirements = Buffer.from(JSON.stringify(paymentRequired)).toString('base64');
 
         // Set response headers
         res.setHeader('X-Payment-Required', encodedRequirements);
@@ -165,18 +159,18 @@ export function createX402Middleware(config: X402Config): X402Middleware {
 
       // Verify payment amount meets or exceeds required amount
       // Use BigInt comparison for precision - overpayment is allowed
-      const requiredAmount = typeof config.paymentAmount === 'bigint'
-        ? config.paymentAmount
-        : BigInt(config.paymentAmount);
+      const requiredAmount =
+        typeof config.paymentAmount === 'bigint'
+          ? config.paymentAmount
+          : BigInt(config.paymentAmount);
 
       const paidAmount = BigInt(payload.value);
 
       if (paidAmount < requiredAmount) {
-        throw X402ValidationError.amountMismatch(
-          requiredAmount.toString(),
-          payload.value,
-          { currency: 'USDC', minAmount: requiredAmount.toString() },
-        );
+        throw X402ValidationError.amountMismatch(requiredAmount.toString(), payload.value, {
+          currency: 'USDC',
+          minAmount: requiredAmount.toString(),
+        });
       }
 
       // Verify payment recipient matches configuration
@@ -210,8 +204,22 @@ export function createX402Middleware(config: X402Config): X402Middleware {
         throw X402Error.nonceAlreadyUsed(payload.nonce);
       }
 
-      // Create settlement request
-      const settlementRequest = createSettlementRequestFromPayload(payload, config);
+      // Create settlement request with original payment header and resource path
+      const settlementRequest = createSettlementRequestFromPayload(
+        payload,
+        config,
+        paymentHeader,
+        req.path
+      );
+
+      // Bug #3 fix: Verify payment first before settling
+      const verifyResponse = await verifyWithFacilitator(settlementRequest, config);
+
+      if (!verifyResponse.isValid) {
+        throw X402ValidationError.signatureInvalid(
+          verifyResponse.invalidReason || 'Payment verification failed'
+        );
+      }
 
       // Settle with the facilitator
       const settlementResponse = await settleWithFacilitator(settlementRequest, config);
@@ -285,9 +293,7 @@ export function createX402Middleware(config: X402Config): X402Middleware {
  */
 function urlSafeBase64ToStandard(urlSafeBase64: string): string {
   // Replace URL-safe characters with standard base64 characters
-  let standardBase64 = urlSafeBase64
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
+  let standardBase64 = urlSafeBase64.replace(/-/g, '+').replace(/_/g, '/');
 
   // Add padding if needed
   const padding = standardBase64.length % 4;
@@ -325,8 +331,14 @@ function decodePaymentHeader(header: string): X402PaymentHeader {
       throw X402ValidationError.schemeMismatch(String(payment.scheme));
     }
 
-    if (!payment.payload || !payment.payload.message) {
-      throw X402ValidationError.missingField('payload.message');
+    // Bug #1 fix: Accept new flat structure (no message wrapper)
+    if (!payment.payload) {
+      throw X402ValidationError.missingField('payload');
+    }
+
+    // Validate required fields in flat structure
+    if (!payment.payload.from || !payment.payload.to || !payment.payload.value) {
+      throw X402ValidationError.missingField('payload fields (from/to/value)');
     }
 
     return payment;
@@ -340,8 +352,57 @@ function decodePaymentHeader(header: string): X402PaymentHeader {
     }
 
     throw X402ValidationError.invalidJson(
-      error instanceof Error ? error.message : 'Unknown parse error',
+      error instanceof Error ? error.message : 'Unknown parse error'
     );
+  }
+}
+
+/**
+ * Verify payment with the facilitator (Bug #3 fix)
+ *
+ * @param request - The settlement request
+ * @param config - The x402 configuration
+ * @returns Verify response from facilitator
+ * @throws X402SettlementError if verification fails
+ */
+async function verifyWithFacilitator(
+  request: ReturnType<typeof createSettlementRequestFromPayload>,
+  config: X402Config
+): Promise<{ isValid: boolean; invalidReason?: string }> {
+  const verifyUrl = config.facilitatorUrl
+    ? `${config.facilitatorUrl}/v2/x402/verify`
+    : `${getFacilitatorSettleUrl().replace('/settle', '/verify')}`;
+  const startTime = Date.now();
+
+  try {
+    const response = await fetch(verifyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X402-Version': '1',
+      },
+      body: JSON.stringify(request),
+    });
+
+    const body = (await response.json()) as { isValid: boolean; invalidReason?: string };
+
+    if (!response.ok) {
+      const requestDurationMs = Date.now() - startTime;
+      throw X402SettlementError.fromHttpResponse(
+        response.status,
+        body,
+        undefined,
+        requestDurationMs
+      );
+    }
+
+    return body;
+  } catch (error) {
+    if (error instanceof X402SettlementError) {
+      throw error;
+    }
+
+    throw X402SettlementError.fromError(error);
   }
 }
 
@@ -355,7 +416,7 @@ function decodePaymentHeader(header: string): X402PaymentHeader {
  */
 async function settleWithFacilitator(
   request: ReturnType<typeof createSettlementRequestFromPayload>,
-  config: X402Config,
+  config: X402Config
 ): Promise<ReturnType<typeof parseSettlementResponse>> {
   // Use config.facilitatorUrl if provided, otherwise default
   const settleUrl = config.facilitatorUrl
@@ -368,6 +429,7 @@ async function settleWithFacilitator(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X402-Version': '1',
       },
       body: JSON.stringify(request),
     });
@@ -380,7 +442,7 @@ async function settleWithFacilitator(
         response.status,
         body,
         undefined,
-        requestDurationMs,
+        requestDurationMs
       );
     }
 
@@ -426,7 +488,7 @@ async function settleWithFacilitator(
  */
 export function createX402WithOptions(
   baseConfig: X402Config,
-  options: X402HandlerOptions,
+  options: X402HandlerOptions
 ): X402Middleware {
   const config: X402Config = {
     ...baseConfig,
@@ -458,10 +520,7 @@ export function createX402WithOptions(
  * app.post('/api/play', x402, gameController);
  * ```
  */
-export function createDefaultX402(
-  payTo: string,
-  paymentAmount: bigint | string,
-): X402Middleware {
+export function createDefaultX402(payTo: string, paymentAmount: bigint | string): X402Middleware {
   const config = createDefaultX402Config(payTo, paymentAmount);
   return createX402Middleware(config);
 }

@@ -17,13 +17,13 @@
  */
 export interface PaymentAsset {
   /** Token contract address */
-  address: string
+  address: string;
   /** Token name */
-  name: string
+  name: string;
   /** Token decimals */
-  decimals: number
+  decimals: number;
   /** Token symbol */
-  symbol: string
+  symbol: string;
 }
 
 /**
@@ -31,13 +31,13 @@ export interface PaymentAsset {
  */
 export interface ServerEIP712Domain {
   /** Contract name for the domain */
-  name: string
+  name: string;
   /** Contract version */
-  version: string
+  version: string;
   /** Chain ID */
-  chainId: number
+  chainId: number;
   /** Verifying contract address */
-  verifyingContract: string
+  verifyingContract: string;
 }
 
 /**
@@ -45,19 +45,19 @@ export interface ServerEIP712Domain {
  */
 export interface AcceptedPaymentMethod {
   /** Payment scheme (e.g., 'exact') */
-  scheme: string
+  scheme: string;
   /** Network identifier (e.g., 'cronos-testnet') */
-  network: string
+  network: string;
   /** Maximum amount required in smallest units */
-  maxAmountRequired: string
+  maxAmountRequired: string;
   /** Resource being purchased */
-  resource: string
+  resource: string;
   /** Payment recipient address */
-  payTo: string
+  payTo: string;
   /** Token asset information */
-  asset: PaymentAsset
+  asset: PaymentAsset;
   /** EIP-712 domain for signing */
-  eip712Domain: ServerEIP712Domain
+  eip712Domain: ServerEIP712Domain;
 }
 
 /**
@@ -67,25 +67,25 @@ export interface AcceptedPaymentMethod {
  */
 export interface PaymentRequiredResponse {
   /** Protocol version identifier */
-  x402Version: '1'
+  x402Version: '1';
   /** Array of accepted payment methods */
-  accepts: AcceptedPaymentMethod[]
+  accepts: AcceptedPaymentMethod[];
   /** Payment amount in smallest units */
-  amount: string
+  amount: string;
   /** Token symbol (e.g., 'USDC') */
-  currency: string
+  currency: string;
   /** Payment recipient address */
-  payTo: string
+  payTo: string;
   /** Blockchain chain ID */
-  chainId: number
+  chainId: number;
   /** Token contract address */
-  tokenAddress: string
+  tokenAddress: string;
   /** Human-readable description */
-  description?: string
+  description?: string;
   /** Resource being purchased */
-  resource?: string
+  resource?: string;
   /** Maximum validity time in seconds */
-  maxValiditySeconds?: number
+  maxValiditySeconds?: number;
 }
 
 /**
@@ -93,25 +93,25 @@ export interface PaymentRequiredResponse {
  */
 export interface PaymentRequirements {
   /** Payment amount in smallest units as bigint */
-  amount: bigint
+  amount: bigint;
   /** Payment recipient address */
-  payTo: `0x${string}`
+  payTo: `0x${string}`;
   /** Token contract address */
-  tokenAddress: `0x${string}`
+  tokenAddress: `0x${string}`;
   /** Chain ID */
-  chainId: number
+  chainId: number;
   /** Token symbol */
-  currency: string
+  currency: string;
   /** Token decimals */
-  decimals: number
+  decimals: number;
   /** Resource being purchased */
-  resource?: string
+  resource?: string;
   /** Description of the payment */
-  description?: string
+  description?: string;
   /** EIP-712 domain for signing */
-  eip712Domain: ServerEIP712Domain
+  eip712Domain: ServerEIP712Domain;
   /** Raw response for reference */
-  raw: PaymentRequiredResponse
+  raw: PaymentRequiredResponse;
 }
 
 /**
@@ -122,64 +122,62 @@ export interface PaymentRequirements {
  */
 export interface X402PaymentPayload {
   /** Protocol version (must be '1') */
-  x402Version: '1'
+  x402Version: '1';
   /** Payment scheme (must be 'exact') */
-  scheme: 'exact'
+  scheme: 'exact';
   /** Network identifier (e.g., 'cronos-testnet') */
-  network: string
+  network: string;
   /** The signed authorization payload */
   payload: {
     /** The authorization message that was signed */
     message: {
       /** Token sender's address */
-      from: string
+      from: string;
       /** Token recipient's address */
-      to: string
+      to: string;
       /** Amount in smallest units (as string) */
-      value: string
+      value: string;
       /** Unix timestamp after which authorization is valid */
-      validAfter: string
+      validAfter: string;
       /** Unix timestamp before which authorization is valid */
-      validBefore: string
+      validBefore: string;
       /** Unique nonce (32-byte hex string) */
-      nonce: string
-    }
+      nonce: string;
+    };
     /** Signature recovery id (27 or 28) */
-    v: number
+    v: number;
     /** First 32 bytes of signature */
-    r: string
+    r: string;
     /** Second 32 bytes of signature */
-    s: string
-  }
+    s: string;
+    /** Token contract address (required by Cronos facilitator) */
+    asset?: string;
+  };
 }
 
 /**
  * x402 error types
  */
 export type X402ErrorCode =
-  | 'PAYMENT_REQUIRED'       // Normal 402 - payment needed
-  | 'UNEXPECTED_402'         // 402 without proper headers
-  | 'INVALID_RESPONSE'       // Malformed 402 response
-  | 'UNSUPPORTED_VERSION'    // Unknown x402 version
-  | 'UNSUPPORTED_SCHEME'     // Unknown payment scheme
-  | 'CHAIN_MISMATCH'         // Wrong chain ID
+  | 'PAYMENT_REQUIRED' // Normal 402 - payment needed
+  | 'UNEXPECTED_402' // 402 without proper headers
+  | 'INVALID_RESPONSE' // Malformed 402 response
+  | 'UNSUPPORTED_VERSION' // Unknown x402 version
+  | 'UNSUPPORTED_SCHEME' // Unknown payment scheme
+  | 'CHAIN_MISMATCH'; // Wrong chain ID
 
 /**
  * x402 specific error
  */
 export class X402Error extends Error {
-  readonly code: X402ErrorCode
-  readonly requirements?: PaymentRequirements
+  readonly code: X402ErrorCode;
+  readonly requirements?: PaymentRequirements;
 
-  constructor(
-    code: X402ErrorCode,
-    message: string,
-    requirements?: PaymentRequirements
-  ) {
-    super(message)
-    this.name = 'X402Error'
-    this.code = code
-    this.requirements = requirements
+  constructor(code: X402ErrorCode, message: string, requirements?: PaymentRequirements) {
+    super(message);
+    this.name = 'X402Error';
+    this.code = code;
+    this.requirements = requirements;
   }
 }
 
@@ -203,7 +201,7 @@ export class X402Error extends Error {
  * ```
  */
 export function is402Response(response: Response): boolean {
-  return response.status === 402
+  return response.status === 402;
 }
 
 /**
@@ -216,7 +214,7 @@ export function is402Response(response: Response): boolean {
  * @returns true if the response has X-Payment-Required header
  */
 export function hasPaymentRequiredHeader(response: Response): boolean {
-  return response.headers.has('X-Payment-Required')
+  return response.headers.has('X-Payment-Required');
 }
 
 /**
@@ -226,7 +224,7 @@ export function hasPaymentRequiredHeader(response: Response): boolean {
  * @returns The header value or null if not present
  */
 export function getPaymentRequiredHeader(response: Response): string | null {
-  return response.headers.get('X-Payment-Required')
+  return response.headers.get('X-Payment-Required');
 }
 
 /**
@@ -259,66 +257,55 @@ export function getPaymentRequiredHeader(response: Response): string | null {
  * }
  * ```
  */
-export function parsePaymentRequiredHeader(
-  response: Response
-): PaymentRequirements {
+export function parsePaymentRequiredHeader(response: Response): PaymentRequirements {
   // Step 1: Extract header
-  const headerValue = getPaymentRequiredHeader(response)
+  const headerValue = getPaymentRequiredHeader(response);
   if (!headerValue) {
-    throw new X402Error(
-      'UNEXPECTED_402',
-      'Missing X-Payment-Required header in response'
-    )
+    throw new X402Error('UNEXPECTED_402', 'Missing X-Payment-Required header in response');
   }
 
   // Step 2: Base64 decode
-  let decoded: string
+  let decoded: string;
   try {
     // Use atob for browser-compatible base64 decoding
-    decoded = atob(headerValue)
+    decoded = atob(headerValue);
   } catch (error) {
     throw new X402Error(
       'INVALID_RESPONSE',
       `Failed to base64 decode X-Payment-Required header: ${error instanceof Error ? error.message : 'invalid encoding'}`
-    )
+    );
   }
 
   // Step 3: JSON parse
-  let body: PaymentRequiredResponse
+  let body: PaymentRequiredResponse;
   try {
-    body = JSON.parse(decoded) as PaymentRequiredResponse
+    body = JSON.parse(decoded) as PaymentRequiredResponse;
   } catch (error) {
     throw new X402Error(
       'INVALID_RESPONSE',
       `Failed to parse X-Payment-Required header JSON: ${error instanceof Error ? error.message : 'invalid JSON'}`
-    )
+    );
   }
 
   // Step 4: Validate required fields
   if (!body.amount || !body.payTo || !body.tokenAddress || !body.chainId) {
-    throw new X402Error(
-      'INVALID_RESPONSE',
-      'Missing required fields in X-Payment-Required header'
-    )
+    throw new X402Error('INVALID_RESPONSE', 'Missing required fields in X-Payment-Required header');
   }
 
   // Validate x402 version if present
   if (body.x402Version && body.x402Version !== '1') {
-    throw new X402Error(
-      'UNSUPPORTED_VERSION',
-      `Unsupported x402 version: ${body.x402Version}`
-    )
+    throw new X402Error('UNSUPPORTED_VERSION', `Unsupported x402 version: ${body.x402Version}`);
   }
 
   // Get the first accepted payment method
-  const acceptedMethod = body.accepts?.[0]
+  const acceptedMethod = body.accepts?.[0];
 
   // Validate payment scheme if present
   if (acceptedMethod?.scheme && acceptedMethod.scheme !== 'exact') {
     throw new X402Error(
       'UNSUPPORTED_SCHEME',
       `Unsupported payment scheme: ${acceptedMethod.scheme}`
-    )
+    );
   }
 
   // Step 5: Return typed PaymentRequirements
@@ -338,7 +325,7 @@ export function parsePaymentRequiredHeader(
       verifyingContract: body.tokenAddress,
     },
     raw: body,
-  }
+  };
 }
 
 // ============================================================================
@@ -369,15 +356,10 @@ export function parsePaymentRequiredHeader(
  * }
  * ```
  */
-export async function parse402Response(
-  response: Response
-): Promise<PaymentRequirements> {
+export async function parse402Response(response: Response): Promise<PaymentRequirements> {
   // Check response status
   if (response.status !== 402) {
-    throw new X402Error(
-      'INVALID_RESPONSE',
-      `Expected 402 status, got ${response.status}`
-    )
+    throw new X402Error('INVALID_RESPONSE', `Expected 402 status, got ${response.status}`);
   }
 
   // Check for X-Payment-Required header
@@ -385,43 +367,31 @@ export async function parse402Response(
     throw new X402Error(
       'UNEXPECTED_402',
       '402 response missing X-Payment-Required header. This may not be an x402 endpoint.'
-    )
+    );
   }
 
   // Parse response body
-  let body: PaymentRequiredResponse
+  let body: PaymentRequiredResponse;
   try {
-    body = await response.json()
+    body = await response.json();
   } catch {
-    throw new X402Error(
-      'INVALID_RESPONSE',
-      'Failed to parse 402 response body as JSON'
-    )
+    throw new X402Error('INVALID_RESPONSE', 'Failed to parse 402 response body as JSON');
   }
 
   // Validate x402 version
   if (body.x402Version !== '1') {
-    throw new X402Error(
-      'UNSUPPORTED_VERSION',
-      `Unsupported x402 version: ${body.x402Version}`
-    )
+    throw new X402Error('UNSUPPORTED_VERSION', `Unsupported x402 version: ${body.x402Version}`);
   }
 
   // Validate required fields
   if (!body.amount || !body.payTo || !body.tokenAddress || !body.chainId) {
-    throw new X402Error(
-      'INVALID_RESPONSE',
-      'Missing required fields in 402 response'
-    )
+    throw new X402Error('INVALID_RESPONSE', 'Missing required fields in 402 response');
   }
 
   // Get the first accepted payment method (usually only one)
-  const acceptedMethod = body.accepts?.[0]
+  const acceptedMethod = body.accepts?.[0];
   if (!acceptedMethod) {
-    throw new X402Error(
-      'INVALID_RESPONSE',
-      'No accepted payment methods in 402 response'
-    )
+    throw new X402Error('INVALID_RESPONSE', 'No accepted payment methods in 402 response');
   }
 
   // Validate payment scheme
@@ -429,7 +399,7 @@ export async function parse402Response(
     throw new X402Error(
       'UNSUPPORTED_SCHEME',
       `Unsupported payment scheme: ${acceptedMethod.scheme}`
-    )
+    );
   }
 
   // Build payment requirements
@@ -444,9 +414,9 @@ export async function parse402Response(
     description: body.description,
     eip712Domain: acceptedMethod.eip712Domain,
     raw: body,
-  }
+  };
 
-  return requirements
+  return requirements;
 }
 
 // ============================================================================
@@ -491,7 +461,7 @@ export async function getPaymentRequirements(
       ...options?.headers,
       // Remove X-Payment if present
     },
-  })
+  });
 
   // Check if we got a 402 response
   if (!is402Response(response)) {
@@ -499,11 +469,11 @@ export async function getPaymentRequirements(
       'INVALID_RESPONSE',
       `Expected 402 Payment Required, got ${response.status} ${response.statusText}. ` +
         'The endpoint may not require payment or may have an error.'
-    )
+    );
   }
 
   // Parse and return the payment requirements
-  return parse402Response(response)
+  return parse402Response(response);
 }
 
 // ============================================================================
@@ -530,13 +500,11 @@ export async function getPaymentRequirements(
  * }
  * ```
  */
-export async function detect402(
-  response: Response
-): Promise<PaymentRequirements | null> {
+export async function detect402(response: Response): Promise<PaymentRequirements | null> {
   if (!is402Response(response)) {
-    return null
+    return null;
   }
-  return parse402Response(response)
+  return parse402Response(response);
 }
 
 /**
@@ -560,17 +528,17 @@ export function createX402Fetch(
   handler: (requirements: PaymentRequirements) => Promise<string>
 ): typeof fetch {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const response = await fetch(input, init)
+    const response = await fetch(input, init);
 
     if (!is402Response(response)) {
-      return response
+      return response;
     }
 
     // Parse 402 response
-    const requirements = await parse402Response(response)
+    const requirements = await parse402Response(response);
 
     // Get payment header from handler
-    const paymentHeader = await handler(requirements)
+    const paymentHeader = await handler(requirements);
 
     // Retry request with payment
     return fetch(input, {
@@ -579,8 +547,8 @@ export function createX402Fetch(
         ...init?.headers,
         'X-Payment': paymentHeader,
       },
-    })
-  }
+    });
+  };
 }
 
 // ============================================================================
@@ -623,11 +591,11 @@ export function createX402Fetch(
  */
 export function encodePaymentPayload(payload: X402PaymentPayload): string {
   // Step 1: JSON stringify the payload
-  const json = JSON.stringify(payload)
+  const json = JSON.stringify(payload);
 
   // Step 2: Base64 encode using btoa (browser-compatible)
   // Note: btoa works with ASCII/Latin-1, which is safe for JSON
-  return btoa(json)
+  return btoa(json);
 }
 
 /**
@@ -666,30 +634,39 @@ export function encodePaymentPayload(payload: X402PaymentPayload): string {
  * ```
  */
 export function createPaymentHeader(options: {
-  network: string
+  network: string;
   message: {
-    from: string
-    to: string
-    value: string
-    validAfter: string
-    validBefore: string
-    nonce: string
-  }
-  v: number
-  r: string
-  s: string
+    from: string;
+    to: string;
+    value: string;
+    validAfter: string;
+    validBefore: string;
+    nonce: string;
+  };
+  v: number;
+  r: string;
+  s: string;
+  asset?: string;
 }): string {
+  // Combine v, r, s into single signature (Bug #1 fix)
+  const signature = `0x${options.r.slice(2)}${options.s.slice(2)}${options.v.toString(16).padStart(2, '0')}`;
+
   const payload: X402PaymentPayload = {
     x402Version: '1',
     scheme: 'exact',
     network: options.network,
     payload: {
-      message: options.message,
-      v: options.v,
-      r: options.r,
-      s: options.s,
+      // Flatten structure - no message wrapper (Bug #1 fix)
+      from: options.message.from,
+      to: options.message.to,
+      value: options.message.value,
+      validAfter: options.message.validAfter,
+      validBefore: options.message.validBefore,
+      nonce: options.message.nonce,
+      signature: signature,
+      asset: options.asset || '', // Include asset as required field
     },
-  }
+  };
 
-  return encodePaymentPayload(payload)
+  return encodePaymentPayload(payload);
 }

@@ -700,6 +700,10 @@ export class GameService {
   createSession(params: CreateSessionParams): GameSession {
     const { gameType, playerAddress, paymentTxHash, amountPaidUsdc } = params;
 
+    // Bug #10 fix: Normalize player address to lowercase for database
+    // Database has CHECK constraint: player_address = lower(player_address)
+    const normalizedAddress = playerAddress.toLowerCase();
+
     // Generate a unique session ID
     const sessionId = uuidv4();
     const now = new Date().toISOString();
@@ -724,7 +728,7 @@ export class GameService {
       stmt.run(
         sessionId,
         gameType,
-        playerAddress,
+        normalizedAddress,
         paymentTxHash,
         amountPaidUsdc,
         null, // score (null until game is completed)
@@ -738,7 +742,7 @@ export class GameService {
       return {
         id: sessionId,
         gameType,
-        playerAddress,
+        playerAddress: normalizedAddress,
         paymentTxHash,
         amountPaidUsdc,
         score: null,
