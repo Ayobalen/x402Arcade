@@ -212,29 +212,29 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         ? {
             y: -4,
             scale: 1.02,
-            boxShadow:
+            filter:
               variant === 'elevated'
-                ? '0 20px 25px -5px rgba(139, 92, 246, 0.3), 0 10px 10px -5px rgba(139, 92, 246, 0.2)'
-                : '0 10px 15px -3px rgba(139, 92, 246, 0.2), 0 4px 6px -2px rgba(139, 92, 246, 0.1)',
+                ? 'drop-shadow(0 8px 12px var(--color-primary-glow))'
+                : 'drop-shadow(0 4px 8px var(--color-primary-glow))',
           }
         : undefined;
 
-    // Selection animation - border and shadow
+    // Selection animation - border and glow
     const selectedAnimation = isSelected
       ? {
-          borderColor: 'rgba(139, 92, 246, 1)', // primary color
-          boxShadow: '0 0 20px rgba(139, 92, 246, 0.6)',
+          borderColor: 'var(--color-primary)',
+          filter: 'drop-shadow(0 0 12px var(--color-primary-glow))',
           scale: 1.01,
         }
       : {};
 
     // Separate motion props from native div props to avoid conflicts
     const {
-      onAnimationStart,
-      onAnimationEnd,
-      onDrag,
-      onDragEnd,
-      onDragStart,
+      onAnimationStart: _onAnimationStart,
+      onAnimationEnd: _onAnimationEnd,
+      onDrag: _onDrag,
+      onDragEnd: _onDragEnd,
+      onDragStart: _onDragStart,
       ...nativeDivProps
     } = props;
 

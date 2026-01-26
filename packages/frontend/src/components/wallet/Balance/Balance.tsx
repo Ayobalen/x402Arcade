@@ -95,21 +95,23 @@ export function Balance({
         className={cn(
           // Layout
           'px-3 py-1.5 rounded-lg',
-          // Styling - Retro arcade theme
-          'bg-[#16162a]',
-          'border border-[#2d2d4a]',
-          // Neon glow (cyan accent)
-          'shadow-[0_0_8px_rgba(0,255,255,0.1)]',
+          // Styling - Theme-aware
+          'bg-[var(--color-bg-elevated)]',
+          'border border-[var(--color-border)]',
+          // Neon glow (theme primary)
+          'shadow-[0_0_8px_var(--color-primary-glow)]',
           // Loading state
           isLoading && 'animate-pulse'
         )}
       >
         {error ? (
-          <span className="text-[#ff4444] text-sm font-mono">Error</span>
+          <span className="text-[var(--color-error)] text-sm font-mono">Error</span>
         ) : (
-          <span className="text-[#00ffff] text-sm font-mono font-semibold">
+          <span className="text-[var(--color-primary)] text-sm font-mono font-semibold">
             {formattedBalance}
-            {showSymbol && balance && <span className="text-white/60 ml-1">{balance.symbol}</span>}
+            {showSymbol && balance && (
+              <span className="text-[var(--color-text-muted)] ml-1">{balance.symbol}</span>
+            )}
           </span>
         )}
       </div>

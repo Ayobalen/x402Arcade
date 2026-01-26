@@ -35,13 +35,14 @@ export type GameTheme = {
 };
 
 /**
- * Theme configuration
+ * Theme configuration - Complete color palette
  */
 export interface ThemeConfig {
   name: string;
   displayName: string;
   description: string;
   colors: {
+    // Primary theme colors
     primary: string;
     primaryHover: string;
     primaryGlow: string;
@@ -50,6 +51,33 @@ export interface ThemeConfig {
     secondaryGlow: string;
     accent?: string;
     accentGlow?: string;
+
+    // Background colors
+    bgMain: string; // Main background
+    bgSurface: string; // Cards, panels
+    bgElevated: string; // Modals, dropdowns
+    bgHover: string; // Hover state for surfaces
+
+    // Text colors
+    textPrimary: string; // Main text
+    textSecondary: string; // Secondary text
+    textMuted: string; // Muted/disabled text
+    textInverse: string; // Text on colored backgrounds
+
+    // Border colors
+    border: string; // Default borders
+    borderHover: string; // Hover borders
+    borderFocus: string; // Focus borders
+
+    // Background gradient (for main background effect)
+    bgGradientStart: string;
+    bgGradientEnd: string;
+
+    // Special states
+    success: string;
+    warning: string;
+    error: string;
+    info: string;
   };
 }
 
@@ -93,6 +121,33 @@ const themeConfigurations: Record<ThemeVariation, ThemeConfig> = {
       secondary: '#ff00ff', // Magenta
       secondaryHover: '#ff33ff',
       secondaryGlow: 'rgba(255, 0, 255, 0.4)',
+
+      // Backgrounds
+      bgMain: '#0a0a0f',
+      bgSurface: '#141420',
+      bgElevated: '#1a1a2e',
+      bgHover: '#1f1f35',
+
+      // Text
+      textPrimary: '#f8fafc',
+      textSecondary: '#cbd5e1',
+      textMuted: '#64748b',
+      textInverse: '#0f1419',
+
+      // Borders
+      border: '#2d2d4a',
+      borderHover: '#3d3d5a',
+      borderFocus: '#00ffff',
+
+      // Background gradient
+      bgGradientStart: '#0a0a0f',
+      bgGradientEnd: '#1a0a2e',
+
+      // States
+      success: '#00ff88',
+      warning: '#ffaa00',
+      error: '#ff4466',
+      info: '#00d9ff',
     },
   },
   retro: {
@@ -108,6 +163,33 @@ const themeConfigurations: Record<ThemeVariation, ThemeConfig> = {
       secondaryGlow: 'rgba(0, 255, 136, 0.4)',
       accent: '#ff6600', // Orange accent
       accentGlow: 'rgba(255, 102, 0, 0.4)',
+
+      // Backgrounds - warm dark browns
+      bgMain: '#0f0a05',
+      bgSurface: '#1a1408',
+      bgElevated: '#251f15',
+      bgHover: '#2f2820',
+
+      // Text - amber/green tints
+      textPrimary: '#ffeed0',
+      textSecondary: '#d4c5a0',
+      textMuted: '#8a7a60',
+      textInverse: '#1a1408',
+
+      // Borders - warm browns
+      border: '#3d3420',
+      borderHover: '#4d4430',
+      borderFocus: '#ffaa00',
+
+      // Background gradient
+      bgGradientStart: '#0f0a05',
+      bgGradientEnd: '#1a1000',
+
+      // States
+      success: '#00ff88',
+      warning: '#ffcc00',
+      error: '#ff4400',
+      info: '#66ccff',
     },
   },
   cyberpunk: {
@@ -123,6 +205,33 @@ const themeConfigurations: Record<ThemeVariation, ThemeConfig> = {
       secondaryGlow: 'rgba(236, 72, 153, 0.4)',
       accent: '#3b82f6', // Blue accent
       accentGlow: 'rgba(59, 130, 246, 0.4)',
+
+      // Backgrounds - deep purples
+      bgMain: '#0c0a15',
+      bgSurface: '#1a1428',
+      bgElevated: '#251d35',
+      bgHover: '#302842',
+
+      // Text - bright with purple tint
+      textPrimary: '#f8f7fc',
+      textSecondary: '#d4c9f0',
+      textMuted: '#8b7fa8',
+      textInverse: '#1a1428',
+
+      // Borders - purple-tinted
+      border: '#3d2d5a',
+      borderHover: '#4d3d6a',
+      borderFocus: '#a855f7',
+
+      // Background gradient
+      bgGradientStart: '#0c0a15',
+      bgGradientEnd: '#1a0a28',
+
+      // States
+      success: '#10b981',
+      warning: '#f59e0b',
+      error: '#ef4444',
+      info: '#3b82f6',
     },
   },
   vapor: {
@@ -138,6 +247,33 @@ const themeConfigurations: Record<ThemeVariation, ThemeConfig> = {
       secondaryGlow: 'rgba(0, 217, 255, 0.4)',
       accent: '#b19cd9', // Lavender
       accentGlow: 'rgba(177, 156, 217, 0.4)',
+
+      // Backgrounds - deep purple/pink
+      bgMain: '#120a18',
+      bgSurface: '#1f142a',
+      bgElevated: '#2c1f3f',
+      bgHover: '#3a2850',
+
+      // Text - light pastels
+      textPrimary: '#fff5fc',
+      textSecondary: '#e5d0f0',
+      textMuted: '#a085b5',
+      textInverse: '#1f142a',
+
+      // Borders - pastel-tinted
+      border: '#4d3560',
+      borderHover: '#5d4570',
+      borderFocus: '#ff6ec7',
+
+      // Background gradient
+      bgGradientStart: '#120a18',
+      bgGradientEnd: '#1a0a28',
+
+      // States
+      success: '#6ee7b7',
+      warning: '#fbbf24',
+      error: '#fb7185',
+      info: '#67e8f9',
     },
   },
 };
@@ -229,7 +365,7 @@ function applyThemeToDOM(variation: ThemeVariation, mode: ThemeMode): void {
   root.setAttribute('data-theme', mode);
   root.setAttribute('data-theme-variation', variation);
 
-  // Apply color custom properties
+  // Apply primary/secondary/accent colors
   root.style.setProperty('--color-primary', theme.colors.primary);
   root.style.setProperty('--color-primary-hover', theme.colors.primaryHover);
   root.style.setProperty('--color-primary-glow', theme.colors.primaryGlow);
@@ -238,11 +374,37 @@ function applyThemeToDOM(variation: ThemeVariation, mode: ThemeMode): void {
   root.style.setProperty('--color-secondary-hover', theme.colors.secondaryHover);
   root.style.setProperty('--color-secondary-glow', theme.colors.secondaryGlow);
 
-  // Apply accent colors if available
   if (theme.colors.accent) {
     root.style.setProperty('--color-accent', theme.colors.accent);
     root.style.setProperty('--color-accent-glow', theme.colors.accentGlow || '');
   }
+
+  // Apply background colors
+  root.style.setProperty('--color-bg-main', theme.colors.bgMain);
+  root.style.setProperty('--color-bg-surface', theme.colors.bgSurface);
+  root.style.setProperty('--color-bg-elevated', theme.colors.bgElevated);
+  root.style.setProperty('--color-bg-hover', theme.colors.bgHover);
+
+  // Apply text colors
+  root.style.setProperty('--color-text-primary', theme.colors.textPrimary);
+  root.style.setProperty('--color-text-secondary', theme.colors.textSecondary);
+  root.style.setProperty('--color-text-muted', theme.colors.textMuted);
+  root.style.setProperty('--color-text-inverse', theme.colors.textInverse);
+
+  // Apply border colors
+  root.style.setProperty('--color-border', theme.colors.border);
+  root.style.setProperty('--color-border-hover', theme.colors.borderHover);
+  root.style.setProperty('--color-border-focus', theme.colors.borderFocus);
+
+  // Apply background gradient
+  root.style.setProperty('--color-bg-gradient-start', theme.colors.bgGradientStart);
+  root.style.setProperty('--color-bg-gradient-end', theme.colors.bgGradientEnd);
+
+  // Apply state colors
+  root.style.setProperty('--color-success', theme.colors.success);
+  root.style.setProperty('--color-warning', theme.colors.warning);
+  root.style.setProperty('--color-error', theme.colors.error);
+  root.style.setProperty('--color-info', theme.colors.info);
 
   // Update glow shadows to match theme
   updateGlowShadows(theme);

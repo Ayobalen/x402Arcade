@@ -93,11 +93,11 @@ export function Footer({
         'w-full',
         'px-4 py-8 md:py-12',
         'mt-auto', // Push to bottom with flex layout
-        // Styling - Retro arcade theme
-        'bg-[#0a0a0a]',
-        'border-t border-[#2d2d4a]',
+        // Styling - Theme-aware
+        'bg-[var(--color-bg-main)]',
+        'border-t border-[var(--color-border)]',
         // Neon glow effect
-        'shadow-[0_-1px_0_0_rgba(0,255,255,0.1)]',
+        'shadow-[0_-1px_0_0_var(--color-primary-glow)]',
         className
       )}
     >
@@ -110,8 +110,8 @@ export function Footer({
               to="/"
               className={cn(
                 'flex items-center gap-2',
-                'text-[#00ffff]',
-                'hover:text-[#00ffff]/80',
+                'text-[var(--color-primary)]',
+                'hover:text-[var(--color-primary-hover)]',
                 'transition-colors duration-150',
                 'group',
                 'w-fit'
@@ -126,7 +126,7 @@ export function Footer({
               />
               <span className="font-bold text-lg">x402 Arcade</span>
             </Link>
-            <p className="text-sm text-white/60 max-w-xs">
+            <p className="text-sm text-[var(--color-text-muted)] max-w-xs">
               Insert a Penny, Play for Glory. Gasless arcade gaming on Cronos blockchain with
               micropayments.
             </p>
@@ -135,15 +135,15 @@ export function Footer({
           {/* Center: Navigation links */}
           {showNavigation && (
             <div className="flex flex-col gap-4">
-              <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">
+              <h3 className="text-sm font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Navigate
               </h3>
               <nav className="flex flex-col gap-2">
                 <Link
                   to="/play"
                   className={cn(
-                    'text-sm text-white/60',
-                    'hover:text-[#00ffff]',
+                    'text-sm text-[var(--color-text-muted)]',
+                    'hover:text-[var(--color-primary)]',
                     'transition-colors duration-150',
                     'w-fit'
                   )}
@@ -153,8 +153,8 @@ export function Footer({
                 <Link
                   to="/leaderboard"
                   className={cn(
-                    'text-sm text-white/60',
-                    'hover:text-[#00ffff]',
+                    'text-sm text-[var(--color-text-muted)]',
+                    'hover:text-[var(--color-primary)]',
                     'transition-colors duration-150',
                     'w-fit'
                   )}
@@ -164,8 +164,8 @@ export function Footer({
                 <Link
                   to="/prizes"
                   className={cn(
-                    'text-sm text-white/60',
-                    'hover:text-[#00ffff]',
+                    'text-sm text-[var(--color-text-muted)]',
+                    'hover:text-[var(--color-primary)]',
                     'transition-colors duration-150',
                     'w-fit'
                   )}
@@ -175,8 +175,8 @@ export function Footer({
                 <Link
                   to="/about"
                   className={cn(
-                    'text-sm text-white/60',
-                    'hover:text-[#00ffff]',
+                    'text-sm text-[var(--color-text-muted)]',
+                    'hover:text-[var(--color-primary)]',
                     'transition-colors duration-150',
                     'w-fit'
                   )}
@@ -190,7 +190,7 @@ export function Footer({
           {/* Right: Social links */}
           {showSocial && (
             <div className="flex flex-col gap-4">
-              <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">
+              <h3 className="text-sm font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Connect
               </h3>
               <div className="flex items-center gap-4">
@@ -199,12 +199,12 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(
-                    'text-white/60',
-                    'hover:text-[#00ffff]',
+                    'text-[var(--color-text-muted)]',
+                    'hover:text-[var(--color-primary)]',
                     'transition-all duration-150',
                     'hover:scale-110',
                     // Neon glow on hover
-                    'hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]'
+                    'hover:drop-shadow-[0_0_8px_var(--color-primary-glow)]'
                   )}
                   aria-label="Follow us on Twitter"
                 >
@@ -215,11 +215,11 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(
-                    'text-white/60',
-                    'hover:text-[#00ffff]',
+                    'text-[var(--color-text-muted)]',
+                    'hover:text-[var(--color-primary)]',
                     'transition-all duration-150',
                     'hover:scale-110',
-                    'hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]'
+                    'hover:drop-shadow-[0_0_8px_var(--color-primary-glow)]'
                   )}
                   aria-label="Join our Discord"
                 >
@@ -230,18 +230,18 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(
-                    'text-white/60',
-                    'hover:text-[#00ffff]',
+                    'text-[var(--color-text-muted)]',
+                    'hover:text-[var(--color-primary)]',
                     'transition-all duration-150',
                     'hover:scale-110',
-                    'hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]'
+                    'hover:drop-shadow-[0_0_8px_var(--color-primary-glow)]'
                   )}
                   aria-label="View source on GitHub"
                 >
                   <GitHubIcon className="w-5 h-5" />
                 </a>
               </div>
-              <p className="text-xs text-white/40 mt-2">
+              <p className="text-xs text-[var(--color-text-muted)] mt-2">
                 Built with ❤️ for the Cronos x402 Hackathon
               </p>
             </div>
@@ -253,23 +253,35 @@ export function Footer({
           <div
             className={cn(
               'pt-8',
-              'border-t border-[#2d2d4a]/50',
+              'border-t border-[var(--color-border)]/50',
               'flex flex-col md:flex-row items-center justify-between gap-4',
-              'text-xs text-white/40'
+              'text-xs text-[var(--color-text-muted)]'
             )}
           >
             <p>© {currentYear} x402 Arcade. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <Link to="/terms" className="hover:text-[#00ffff] transition-colors duration-150">
+              <Link
+                to="/terms"
+                className="hover:text-[var(--color-primary)] transition-colors duration-150"
+              >
                 Terms of Service
               </Link>
-              <Link to="/privacy" className="hover:text-[#00ffff] transition-colors duration-150">
+              <Link
+                to="/privacy"
+                className="hover:text-[var(--color-primary)] transition-colors duration-150"
+              >
                 Privacy Policy
               </Link>
-              <Link to="/docs" className="hover:text-[#00ffff] transition-colors duration-150">
+              <Link
+                to="/docs"
+                className="hover:text-[var(--color-primary)] transition-colors duration-150"
+              >
                 Documentation
               </Link>
-              <Link to="/faq" className="hover:text-[#00ffff] transition-colors duration-150">
+              <Link
+                to="/faq"
+                className="hover:text-[var(--color-primary)] transition-colors duration-150"
+              >
                 FAQ
               </Link>
             </div>

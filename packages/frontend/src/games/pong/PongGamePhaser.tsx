@@ -64,6 +64,11 @@ class PongScene extends Phaser.Scene {
   private lastAiUpdate = 0;
   private lastPaddleHit = 0; // Collision cooldown
 
+  // Sound effects (will be created procedurally)
+  private hitSound?: Phaser.Sound.BaseSound;
+  private wallSound?: Phaser.Sound.BaseSound;
+  private scoreSound?: Phaser.Sound.BaseSound;
+
   private config: typeof DIFFICULTY_CONFIG.normal;
   private onGameOver: (score: number) => void;
   private onPause?: () => void;
@@ -81,6 +86,9 @@ class PongScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.cameras.main;
+
+    // Create retro arcade sounds using Web Audio API
+    this.createArcadeSounds();
 
     // Create center line
     const centerLine = this.add.graphics();
@@ -137,6 +145,77 @@ class PongScene extends Phaser.Scene {
     this.resetBall();
   }
 
+  /**
+   * Create retro arcade sound effects using Web Audio API
+   */
+  private createArcadeSounds() {
+    // Generate procedural sounds and add them to Phaser's cache
+    this.generateTone('hit', 440, 0.05);
+    this.generateTone('wall', 330, 0.05);
+    this.generateScoreTone('score');
+
+    // Now create sound objects from the cached audio
+    this.hitSound = this.sound.add('hit', { volume: 0.3 });
+    this.wallSound = this.sound.add('wall', { volume: 0.2 });
+    this.scoreSound = this.sound.add('score', { volume: 0.4 });
+  }
+
+  /**
+   * Generate a simple tone using Web Audio API and add to Phaser cache
+   */
+  private generateTone(key: string, frequency: number, duration: number) {
+    // Access internal Phaser Web Audio context for procedural audio
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const audioContext = (this.game.sound as any).context as AudioContext | undefined;
+    if (!audioContext) return;
+
+    const sampleRate = audioContext.sampleRate;
+    const numSamples = Math.floor(sampleRate * duration);
+    const audioBuffer = audioContext.createBuffer(1, numSamples, sampleRate);
+    const channelData = audioBuffer.getChannelData(0);
+
+    // Generate sine wave with envelope (fade out)
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      const envelope = 1 - i / numSamples; // Linear fade out
+      channelData[i] = Math.sin(2 * Math.PI * frequency * t) * envelope * 0.3;
+    }
+
+    // Add the generated sound to Phaser's audio cache
+    this.cache.audio.add(key, audioBuffer);
+  }
+
+  /**
+   * Generate a score sound with ascending notes and add to Phaser cache
+   */
+  private generateScoreTone(key: string) {
+    // Access internal Phaser Web Audio context for procedural audio
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const audioContext = (this.game.sound as any).context as AudioContext | undefined;
+    if (!audioContext) return;
+
+    const sampleRate = audioContext.sampleRate;
+    const duration = 0.2; // 200ms
+    const numSamples = Math.floor(sampleRate * duration);
+    const audioBuffer = audioContext.createBuffer(1, numSamples, sampleRate);
+    const channelData = audioBuffer.getChannelData(0);
+
+    // Three ascending notes: C5, E5, G5
+    const frequencies = [523.25, 659.25, 783.99];
+    const noteDuration = duration / 3;
+
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      const noteIndex = Math.floor(t / noteDuration);
+      const frequency = frequencies[Math.min(noteIndex, 2)];
+      const envelope = 1 - (i % (numSamples / 3)) / (numSamples / 3);
+      channelData[i] = Math.sin(2 * Math.PI * frequency * t) * envelope * 0.3;
+    }
+
+    // Add the generated sound to Phaser's audio cache
+    this.cache.audio.add(key, audioBuffer);
+  }
+
   update(time: number) {
     if (!this.gameActive || this.isPaused) return;
 
@@ -186,6 +265,10 @@ class PongScene extends Phaser.Scene {
     // Ball collision with top/bottom
     if (this.ball.y <= 8 || this.ball.y >= height - 8) {
       this.ballVelocity.y *= -1;
+      // Play wall sound
+      if (this.wallSound) {
+        this.wallSound.play();
+      }
     }
 
     // Ball collision with paddles (with cooldown to prevent multiple hits)
@@ -199,6 +282,10 @@ class PongScene extends Phaser.Scene {
         this.lastPaddleHit = time;
         // Move ball away from paddle to prevent sticking
         this.ball.x = this.playerPaddle.x + 15;
+        // Play paddle hit sound
+        if (this.hitSound) {
+          this.hitSound.play();
+        }
       } else if (this.checkPaddleCollision(this.ball, this.aiPaddle)) {
         this.ballVelocity.x = -Math.abs(this.ballVelocity.x) * 1.05; // Speed up slightly
         const hitPos = (this.ball.y - this.aiPaddle.y) / (this.config.paddleHeight / 2);
@@ -206,6 +293,10 @@ class PongScene extends Phaser.Scene {
         this.lastPaddleHit = time;
         // Move ball away from paddle to prevent sticking
         this.ball.x = this.aiPaddle.x - 15;
+        // Play paddle hit sound
+        if (this.hitSound) {
+          this.hitSound.play();
+        }
       }
     }
 
@@ -214,10 +305,18 @@ class PongScene extends Phaser.Scene {
       this.aiScore++;
       this.updateScore();
       this.resetBall();
+      // Play score sound
+      if (this.scoreSound) {
+        this.scoreSound.play();
+      }
     } else if (this.ball.x > this.cameras.main.width) {
       this.playerScore++;
       this.updateScore();
       this.resetBall();
+      // Play score sound
+      if (this.scoreSound) {
+        this.scoreSound.play();
+      }
     }
 
     // Check win condition (first to 11)
@@ -298,7 +397,13 @@ export function PongGamePhaser({
     if (!containerRef.current) return;
 
     // Prevent double initialization in React Strict Mode
-    if (isInitializedRef.current) return;
+    if (isInitializedRef.current || gameRef.current) return;
+
+    // Also check if there's already a canvas in the container
+    if (containerRef.current.querySelector('canvas')) {
+      return;
+    }
+
     isInitializedRef.current = true;
 
     const container = containerRef.current;

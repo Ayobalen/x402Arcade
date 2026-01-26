@@ -136,13 +136,13 @@ export function Header({
         'w-full',
         'px-4 py-3',
         'flex items-center justify-between gap-4',
-        // Styling - Retro arcade theme
-        'bg-[#0a0a0a]/95',
-        'border-b border-[#2d2d4a]',
+        // Styling - Theme-aware
+        'bg-[var(--color-bg-main)]/95',
+        'border-b border-[var(--color-border)]',
         // Backdrop blur for modern feel
         'backdrop-blur-sm',
         // Neon glow effect
-        'shadow-[0_1px_0_0_rgba(0,255,255,0.1)]',
+        'shadow-[0_1px_0_0_var(--color-primary-glow)]',
         className
       )}
     >
@@ -151,7 +151,7 @@ export function Header({
         to="/"
         className={cn(
           'flex items-center gap-2',
-          'text-[#00ffff] hover:text-[#00ffff]/80',
+          'text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]',
           'transition-colors duration-150',
           'group'
         )}
@@ -170,12 +170,12 @@ export function Header({
             to="/play"
             className={cn(
               'text-sm font-medium',
-              'text-white/80 hover:text-[#00ffff]',
+              'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
               'transition-colors duration-150',
               'relative',
               // Hover underline effect
               'after:absolute after:bottom-[-4px] after:left-0 after:right-0',
-              'after:h-[2px] after:bg-[#00ffff]',
+              'after:h-[2px] after:bg-[var(--color-primary)]',
               'after:scale-x-0 hover:after:scale-x-100',
               'after:transition-transform after:duration-150'
             )}
@@ -186,11 +186,11 @@ export function Header({
             to="/leaderboard"
             className={cn(
               'text-sm font-medium',
-              'text-white/80 hover:text-[#00ffff]',
+              'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
               'transition-colors duration-150',
               'relative',
               'after:absolute after:bottom-[-4px] after:left-0 after:right-0',
-              'after:h-[2px] after:bg-[#00ffff]',
+              'after:h-[2px] after:bg-[var(--color-primary)]',
               'after:scale-x-0 hover:after:scale-x-100',
               'after:transition-transform after:duration-150'
             )}
@@ -201,11 +201,11 @@ export function Header({
             to="/prizes"
             className={cn(
               'text-sm font-medium',
-              'text-white/80 hover:text-[#00ffff]',
+              'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
               'transition-colors duration-150',
               'relative',
               'after:absolute after:bottom-[-4px] after:left-0 after:right-0',
-              'after:h-[2px] after:bg-[#00ffff]',
+              'after:h-[2px] after:bg-[var(--color-primary)]',
               'after:scale-x-0 hover:after:scale-x-100',
               'after:transition-transform after:duration-150'
             )}
@@ -216,11 +216,11 @@ export function Header({
             to="/settings"
             className={cn(
               'text-sm font-medium',
-              'text-white/80 hover:text-[#00ffff]',
+              'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
               'transition-colors duration-150',
               'relative',
               'after:absolute after:bottom-[-4px] after:left-0 after:right-0',
-              'after:h-[2px] after:bg-[#00ffff]',
+              'after:h-[2px] after:bg-[var(--color-primary)]',
               'after:scale-x-0 hover:after:scale-x-100',
               'after:transition-transform after:duration-150'
             )}
@@ -231,11 +231,11 @@ export function Header({
             to="/history"
             className={cn(
               'text-sm font-medium',
-              'text-white/80 hover:text-[#00ffff]',
+              'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
               'transition-colors duration-150',
               'relative',
               'after:absolute after:bottom-[-4px] after:left-0 after:right-0',
-              'after:h-[2px] after:bg-[#00ffff]',
+              'after:h-[2px] after:bg-[var(--color-primary)]',
               'after:scale-x-0 hover:after:scale-x-100',
               'after:transition-transform after:duration-150'
             )}
@@ -256,13 +256,13 @@ export function Header({
             'w-10 h-10',
             'ml-auto mr-2',
             // Styling
-            'text-[#00ffff]',
-            'hover:text-[#00ffff]/80',
+            'text-[var(--color-primary)]',
+            'hover:text-[var(--color-primary-hover)]',
             'transition-colors duration-150',
             // Focus styles
             'focus:outline-none',
             'focus-visible:ring-2',
-            'focus-visible:ring-[#00ffff]/50',
+            'focus-visible:ring-[var(--color-primary)]/50',
             'rounded-md'
           )}
           aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
@@ -283,10 +283,10 @@ export function Header({
           onClick={openHelp}
           className={cn(
             'p-2',
-            'text-white/60 hover:text-cyan-400',
+            'text-[var(--color-text-muted)] hover:text-[var(--color-primary)]',
             'transition-colors duration-150',
             'rounded-lg',
-            'hover:bg-cyan-500/10'
+            'hover:bg-[var(--color-primary)]/10'
           )}
           aria-label="Open help"
           title="Help & FAQ (H)"
@@ -299,10 +299,10 @@ export function Header({
           onClick={openKeyboardShortcuts}
           className={cn(
             'p-2',
-            'text-white/60 hover:text-cyan-400',
+            'text-[var(--color-text-muted)] hover:text-[var(--color-primary)]',
             'transition-colors duration-150',
             'rounded-lg',
-            'hover:bg-cyan-500/10'
+            'hover:bg-[var(--color-primary)]/10'
           )}
           aria-label="Keyboard shortcuts"
           title="Keyboard Shortcuts (?)"
@@ -328,8 +328,8 @@ export function Header({
             'absolute top-full left-0 right-0',
             'w-full',
             // Styling
-            'bg-[#0a0a0a]/98',
-            'border-b border-[#2d2d4a]',
+            'bg-[var(--color-bg-main)]/98',
+            'border-b border-[var(--color-border)]',
             'backdrop-blur-sm',
             'shadow-[0_4px_6px_-1px_rgba(0,0,0,0.3)]',
             // Animation
@@ -349,12 +349,12 @@ export function Header({
               className={cn(
                 'px-4 py-3',
                 'text-base font-medium',
-                'text-white/80 hover:text-[#00ffff]',
-                'hover:bg-[#00ffff]/5',
+                'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
+                'hover:bg-[var(--color-primary)]/5',
                 'rounded-lg',
                 'transition-all duration-150',
                 // Neon glow on hover
-                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]'
+                'hover:shadow-[0_0_8px_var(--color-primary-glow)]'
               )}
             >
               Play
@@ -365,11 +365,11 @@ export function Header({
               className={cn(
                 'px-4 py-3',
                 'text-base font-medium',
-                'text-white/80 hover:text-[#00ffff]',
-                'hover:bg-[#00ffff]/5',
+                'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
+                'hover:bg-[var(--color-primary)]/5',
                 'rounded-lg',
                 'transition-all duration-150',
-                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]'
+                'hover:shadow-[0_0_8px_var(--color-primary-glow)]'
               )}
             >
               Leaderboard
@@ -380,11 +380,11 @@ export function Header({
               className={cn(
                 'px-4 py-3',
                 'text-base font-medium',
-                'text-white/80 hover:text-[#00ffff]',
-                'hover:bg-[#00ffff]/5',
+                'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
+                'hover:bg-[var(--color-primary)]/5',
                 'rounded-lg',
                 'transition-all duration-150',
-                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]'
+                'hover:shadow-[0_0_8px_var(--color-primary-glow)]'
               )}
             >
               Prizes
@@ -395,11 +395,11 @@ export function Header({
               className={cn(
                 'px-4 py-3',
                 'text-base font-medium',
-                'text-white/80 hover:text-[#00ffff]',
-                'hover:bg-[#00ffff]/5',
+                'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
+                'hover:bg-[var(--color-primary)]/5',
                 'rounded-lg',
                 'transition-all duration-150',
-                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]',
+                'hover:shadow-[0_0_8px_var(--color-primary-glow)]',
                 'flex items-center gap-2'
               )}
             >
@@ -412,11 +412,11 @@ export function Header({
               className={cn(
                 'px-4 py-3',
                 'text-base font-medium',
-                'text-white/80 hover:text-[#00ffff]',
-                'hover:bg-[#00ffff]/5',
+                'text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]',
+                'hover:bg-[var(--color-primary)]/5',
                 'rounded-lg',
                 'transition-all duration-150',
-                'hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]'
+                'hover:shadow-[0_0_8px_var(--color-primary-glow)]'
               )}
             >
               History
