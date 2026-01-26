@@ -1,21 +1,27 @@
 ## Operational Notes
 - Project: x402Arcade - Gasless arcade gaming on Cronos blockchain
 - **CURRENT STATUS:** 26/30 features passing (86.7%) - ALL 4 remaining features require human intervention
-- **SESSION UPDATE (Jan 26, 2026 05:35 UTC):** Interventions refreshed - all 4 remaining features now have proper intervention records
+- **SESSION UPDATE (Jan 26, 2026 05:40 UTC):** Interventions recreated - all 4 remaining features have fresh intervention records
 
 ### Blocked Features Summary
-| Feature | Name | Intervention | Priority |
-|---------|------|--------------|----------|
-| #1 | Complete x402 payment flow | #174 | Test first - unblocks #2 and #27 |
-| #2 | Zero gas fees for players | #177 | Depends on #1 |
-| #17 | Background music | #175 | Independent - needs music files |
-| #27 | Double-payment prevention | #176 | Depends on #1 |
+| Feature | Name | Intervention | What's Needed |
+|---------|------|--------------|---------------|
+| #1 | Complete x402 payment flow | #178 | E2E test with wallet + devUSDC.e |
+| #2 | Zero gas fees for players | #181 | Verify CRO balance unchanged after payment |
+| #17 | Background music | #179 | Add 6 chiptune MP3 files |
+| #27 | Double-payment prevention | #180 | E2E test 409 error on double-pay |
 
 ### Recommended Action Order
-1. Complete Intervention #174 (Feature #1) - payment testing
-2. Complete Intervention #177 (Feature #2) - zero gas verification
-3. Complete Intervention #176 (Feature #27) - double-payment testing
-4. Complete Intervention #175 (Feature #17) - add music files
+1. Complete Intervention #178 (Feature #1) - payment E2E testing - THIS UNBLOCKS FEATURES #2 AND #27
+2. Complete Intervention #181 (Feature #2) - zero gas fee verification
+3. Complete Intervention #180 (Feature #27) - double-payment prevention E2E
+4. Complete Intervention #179 (Feature #17) - add music files (independent)
+
+### Backend Verification (x402 API)
+- POST /api/v1/play/snake returns HTTP 402 Payment Required ✅
+- X-Payment-Required header with base64 JSON ✅
+- Payment amount: 10000 (0.01 USDC) ✅
+- Facilitator URL: https://facilitator.cronoslabs.org ✅
 - Frontend: packages/frontend - Vite + React + TypeScript
 - Backend: packages/backend - Express + TypeScript
 - Start frontend: pnpm --dir packages/frontend dev (port 5173)
