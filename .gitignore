@@ -37,9 +37,11 @@ pnpm-debug.log*
 *.tmp
 *.temp
 
-# Database
+# Database - features.db is local only, never commit to git
 *.db
-!features.db
+*.db-shm
+*.db-wal
+*.db.backup*
 
 # Lock files (use pnpm-lock.yaml)
 package-lock.json
