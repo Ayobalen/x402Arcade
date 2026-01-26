@@ -186,6 +186,9 @@ importers:
       lucide-react:
         specifier: ^0.303.0
         version: 0.303.0(react@18.3.1)
+      phaser:
+        specifier: ^3.90.0
+        version: 3.90.0
       postprocessing:
         specifier: ^6.35.0
         version: 6.38.2(three@0.160.1)
@@ -5840,6 +5843,9 @@ packages:
   pathval@2.0.1:
     resolution: {integrity: sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==}
     engines: {node: '>= 14.16'}
+
+  phaser@3.90.0:
+    resolution: {integrity: sha512-/cziz/5ZIn02uDkC9RzN8VF9x3Gs3XdFFf9nkiMEQT3p7hQlWuyjy4QWosU802qqno2YSLn2BfqwOKLv/sSVfQ==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -14229,6 +14235,10 @@ snapshots:
   pathval@1.1.1: {}
 
   pathval@2.0.1: {}
+
+  phaser@3.90.0:
+    dependencies:
+      eventemitter3: 5.0.1
 
   picocolors@1.1.1: {}
 

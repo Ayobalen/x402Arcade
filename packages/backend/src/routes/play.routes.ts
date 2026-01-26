@@ -46,12 +46,20 @@ const GAME_PRICES: Record<string, bigint> = {
   snake: parseUSDC(0.01), // $0.01 USDC
   tetris: parseUSDC(0.02), // $0.02 USDC
   pong: parseUSDC(0.01), // $0.01 USDC
+  'pong-phaser': parseUSDC(0.01), // $0.01 USDC
   breakout: parseUSDC(0.015), // $0.015 USDC
   'space-invaders': parseUSDC(0.025), // $0.025 USDC
 };
 
 // Valid game types
-const VALID_GAME_TYPES = new Set<string>(['snake', 'tetris', 'pong', 'breakout', 'space-invaders']);
+const VALID_GAME_TYPES = new Set<string>([
+  'snake',
+  'tetris',
+  'pong',
+  'pong-phaser',
+  'breakout',
+  'space-invaders',
+]);
 
 /**
  * POST /api/v1/play/:gameType
@@ -131,9 +139,9 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
     const amountPaidUsdc = parseFloat(req.x402.paymentInfo.amountUsdc);
 
     // Step 4: Validate game type support
-    // Note: GameService only supports 'snake' and 'tetris' currently
+    // Note: GameService only supports 'snake', 'tetris', and 'pong-phaser' currently
     // Other games will be added in future features
-    if (gameType !== 'snake' && gameType !== 'tetris') {
+    if (gameType !== 'snake' && gameType !== 'tetris' && gameType !== 'pong-phaser') {
       res.status(501).json({
         error: 'Not implemented',
         message: `Game type '${gameType}' is not yet supported`,
@@ -163,7 +171,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
 
     // Step 6: Create game session
     const session = gameService.createSession({
-      gameType: gameType as 'snake' | 'tetris',
+      gameType: gameType as 'snake' | 'tetris' | 'pong-phaser',
       playerAddress,
       paymentTxHash,
       amountPaidUsdc,
@@ -174,7 +182,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
     // if prize pool update fails. The payment has already been verified at this point.
     try {
       const poolUpdate = prizePoolService.addToPrizePool({
-        gameType: gameType as 'snake' | 'tetris',
+        gameType: gameType as 'snake' | 'tetris' | 'pong-phaser',
         amountUsdc: amountPaidUsdc,
       });
 

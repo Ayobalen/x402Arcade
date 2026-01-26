@@ -9,7 +9,14 @@
  * Game identifiers
  * Add new games here as they're implemented
  */
-export type GameId = 'snake' | 'pong' | 'tetris' | 'breakout' | 'space-invaders';
+export type GameId =
+  | 'snake'
+  | 'pong'
+  | 'tetris'
+  | 'breakout'
+  | 'space-invaders'
+  | 'flappy-bird'
+  | 'minesweeper';
 
 /**
  * Game difficulty levels

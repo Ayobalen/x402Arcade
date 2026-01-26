@@ -17,7 +17,7 @@ import type { Database as DatabaseType } from 'better-sqlite3';
  *
  * Columns:
  * - id: Unique session identifier (UUID)
- * - game_type: Type of game played (snake, tetris, pong, breakout, space-invaders)
+ * - game_type: Type of game played (snake, tetris, pong, pong-phaser, breakout, space-invaders)
  * - player_address: Ethereum address of the player (42-char hex: 0x + 40 hex digits, lowercase for consistency)
  * - payment_tx_hash: On-chain transaction hash for payment verification (66-char hex: 0x + 64 hex digits, UNIQUE to prevent replay)
  * - amount_paid_usdc: Amount paid in USDC (REAL, decimal precision, e.g., 0.01, 0.02)
@@ -59,7 +59,7 @@ import type { Database as DatabaseType } from 'better-sqlite3';
 export const GAME_SESSIONS_TABLE = `
 CREATE TABLE IF NOT EXISTS game_sessions (
     id TEXT PRIMARY KEY,
-    game_type TEXT NOT NULL CHECK (game_type IN ('snake', 'tetris', 'pong', 'breakout', 'space-invaders')),
+    game_type TEXT NOT NULL CHECK (game_type IN ('snake', 'tetris', 'pong', 'pong-phaser', 'breakout', 'space-invaders')),
     player_address TEXT NOT NULL CHECK (
         length(player_address) = 42 AND
         player_address LIKE '0x%' AND
@@ -113,7 +113,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_created ON game_sessions(created_at DESC
  * - session_id: Reference to game_sessions.id (the source of this leaderboard entry)
  *     - Foreign key constraint ensures referential integrity
  *     - UNIQUE constraint with period_type prevents duplicate entries for same session/period
- * - game_type: Denormalized from game_sessions (snake, tetris, pong, breakout, space-invaders)
+ * - game_type: Denormalized from game_sessions (snake, tetris, pong, pong-phaser, breakout, space-invaders)
  *     - Allows filtering leaderboards by game without JOIN
  * - player_address: Denormalized from game_sessions (42-char hex, lowercase)
  *     - Allows player identification without JOIN
@@ -220,7 +220,7 @@ CREATE INDEX IF NOT EXISTS idx_leaderboard_player ON leaderboard_entries(player_
  *
  * Columns:
  * - id: Auto-incrementing primary key
- * - game_type: Type of game (snake, tetris, pong, breakout, space-invaders)
+ * - game_type: Type of game (snake, tetris, pong, pong-phaser, breakout, space-invaders)
  *     - Each game has its own separate prize pool
  * - period_type: Competition period ('daily' or 'weekly')
  *     - CHECK constraint enforces valid values

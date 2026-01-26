@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { SnakeGame } from '@/games/snake/SnakeGame';
 import { PongGameWrapper } from '@/games/pong/PongGameWrapper';
+import { PongGamePage } from './PongGamePage';
 import { TetrisGameWrapper } from '@/games/tetris/TetrisGameWrapper';
 import { BreakoutGameWrapper } from '@/games/breakout/BreakoutGameWrapper';
 import { SpaceInvadersGameWrapper } from '@/games/space-invaders/SpaceInvadersGameWrapper';
@@ -67,6 +68,13 @@ const GAMES: Record<string, GameInfo> = {
     name: 'Space Invaders',
     emoji: '👾',
     description: 'Defend Earth from alien invaders. Shoot them down before they reach you.',
+    status: 'available',
+  },
+  'pong-phaser': {
+    id: 'pong-phaser',
+    name: 'Pong (Phaser)',
+    emoji: '🎮',
+    description: 'Phaser 3 version of classic Pong. Demonstrates library-based implementation.',
     status: 'available',
   },
 };
@@ -460,6 +468,11 @@ export function Game() {
         </div>
       </div>
     );
+  }
+
+  // Render available game - Pong Phaser (using GameWrapper system)
+  if (gameInfo.status === 'available' && gameId === 'pong-phaser') {
+    return <PongGamePage />;
   }
 
   // Render available game - Tetris
