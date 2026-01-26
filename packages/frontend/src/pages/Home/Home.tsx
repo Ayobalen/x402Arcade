@@ -93,7 +93,7 @@ export function Home() {
         <div className="max-w-4xl mx-auto">
           {/* Hero Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1a1a2e] border border-[#2d2d4a] mb-8">
-            <span className="text-xs font-semibold text-[#00ffff] uppercase tracking-wider">
+            <span className="text-xs font-semibold text-[var(--color-primary)] uppercase tracking-wider">
               Powered by Cronos x402
             </span>
           </div>
@@ -102,7 +102,7 @@ export function Home() {
           <h1
             className={cn(
               'text-5xl md:text-6xl lg:text-7xl font-bold',
-              'bg-gradient-to-r from-[#00ffff] via-[#ff00ff] to-[#00ffff]',
+              'bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)]',
               'bg-clip-text text-transparent',
               'mb-6',
               'leading-tight'
@@ -117,9 +117,24 @@ export function Home() {
           <p className="text-xl md:text-2xl text-white/80 mb-4 leading-relaxed">
             Gasless arcade gaming on Cronos blockchain
           </p>
-          <p className="text-lg text-white/60 mb-12 leading-relaxed">
+          <p className="text-lg text-white/60 mb-8 leading-relaxed">
             Pay just $0.01 per game. Zero gas fees. Compete for daily prize pools.
           </p>
+
+          {/* Moat: Why x402 is Essential */}
+          <div className="max-w-2xl mx-auto mb-12 p-6 rounded-xl bg-[#16162a]/50 border border-[#2d2d4a]">
+            <p className="text-sm text-[var(--color-primary)] font-semibold mb-3 uppercase tracking-wide">
+              Why This Matters
+            </p>
+            <p className="text-base text-white/70 leading-relaxed">
+              Traditional blockchain gas fees cost{' '}
+              <span className="text-white font-bold">50x-200x</span> more than a $0.01 game.{' '}
+              <span className="text-[var(--color-primary)]">
+                x402 makes micropayment gaming economically viable
+              </span>{' '}
+              for the first time by eliminating gas costs entirely.
+            </p>
+          </div>
 
           {/* Hero CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -131,13 +146,19 @@ export function Home() {
                 'inline-flex items-center gap-2',
                 'px-8 py-4',
                 'rounded-lg',
-                'bg-gradient-to-r from-[#00ffff] to-[#ff00ff]',
+                'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]',
                 'text-black font-bold text-lg',
                 'hover:scale-105',
-                'hover:shadow-[0_0_30px_rgba(0,255,255,0.6)]',
                 'transition-all duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]'
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]'
               )}
+              style={{ boxShadow: '0 0 20px var(--color-primary-glow)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 30px var(--color-primary-glow)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 20px var(--color-primary-glow)';
+              }}
             >
               <GamepadIcon className="w-5 h-5 group-hover:rotate-12 transition-transform" />
               Start Playing
@@ -153,10 +174,10 @@ export function Home() {
                 'bg-[#1a1a2e]',
                 'border border-[#2d2d4a]',
                 'text-white font-semibold text-lg',
-                'hover:border-[#00ffff]',
-                'hover:text-[#00ffff]',
+                'hover:border-[var(--color-primary)]',
+                'hover:text-[var(--color-primary)]',
                 'transition-all duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]'
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]'
               )}
             >
               <TrophyIcon className="w-5 h-5" />
@@ -171,7 +192,7 @@ export function Home() {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-white">
             Why Play on{' '}
-            <span className="bg-gradient-to-r from-[#00ffff] to-[#ff00ff] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent">
               x402 Arcade
             </span>
             ?
@@ -184,15 +205,15 @@ export function Home() {
                 'p-6 rounded-xl',
                 'bg-[#16162a]',
                 'border border-[#2d2d4a]',
-                'hover:border-[#00ffff]',
+                'hover:border-[var(--color-primary)]',
                 'transition-all duration-200',
                 'group'
               )}
             >
-              <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-[#00ffff] to-[#ff00ff] mb-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] mb-4">
                 <GamepadIcon className="w-6 h-6 text-black" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#00ffff] transition-colors">
+              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[var(--color-primary)] transition-colors">
                 Instant Play
               </h3>
               <p className="text-white/60 leading-relaxed">
@@ -207,15 +228,15 @@ export function Home() {
                 'p-6 rounded-xl',
                 'bg-[#16162a]',
                 'border border-[#2d2d4a]',
-                'hover:border-[#00ffff]',
+                'hover:border-[var(--color-primary)]',
                 'transition-all duration-200',
                 'group'
               )}
             >
-              <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-[#00ffff] to-[#ff00ff] mb-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] mb-4">
                 <CoinsIcon className="w-6 h-6 text-black" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#00ffff] transition-colors">
+              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[var(--color-primary)] transition-colors">
                 Zero Gas Fees
               </h3>
               <p className="text-white/60 leading-relaxed">
@@ -229,15 +250,15 @@ export function Home() {
                 'p-6 rounded-xl',
                 'bg-[#16162a]',
                 'border border-[#2d2d4a]',
-                'hover:border-[#00ffff]',
+                'hover:border-[var(--color-primary)]',
                 'transition-all duration-200',
                 'group'
               )}
             >
-              <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-[#00ffff] to-[#ff00ff] mb-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] mb-4">
                 <TrophyIcon className="w-6 h-6 text-black" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#00ffff] transition-colors">
+              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[var(--color-primary)] transition-colors">
                 Daily Prizes
               </h3>
               <p className="text-white/60 leading-relaxed">
@@ -265,23 +286,31 @@ export function Home() {
                 'p-6 rounded-xl',
                 'bg-[#16162a]',
                 'border border-[#2d2d4a]',
-                'hover:border-[#00ffff]',
-                'hover:shadow-[0_0_20px_rgba(0,255,255,0.3)]',
+                'hover:border-[var(--color-primary)]',
                 'transition-all duration-200',
                 'cursor-pointer'
               )}
+              style={{ boxShadow: 'none' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 20px var(--color-primary-glow)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             >
               <div className="aspect-video bg-[#0a0a0a] rounded-lg mb-4 flex items-center justify-center">
                 <span className="text-6xl">🐍</span>
               </div>
-              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#00ffff] transition-colors">
+              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[var(--color-primary)] transition-colors">
                 Snake
               </h3>
               <p className="text-white/60 mb-4 text-sm">
                 Classic snake game. Eat food, grow longer, avoid walls and yourself.
               </p>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#00ffff] font-semibold">$0.01 to play</span>
+                <span className="text-sm text-[var(--color-primary)] font-semibold">
+                  $0.01 to play
+                </span>
                 <span className="text-xs text-white/40">Coming Soon</span>
               </div>
             </Link>
@@ -294,23 +323,31 @@ export function Home() {
                 'p-6 rounded-xl',
                 'bg-[#16162a]',
                 'border border-[#2d2d4a]',
-                'hover:border-[#00ffff]',
-                'hover:shadow-[0_0_20px_rgba(0,255,255,0.3)]',
+                'hover:border-[var(--color-primary)]',
                 'transition-all duration-200',
                 'cursor-pointer'
               )}
+              style={{ boxShadow: 'none' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 20px var(--color-primary-glow)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             >
               <div className="aspect-video bg-[#0a0a0a] rounded-lg mb-4 flex items-center justify-center">
                 <span className="text-6xl">🏓</span>
               </div>
-              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#00ffff] transition-colors">
+              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[var(--color-primary)] transition-colors">
                 Pong
               </h3>
               <p className="text-white/60 mb-4 text-sm">
                 Classic arcade pong. Keep the ball in play and beat the AI.
               </p>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#00ffff] font-semibold">$0.01 to play</span>
+                <span className="text-sm text-[var(--color-primary)] font-semibold">
+                  $0.01 to play
+                </span>
                 <span className="text-xs text-white/40">Coming Soon</span>
               </div>
             </Link>
@@ -323,23 +360,31 @@ export function Home() {
                 'p-6 rounded-xl',
                 'bg-[#16162a]',
                 'border border-[#2d2d4a]',
-                'hover:border-[#00ffff]',
-                'hover:shadow-[0_0_20px_rgba(0,255,255,0.3)]',
+                'hover:border-[var(--color-primary)]',
                 'transition-all duration-200',
                 'cursor-pointer'
               )}
+              style={{ boxShadow: 'none' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 20px var(--color-primary-glow)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             >
               <div className="aspect-video bg-[#0a0a0a] rounded-lg mb-4 flex items-center justify-center">
                 <span className="text-6xl">🟦</span>
               </div>
-              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#00ffff] transition-colors">
+              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[var(--color-primary)] transition-colors">
                 Tetris
               </h3>
               <p className="text-white/60 mb-4 text-sm">
                 Stack falling blocks to clear lines. Speed increases as you progress.
               </p>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#00ffff] font-semibold">$0.01 to play</span>
+                <span className="text-sm text-[var(--color-primary)] font-semibold">
+                  $0.01 to play
+                </span>
                 <span className="text-xs text-white/40">Coming Soon</span>
               </div>
             </Link>
@@ -361,13 +406,19 @@ export function Home() {
               'inline-flex items-center gap-2',
               'px-10 py-5',
               'rounded-lg',
-              'bg-gradient-to-r from-[#00ffff] to-[#ff00ff]',
+              'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]',
               'text-black font-bold text-xl',
               'hover:scale-105',
-              'hover:shadow-[0_0_40px_rgba(0,255,255,0.7)]',
               'transition-all duration-200',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]'
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]'
             )}
+            style={{ boxShadow: '0 0 30px var(--color-primary-glow)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 0 40px var(--color-primary-glow)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 0 30px var(--color-primary-glow)';
+            }}
           >
             <GamepadIcon className="w-6 h-6 group-hover:rotate-12 transition-transform" />
             Start Playing Now
