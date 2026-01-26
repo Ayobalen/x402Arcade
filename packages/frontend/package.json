@@ -48,6 +48,8 @@
     "react-router-dom": "^6.21.1",
     "tailwind-merge": "^2.2.0",
     "three": "^0.160.1",
+    "viem": "^2.44.4",
+    "wagmi": "^3.4.1",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
