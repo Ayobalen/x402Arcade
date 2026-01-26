@@ -1,8 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { WagmiProvider } from 'wagmi';
+import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { config } from '@/config/wagmi';
 import { Layout } from '@/components/layout/Layout';
 import { PageTransition } from '@/components/transitions';
 import { ProtectedRoute } from '@/components/guards';
@@ -146,21 +144,17 @@ function AnimatedRoutes() {
  */
 function App() {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <Layout showBalance maxWidth="full">
-            <AnimatedRoutes />
+    <QueryClientProvider client={queryClient}>
+      <Layout showBalance maxWidth="full">
+        <AnimatedRoutes />
 
-            {/* Onboarding & Help Components */}
-            <OnboardingFlow />
-            <HelpModal />
-            <GameTutorial />
-            <KeyboardShortcutsGuide />
-          </Layout>
-        </Router>
-      </QueryClientProvider>
-    </WagmiProvider>
+        {/* Onboarding & Help Components */}
+        <OnboardingFlow />
+        <HelpModal />
+        <GameTutorial />
+        <KeyboardShortcutsGuide />
+      </Layout>
+    </QueryClientProvider>
   );
 }
 

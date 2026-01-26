@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { ErrorBoundary } from '@/components/errors';
@@ -42,13 +43,15 @@ if (import.meta.env.DEV) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <AudioAccessibilityProvider>
-        <App />
-        {/* Global accessibility components */}
-        <SoundIndicator />
-        <AudioSubtitles />
-      </AudioAccessibilityProvider>
-    </ErrorBoundary>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <ErrorBoundary>
+        <AudioAccessibilityProvider>
+          <App />
+          {/* Global accessibility components */}
+          <SoundIndicator />
+          <AudioSubtitles />
+        </AudioAccessibilityProvider>
+      </ErrorBoundary>
+    </BrowserRouter>
   </React.StrictMode>
 );
