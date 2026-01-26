@@ -18,6 +18,7 @@ import {
   isValidAddress,
   formatUSDC,
   getUsdcEip712Domain,
+  getTxUrl,
   USDC_NAME,
   USDC_DECIMALS,
   USDC_VERSION,
@@ -1339,40 +1340,29 @@ export interface X402SettlementRequest {
  */
 export interface SettlementRequest {
   /**
-   * x402 protocol version
-   * @example 1
+   * The authorization message with signature components
    */
-  x402Version: number;
-
-  /**
-   * Base64-encoded payment header containing the authorization and signature
-   * This is the X-Payment header value sent by the client
-   */
-  paymentHeader: string;
-
-  /**
-   * Payment requirements that must be met for successful settlement
-   */
-  paymentRequirements: {
-    /** Payment scheme (always "exact" for fixed-price payments) */
-    scheme: string;
-    /** Blockchain network identifier */
-    network: string;
-    /** Maximum amount required in smallest units */
-    maxAmountRequired: string;
-    /** Address to receive payment */
-    payTo: string;
-    /** Token contract address */
-    asset: string;
-    /** Protected resource path */
-    resource: string;
-    /** Human-readable description of what the payment is for */
-    description: string;
-    /** MIME type of the protected resource */
-    mimeType: string;
-    /** Maximum time in seconds the payment authorization is valid */
-    maxTimeoutSeconds: number;
+  authorization: {
+    from: string;
+    to: string;
+    value: string;
+    validAfter: string;
+    validBefore: string;
+    nonce: string;
+    v: number;
+    r: string;
+    s: string;
   };
+
+  /**
+   * The blockchain chain ID
+   */
+  chainId: number;
+
+  /**
+   * The token contract address
+   */
+  tokenAddress: string;
 }
 
 /**
@@ -1673,6 +1663,7 @@ export interface SettlementResponse {
   network?: string;
   timestamp?: string;
   transactionHash?: string;
+  txHash?: string; // Bug #9 fix: Facilitator returns 'txHash' not 'transactionHash'
   blockNumber?: number;
 }
 
@@ -2328,11 +2319,6 @@ export function createPaymentResponsePayload(
   settlement: X402SettlementResponse,
   config: X402Config
 ): PaymentResponsePayload {
-  // Import getTxUrl lazily to avoid circular dependency
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getTxUrl } =
-    require('../../lib/chain/constants.js') as typeof import('../../lib/chain/constants.js');
-
   const network = `cronos-${config.chainId === 338 ? 'testnet' : 'mainnet'}`;
 
   return {

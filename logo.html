@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>x402Arcade Logo Generator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-magenta: #ff00ff;
+            --neon-purple: #8b5cf6;
+            --dark-bg: #0a0a12;
+            --arcade-yellow: #ffff00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a12 0%, #1a0a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            font-family: 'Orbitron', monospace;
+            color: white;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 60px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+            letter-spacing: 4px;
+        }
+
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 60px;
+            margin-bottom: 40px;
+        }
+
+        .logo-card {
+            background: rgba(26, 26, 46, 0.5);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+        }
+
+        .logo-card h2 {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: var(--neon-magenta);
+            text-shadow: 0 0 10px var(--neon-magenta);
+            letter-spacing: 2px;
+        }
+
+        /* Full Logo - Horizontal */
+        .logo-full {
+            background: #0f0f1a;
+            padding: 60px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-full::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+            animation: scan 3s infinite;
+        }
+
+        @keyframes scan {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        .logo-x402 {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 72px;
+            letter-spacing: -2px;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-magenta) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            text-shadow:
+                0 0 30px rgba(0, 255, 255, 0.8),
+                0 0 60px rgba(255, 0, 255, 0.6);
+            filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.6));
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.6)); }
+            50% { filter: drop-shadow(0 0 40px rgba(255, 0, 255, 0.8)); }
+        }
+
+        .logo-arcade {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 48px;
+            letter-spacing: 6px;
+            color: var(--arcade-yellow);
+            text-shadow:
+                0 0 10px rgba(255, 255, 0, 0.8),
+                0 0 20px rgba(255, 255, 0, 0.6),
+                0 0 30px rgba(255, 255, 0, 0.4);
+            position: relative;
+        }
+
+        /* Icon Logo - Square */
+        .logo-icon {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 0 auto;
+            border: 3px solid var(--neon-cyan);
+            box-shadow:
+                0 0 40px rgba(0, 255, 255, 0.5),
+                inset 0 0 60px rgba(0, 255, 255, 0.1);
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border: 2px solid var(--neon-magenta);
+            border-radius: 18px;
+            opacity: 0.3;
+        }
+
+        .icon-text {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 56px;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-magenta) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 30px rgba(0, 255, 255, 0.8));
+            position: relative;
+            z-index: 2;
+        }
+
+        .icon-subtitle {
+            position: absolute;
+            bottom: 40px;
+            font-size: 14px;
+            letter-spacing: 4px;
+            color: var(--arcade-yellow);
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+            font-weight: 700;
+        }
+
+        /* Pixel corners decoration */
+        .pixel-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .pixel-corner.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+        .pixel-corner.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+        .pixel-corner.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .pixel-corner.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        /* Favicon version */
+        .logo-favicon {
+            width: 128px;
+            height: 128px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 0 auto;
+            border: 2px solid var(--neon-cyan);
+            box-shadow:
+                0 0 20px rgba(0, 255, 255, 0.6),
+                inset 0 0 30px rgba(0, 255, 255, 0.1);
+        }
+
+        .favicon-text {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 32px;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-magenta) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.8));
+        }
+
+        .download-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-magenta) 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
+        }
+
+        .instructions {
+            margin-top: 60px;
+            padding: 30px;
+            background: rgba(26, 26, 46, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            text-align: left;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .instructions h3 {
+            color: var(--neon-cyan);
+            margin-bottom: 20px;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        .instructions p {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.8;
+            font-size: 14px;
+            font-family: system-ui, -apple-system, sans-serif;
+            margin-bottom: 15px;
+        }
+
+        .instructions code {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--neon-cyan);
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>X402ARCADE BRANDING</h1>
+
+        <div class="logo-grid">
+            <!-- Full Horizontal Logo -->
+            <div class="logo-card">
+                <h2>FULL LOGO</h2>
+                <div class="logo-full">
+                    <div class="logo-x402">X402</div>
+                    <div class="logo-arcade">ARCADE</div>
+                </div>
+                <button class="download-btn" onclick="downloadLogo('full')">DOWNLOAD PNG</button>
+            </div>
+
+            <!-- Square Icon -->
+            <div class="logo-card">
+                <h2>SQUARE ICON (512x512)</h2>
+                <div class="logo-icon">
+                    <div class="pixel-corner tl"></div>
+                    <div class="pixel-corner tr"></div>
+                    <div class="pixel-corner bl"></div>
+                    <div class="pixel-corner br"></div>
+                    <div class="icon-text">X402</div>
+                    <div class="icon-subtitle">ARCADE</div>
+                </div>
+                <button class="download-btn" onclick="downloadLogo('icon')">DOWNLOAD PNG</button>
+            </div>
+
+            <!-- Favicon -->
+            <div class="logo-card">
+                <h2>FAVICON (128x128)</h2>
+                <div class="logo-favicon">
+                    <div class="favicon-text">X4</div>
+                </div>
+                <button class="download-btn" onclick="downloadLogo('favicon')">DOWNLOAD PNG</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📦 USAGE INSTRUCTIONS</h3>
+            <p>
+                <strong>1. DoraHacks Submission:</strong> Right-click any logo and "Save Image As" or use the download buttons.
+                Upload the <code>SQUARE ICON</code> as your project logo on DoraHacks.
+            </p>
+            <p>
+                <strong>2. GitHub Repository:</strong> Save the <code>SQUARE ICON</code> as <code>logo.png</code> and add to your repo.
+                Reference it in README.md with: <code>![x402Arcade Logo](./logo.png)</code>
+            </p>
+            <p>
+                <strong>3. Website Favicon:</strong> Download the <code>FAVICON</code> version and save as <code>favicon.ico</code>
+                in your <code>packages/frontend/public/</code> directory.
+            </p>
+            <p>
+                <strong>4. Social Media:</strong> Use the <code>SQUARE ICON</code> for Twitter, Discord, Telegram avatars.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function downloadLogo(type) {
+            let element, filename, width, height;
+
+            if (type === 'full') {
+                element = document.querySelector('.logo-full');
+                filename = 'x402arcade-logo-full.png';
+                width = 800;
+                height = 300;
+            } else if (type === 'icon') {
+                element = document.querySelector('.logo-icon');
+                filename = 'x402arcade-logo-512.png';
+                width = 512;
+                height = 512;
+            } else if (type === 'favicon') {
+                element = document.querySelector('.logo-favicon');
+                filename = 'x402arcade-favicon.png';
+                width = 128;
+                height = 128;
+            }
+
+            // Create canvas with higher resolution
+            const scale = 2; // 2x for retina displays
+            const canvas = document.createElement('canvas');
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+
+            // Get computed styles
+            const computedStyle = window.getComputedStyle(element);
+
+            // Draw background
+            ctx.fillStyle = computedStyle.background || '#0f0f1a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Convert DOM to canvas using html2canvas would be ideal,
+            // but for simplicity, let's provide screenshot instructions
+            alert(`Please right-click on the ${type.toUpperCase()} logo and select "Save Image As..." to download.\n\nOr use a screenshot tool to capture the logo area.`);
+        }
+    </script>
+</body>
+</html>

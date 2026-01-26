@@ -214,7 +214,9 @@ export function Game() {
       });
 
       if (initialResponse.status !== 402) {
-        throw new Error('Expected 402 Payment Required response');
+        throw new Error(
+          `Expected 402 Payment Required response, got ${initialResponse.status} ${initialResponse.statusText}`
+        );
       }
 
       // Parse x402 payment requirements
