@@ -10,6 +10,7 @@ build/
 # Test coverage and reports
 coverage/
 test-reports/
+.playwright-mcp/
 
 # Environment files
 .env
@@ -32,10 +33,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+logs/
+playwright-report/
+
+# Session files
+session-*.txt
+.session-*.txt
+claude-progress.txt
 
 # Temporary files
 *.tmp
 *.temp
+test-*.html
+test-*.mjs
+assistant.db
 
 # Database - features.db is local only, never commit to git
 *.db
