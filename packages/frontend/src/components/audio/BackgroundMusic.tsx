@@ -249,90 +249,9 @@ export function BackgroundMusic({
   }, []);
 
   /**
-   * Start playback
-   */
-  const startPlayback = () => {
-    if (
-      !audioContextRef.current ||
-      audioBuffersRef.current.length === 0 ||
-      !gainNodeRef.current ||
-      isPlaying
-    ) {
-      return;
-    }
-
-    try {
-      // Resume audio context if suspended (browser autoplay policy)
-      if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-
-      // Get current track from shuffle order
-      const trackIndex = shuffleOrderRef.current[currentTrackIndex];
-      const audioBuffer = audioBuffersRef.current[trackIndex];
-
-      // Create source node
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = audioBuffer;
-      source.loop = false; // Don't loop - we'll play next track when this ends
-      source.connect(gainNodeRef.current);
-
-      // When track ends, play next track
-      source.onended = () => {
-        console.log('[BackgroundMusic] Track', trackIndex + 1, 'ended');
-        setIsPlaying(false);
-
-        // Move to next track in shuffle order
-        const nextIndex = (currentTrackIndex + 1) % shuffleOrderRef.current.length;
-        setCurrentTrackIndex(nextIndex);
-
-        // If we've completed the shuffle, reshuffle
-        if (nextIndex === 0) {
-          shuffleOrderRef.current = Array.from(
-            { length: audioBuffersRef.current.length },
-            (_, i) => i
-          ).sort(() => Math.random() - 0.5);
-          console.log('[BackgroundMusic] Reshuffled. New order:', shuffleOrderRef.current);
-        }
-
-        // Play next track if not muted (use ref to get current value)
-        if (!isMutedRef.current) {
-          setTimeout(() => startPlayback(), 100);
-        }
-      };
-
-      source.start(0);
-
-      sourceNodeRef.current = source;
-      setIsPlaying(true);
-
-      console.log('[BackgroundMusic] Playing track', trackIndex + 1, 'of', audioBuffersRef.current.length);
-    } catch (error) {
-      console.error('[BackgroundMusic] Failed to start playback:', error);
-    }
-  };
-
-  /**
-   * Stop playback
-   */
-  const stopPlayback = () => {
-    if (sourceNodeRef.current) {
-      try {
-        sourceNodeRef.current.stop();
-      } catch {
-        // Ignore errors if already stopped
-      }
-      sourceNodeRef.current.disconnect();
-      sourceNodeRef.current = null;
-    }
-    setIsPlaying(false);
-    console.log('[BackgroundMusic] Playback stopped');
-  };
-
-  /**
    * Toggle mute
    */
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     localStorage.setItem('x402arcade:bgMusicMuted', JSON.stringify(newMuted));
@@ -346,19 +265,19 @@ export function BackgroundMusic({
         startPlayback();
       }
     }
-  };
+  }, [isMuted, isLoading, stopPlayback, startPlayback]);
 
   /**
    * Handle user interaction to unlock audio
    */
-  const handleUserInteraction = () => {
+  const handleUserInteraction = useCallback(() => {
     if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
       audioContextRef.current.resume();
     }
     if (!isPlaying && !isMuted && !isLoading) {
       startPlayback();
     }
-  };
+  }, [isPlaying, isMuted, isLoading, startPlayback]);
 
   // Add event listener for user interaction (to unlock audio on mobile)
   useEffect(() => {
@@ -369,7 +288,7 @@ export function BackgroundMusic({
       document.removeEventListener('click', handleUserInteraction);
       document.removeEventListener('touchstart', handleUserInteraction);
     };
-  }, [isPlaying, isMuted, isLoading]);
+  }, [handleUserInteraction]);
 
   if (!showMuteButton) {
     return null;
