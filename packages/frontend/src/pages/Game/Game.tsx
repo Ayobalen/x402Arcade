@@ -11,7 +11,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { SnakeGame } from '@/games/snake/SnakeGame';
-import { PongGameWrapper } from '@/games/pong/PongGameWrapper';
 import { PongGamePage } from './PongGamePage';
 import { TetrisGameWrapper } from '@/games/tetris/TetrisGameWrapper';
 import { BreakoutGameWrapper } from '@/games/breakout/BreakoutGameWrapper';
@@ -459,19 +458,8 @@ export function Game() {
     );
   }
 
-  // Render available game - Pong
-  if (gameInfo.status === 'available' && gameId === 'pong') {
-    return (
-      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
-        <div className="max-w-4xl mx-auto w-full">
-          <PongGameWrapper onExit={handleExit} />
-        </div>
-      </div>
-    );
-  }
-
-  // Render available game - Pong Phaser (using GameWrapper system)
-  if (gameInfo.status === 'available' && gameId === 'pong-phaser') {
+  // Render available game - Pong (now using Phaser version)
+  if (gameInfo.status === 'available' && (gameId === 'pong' || gameId === 'pong-phaser')) {
     return <PongGamePage />;
   }
 
