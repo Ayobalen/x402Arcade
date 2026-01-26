@@ -130,7 +130,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
     const paymentTxHash = req.x402.settlement.transactionHash || '';
     const amountPaidUsdc = parseFloat(req.x402.paymentInfo.amountUsdc);
 
-    // Step 4: Call gameService.createSession()
+    // Step 4: Validate game type support
     // Note: GameService only supports 'snake' and 'tetris' currently
     // Other games will be added in future features
     if (gameType !== 'snake' && gameType !== 'tetris') {
@@ -144,6 +144,24 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
     // Get services (lazy initialization)
     const { gameService, prizePoolService } = getServices();
 
+    // Step 5: Check for existing active session
+    // Prevent double-payment: player can only have one active session per game at a time
+    const activeSession = gameService.getActiveSession(playerAddress, gameType);
+    if (activeSession) {
+      res.status(409).json({
+        error: 'Active session exists',
+        message: `You already have an active ${gameType} game session. Please complete or wait for it to expire before starting a new game.`,
+        session: {
+          id: activeSession.id,
+          gameType: activeSession.gameType,
+          status: activeSession.status,
+          createdAt: activeSession.createdAt,
+        },
+      });
+      return;
+    }
+
+    // Step 6: Create game session
     const session = gameService.createSession({
       gameType: gameType as 'snake' | 'tetris',
       playerAddress,
@@ -151,7 +169,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
       amountPaidUsdc,
     });
 
-    // Step 5: Update prize pool with payment contribution
+    // Step 7: Update prize pool with payment contribution
     // This is done outside the session transaction to avoid blocking session creation
     // if prize pool update fails. The payment has already been verified at this point.
     try {
@@ -178,7 +196,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
       });
     }
 
-    // Step 6: Return session ID to client (201 Created)
+    // Step 8: Return session ID to client (201 Created)
     res.status(201).json({
       success: true,
       sessionId: session.id,
