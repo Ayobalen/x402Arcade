@@ -269,9 +269,14 @@ export function PongGamePhaser({
 }: PongGamePhaserProps) {
   const gameRef = useRef<Phaser.Game | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
+
+    // Prevent double initialization in React Strict Mode
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
 
     const config = DIFFICULTY_CONFIG[difficulty];
 
@@ -291,8 +296,11 @@ export function PongGamePhaser({
     gameRef.current = new Phaser.Game(phaserConfig);
 
     return () => {
-      gameRef.current?.destroy(true);
-      gameRef.current = null;
+      if (gameRef.current) {
+        gameRef.current.destroy(true);
+        gameRef.current = null;
+      }
+      isInitializedRef.current = false;
     };
   }, [difficulty, onGameOver, onPause]);
 
