@@ -1,21 +1,27 @@
 ## Operational Notes
 - Project: x402Arcade - Gasless arcade gaming on Cronos blockchain
 - **CURRENT STATUS:** 26/30 features passing (86.7%) - ALL 4 remaining features require human intervention
-- **SESSION UPDATE (Jan 26, 2026 07:55 UTC):** Cleared orphaned intervention refs, recreated with IDs #226-229
+- **SESSION UPDATE (Jan 26, 2026):** Cleared orphaned intervention refs, recreated with IDs #230-233
 
 ### Blocked Features Summary
 | Feature | Name | Blocked By | What's Needed |
 |---------|------|------------|---------------|
-| #1 | Complete x402 payment flow | Intervention #226 | E2E test with MetaMask + test USDC |
-| #2 | Zero gas fees for players | Intervention #229 | Verify CRO balance unchanged (depends on #226) |
-| #17 | Background music | Intervention #227 | Add 6 chiptune MP3 files to public/sounds/music/ |
-| #27 | Double-payment prevention | Intervention #228 | E2E test 409 error on double-pay (depends on #226) |
+| #1 | Complete x402 payment flow | Intervention #230 | Configure wallet + E2E test with MetaMask |
+| #2 | Zero gas fees for players | Intervention #233 | Verify CRO balance unchanged (depends on #230) |
+| #17 | Background music | Intervention #231 | Add 6 chiptune MP3 files to public/sounds/music/ |
+| #27 | Double-payment prevention | Intervention #232 | E2E test 409 error on double-pay (depends on #230) |
 
 ### Recommended Action Order
-1. Complete Intervention #226 (Feature #1) - E2E test payment flow - THIS UNBLOCKS #228, #229
-2. Complete Intervention #228 (Feature #27) - double-payment prevention E2E (depends on #226)
-3. Complete Intervention #229 (Feature #2) - zero gas fee verification (depends on #226)
-4. Complete Intervention #227 (Feature #17) - add music files (independent, can be done anytime)
+1. **FIRST:** Complete Intervention #230 (Feature #1) - Configure ARCADE_PRIVATE_KEY + test payment flow
+2. Complete Intervention #232 (Feature #27) - double-payment prevention E2E (depends on #230)
+3. Complete Intervention #233 (Feature #2) - zero gas fee verification (depends on #230)
+4. Complete Intervention #231 (Feature #17) - add music files (independent, can be done anytime)
+
+### Critical: Wallet Configuration Required
+The .env file at packages/backend/.env has ARCADE_PRIVATE_KEY commented out. You must:
+1. Uncomment and set ARCADE_PRIVATE_KEY=0x<your_cronos_testnet_private_key>
+2. Get TCRO from https://cronos.org/faucet
+3. Get devUSDC.e from https://faucet.cronos.org/
 
 ### Backend Verification (x402 API)
 - POST /api/v1/play/snake returns HTTP 402 Payment Required ✅
@@ -51,11 +57,11 @@
 
 ---
 
-## Session Log - January 26, 2026 07:55 UTC
+## Session Log - January 26, 2026 ~07:00 UTC
 
-### Session Summary: Fresh Context Window - Intervention Recreation
+### Session Summary: Fresh Context Window - Intervention Recreation (Session 2)
 
-**Starting State:** 26/30 features passing (86.7%), 4 features with orphaned intervention IDs (222-225)
+**Starting State:** 26/30 features passing (86.7%), 4 features with orphaned intervention IDs (226-229)
 
 **Session Actions:**
 
@@ -69,29 +75,31 @@
    - **Feature #17 (Background Music):** MusicManager, hooks, UI all complete ✅
    - **Feature #27 (Double-Payment Prevention):** gameService.getActiveSession() + 409 response ✅
 
-3. **Created new interventions with detailed checklists:**
-   - **#226**: Complete x402 Payment Flow E2E Test (Feature #1) - manual_verification
-   - **#227**: Add Background Music Files (Feature #17) - external_service
-   - **#228**: Test Double-Payment Prevention E2E (Feature #27) - manual_verification
-   - **#229**: Verify Zero Gas Fees for Players (Feature #2) - manual_verification
+3. **Created NEW interventions with detailed checklists:**
+   - **#230**: Configure Wallet & Test x402 Payment Flow (Feature #1) - api_key_required
+   - **#231**: Add Background Music Audio Files (Feature #17) - external_service
+   - **#232**: Verify Double-Payment Prevention E2E (Feature #27) - manual_verification
+   - **#233**: Verify Zero Gas Fees for Players (Feature #2) - manual_verification
 
-4. **Verified backend API:**
-   - POST /api/v1/play/snake returns HTTP 402 ✅
-   - Payment requirements include correct arcade wallet ✅
-   - Facilitator URL: https://facilitator.cronoslabs.org ✅
+4. **Key findings:**
+   - ARCADE_PRIVATE_KEY is commented out in packages/backend/.env
+   - This is the root blocker - wallet config needed before payment testing
+   - Music system has no audio files (only README in public/sounds/music/)
 
 **Why Human Intervention Required:**
-- **Payment features (#1, #2, #27):** Require wallet interaction (MetaMask signature)
-- **Music feature (#17):** Requires external MP3 audio files
+- **Feature #1:** Needs ARCADE_PRIVATE_KEY configured + test tokens
+- **Features #2, #27:** Depend on Feature #1 working first
+- **Feature #17:** Needs external MP3 audio files added
 
 **Dependency Chain:**
-1. #226 (Feature #1) must be completed first
-2. #228 and #229 depend on #226
-3. #227 is independent (can be done anytime)
+1. Intervention #230 (Feature #1) must be completed first - THIS UNBLOCKS 3 FEATURES
+2. Intervention #232 (Feature #27) depends on #230
+3. Intervention #233 (Feature #2) depends on #230
+4. Intervention #231 (Feature #17) is independent (can be done anytime)
 
 **Current State:**
 - Backend: Running on port 3001 ✅
-- Frontend: Running on port 5175 ✅
+- Frontend: Running on port 5173/5175 ✅
 - All code implementation: COMPLETE ✅
 - All 4 features blocked by interventions: WAITING FOR HUMAN
 
