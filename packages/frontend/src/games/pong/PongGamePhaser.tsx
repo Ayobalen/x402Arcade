@@ -278,11 +278,15 @@ export function PongGamePhaser({
     if (isInitializedRef.current) return;
     isInitializedRef.current = true;
 
+    const container = containerRef.current;
     const config = DIFFICULTY_CONFIG[difficulty];
+
+    // Auto-focus container so Phaser receives keyboard events
+    container.focus();
 
     const phaserConfig: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
-      parent: containerRef.current,
+      parent: container,
       width: 800,
       height: 600,
       backgroundColor: '#0F0F1A',
@@ -291,6 +295,7 @@ export function PongGamePhaser({
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
       },
+      disableContextMenu: true,
     };
 
     gameRef.current = new Phaser.Game(phaserConfig);
@@ -307,6 +312,7 @@ export function PongGamePhaser({
   return (
     <div
       ref={containerRef}
+      tabIndex={0}
       style={{
         width: '100%',
         height: '100vh',
@@ -315,6 +321,7 @@ export function PongGamePhaser({
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
+        outline: 'none',
       }}
     />
   );
