@@ -21,6 +21,8 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ConnectButton } from '@/components/wallet';
 import { Balance } from '@/components/wallet/Balance';
+import { useOnboardingStore } from '@/stores';
+import { HelpCircle, Keyboard } from 'lucide-react';
 import type { HeaderProps } from './Header.types';
 
 /**
@@ -111,6 +113,9 @@ export function Header({
 }: HeaderProps) {
   // Mobile menu state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Onboarding store for help modals
+  const { openHelp, openKeyboardShortcuts } = useOnboardingStore();
 
   // Toggle mobile menu
   const toggleMobileMenu = () => {
@@ -237,13 +242,47 @@ export function Header({
         </button>
       )}
 
-      {/* Right: Wallet & Balance */}
-      {showWallet && (
-        <div className="flex items-center gap-3">
-          {showBalance && <Balance />}
-          <ConnectButton />
-        </div>
-      )}
+      {/* Right: Help, Wallet & Balance */}
+      <div className="flex items-center gap-2">
+        {/* Help Button */}
+        <button
+          onClick={openHelp}
+          className={cn(
+            'p-2',
+            'text-white/60 hover:text-cyan-400',
+            'transition-colors duration-150',
+            'rounded-lg',
+            'hover:bg-cyan-500/10'
+          )}
+          aria-label="Open help"
+          title="Help & FAQ (H)"
+        >
+          <HelpCircle size={20} />
+        </button>
+
+        {/* Keyboard Shortcuts Button */}
+        <button
+          onClick={openKeyboardShortcuts}
+          className={cn(
+            'p-2',
+            'text-white/60 hover:text-cyan-400',
+            'transition-colors duration-150',
+            'rounded-lg',
+            'hover:bg-cyan-500/10'
+          )}
+          aria-label="Keyboard shortcuts"
+          title="Keyboard Shortcuts (?)"
+        >
+          <Keyboard size={20} />
+        </button>
+
+        {showWallet && (
+          <div className="flex items-center gap-3 ml-2">
+            {showBalance && <Balance />}
+            <ConnectButton />
+          </div>
+        )}
+      </div>
 
       {/* Mobile Navigation Menu */}
       {showNavigation && (

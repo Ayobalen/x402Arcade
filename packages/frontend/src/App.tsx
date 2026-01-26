@@ -1,8 +1,17 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { config } from '@/config/wagmi';
 import { Layout } from '@/components/layout/Layout';
 import { PageTransition } from '@/components/transitions';
 import { ProtectedRoute } from '@/components/guards';
+import {
+  OnboardingFlow,
+  HelpModal,
+  GameTutorial,
+  KeyboardShortcutsGuide,
+} from '@/components/onboarding';
 import {
   HomePageSkeleton,
   PlayPageSkeleton,
@@ -10,6 +19,9 @@ import {
   LeaderboardPageSkeleton,
   NotFoundPageSkeleton,
 } from '@/components/ui/PageSkeleton';
+
+// Create QueryClient instance
+const queryClient = new QueryClient();
 
 /**
  * Lazy-loaded page components for code splitting.
@@ -134,11 +146,21 @@ function AnimatedRoutes() {
  */
 function App() {
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <Layout showBalance maxWidth="full">
-        <AnimatedRoutes />
-      </Layout>
-    </Router>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Layout showBalance maxWidth="full">
+            <AnimatedRoutes />
+
+            {/* Onboarding & Help Components */}
+            <OnboardingFlow />
+            <HelpModal />
+            <GameTutorial />
+            <KeyboardShortcutsGuide />
+          </Layout>
+        </Router>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
 
