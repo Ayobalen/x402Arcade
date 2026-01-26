@@ -4,14 +4,12 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: rm -rf node_modules packages/backend/node_modules pnpm-lock.yaml packages/backend/pnpm-lock.yaml && cd packages/backend && npm install && npm run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @x402arcade/backend build
     startCommand: cd packages/backend && node dist/index.js
     healthCheckPath: /health
     envVars:
-      - key: npm_config_target_platform
-        value: linux
-      - key: npm_config_target_arch
-        value: x64
+      - key: BETTER_SQLITE3_USE_PREBUILDS
+        value: 1
       - key: NODE_ENV
         value: production
       - key: PORT
