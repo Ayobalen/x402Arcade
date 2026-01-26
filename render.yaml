@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: rm -rf node_modules packages/backend/node_modules && cd packages/backend && npm install && npm run build
+    buildCommand: rm -rf node_modules packages/backend/node_modules pnpm-lock.yaml packages/backend/pnpm-lock.yaml && cd packages/backend && npm install && npm run build
     startCommand: cd packages/backend && node dist/index.js
     healthCheckPath: /health
     envVars:
