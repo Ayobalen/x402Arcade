@@ -25,7 +25,14 @@ function getPrizePoolService(): PrizePoolService {
 }
 
 // Valid game types
-const VALID_GAME_TYPES = new Set<string>(['snake', 'tetris', 'pong', 'breakout', 'space-invaders']);
+const VALID_GAME_TYPES = new Set<string>([
+  'snake',
+  'tetris',
+  'pong',
+  'pong-phaser',
+  'breakout',
+  'space-invaders',
+]);
 
 // Valid period types for prize pools (only daily and weekly, no alltime)
 const VALID_PERIOD_TYPES = new Set<string>(['daily', 'weekly']);

@@ -17,12 +17,7 @@
  * @description Union type of all valid game identifiers.
  * Each game type has an associated price and metadata.
  */
-export type GameType =
-  | 'snake'
-  | 'tetris'
-  | 'pong'
-  | 'breakout'
-  | 'space-invaders';
+export type GameType = 'snake' | 'tetris' | 'pong' | 'pong-phaser' | 'breakout' | 'space-invaders';
 
 /**
  * Game type metadata interface
@@ -92,6 +87,14 @@ export const GAME_TYPES: Record<GameType, GameTypeInfo> = {
     priceUsdc: 0.02,
     priceUnits: 20000n,
     icon: '👾',
+  },
+  'pong-phaser': {
+    id: 'pong-phaser',
+    name: 'Pong (Phaser)',
+    description: 'Phaser 3 version of classic Pong. Demonstrates library-based implementation.',
+    priceUsdc: 0.01,
+    priceUnits: 10000n,
+    icon: '🎮',
   },
 };
 
@@ -215,16 +218,16 @@ export class GameTypeValidationError extends Error {
    * @param invalidValue - The invalid value that was provided
    */
   constructor(invalidValue: unknown) {
-    const valueStr = invalidValue === null ? 'null' :
-                     invalidValue === undefined ? 'undefined' :
-                     JSON.stringify(invalidValue);
+    const valueStr =
+      invalidValue === null
+        ? 'null'
+        : invalidValue === undefined
+          ? 'undefined'
+          : JSON.stringify(invalidValue);
 
-    const validList = VALID_GAME_TYPES.map(t => `'${t}'`).join(', ');
+    const validList = VALID_GAME_TYPES.map((t) => `'${t}'`).join(', ');
 
-    super(
-      `Invalid game type: ${valueStr}. ` +
-      `Valid game types are: ${validList}`
-    );
+    super(`Invalid game type: ${valueStr}. ` + `Valid game types are: ${validList}`);
 
     this.name = 'GameTypeValidationError';
     this.invalidValue = invalidValue;

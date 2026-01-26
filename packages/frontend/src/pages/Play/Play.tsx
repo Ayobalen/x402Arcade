@@ -75,6 +75,15 @@ const GAMES: Game[] = [
     status: 'available',
     route: '/play/space-invaders',
   },
+  {
+    id: 'pong-phaser',
+    name: 'Pong (Phaser)',
+    emoji: '🎮',
+    description: 'Phaser 3 version of classic Pong. Demonstrates library-based implementation.',
+    price: '$0.01',
+    status: 'available',
+    route: '/play/pong-phaser',
+  },
 ];
 
 /**
