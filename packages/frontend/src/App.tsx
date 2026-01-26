@@ -36,6 +36,7 @@ const Play = lazy(() => import('@/pages/Play'));
 const Game = lazy(() => import('@/pages/Game'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
 const Settings = lazy(() => import('@/pages/Settings'));
+const TransactionHistory = lazy(() => import('@/pages/TransactionHistory'));
 const ComponentShowcase = lazy(() => import('@/pages/ComponentShowcase'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
@@ -119,6 +120,18 @@ function AnimatedRoutes() {
           <PageSuspense fallback={<HomePageSkeleton />}>
             <PageTransition>
               <Settings />
+            </PageTransition>
+          </PageSuspense>
+        }
+      />
+
+      {/* Transaction History Page - Payment history and statistics */}
+      <Route
+        path="/history"
+        element={
+          <PageSuspense fallback={<HomePageSkeleton />}>
+            <PageTransition>
+              <TransactionHistory />
             </PageTransition>
           </PageSuspense>
         }

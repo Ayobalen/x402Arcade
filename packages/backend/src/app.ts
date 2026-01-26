@@ -43,6 +43,7 @@ import scoreRoutes from './routes/score.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
 import prizeRoutes from './routes/prize.routes.js';
 import healthRoutes from './routes/health.routes.js';
+import transactionRoutes from './routes/transaction.routes.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -212,6 +213,8 @@ export function createApp(): Express {
         leaderboard: 'GET /api/v1/leaderboard/:gameType/:periodType',
         prize: 'GET /api/v1/prize/:gameType/:periodType',
         prizeHistory: 'GET /api/v1/prize/history',
+        transactions: 'GET /api/v1/transactions/:playerAddress',
+        transactionSummary: 'GET /api/v1/transactions/:playerAddress/summary',
       },
     });
   });
@@ -222,6 +225,7 @@ export function createApp(): Express {
   app.use('/api/v1/score', scoreRoutes);
   app.use('/api/v1/leaderboard', leaderboardRoutes);
   app.use('/api/v1/prize', prizeRoutes);
+  app.use('/api/v1/transactions', transactionRoutes);
 
   // ============================================================================
   // Error Handlers
