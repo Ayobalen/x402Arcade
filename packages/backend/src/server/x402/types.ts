@@ -507,28 +507,47 @@ export interface PaymentPayload {
  * ```
  */
 export function headerToPayload(header: X402PaymentHeader): PaymentPayload {
+  // Bug #1 fix: Handle both old (with message wrapper) and new (flat) structures
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const payload = header.payload as any;
+  const message = payload.message || payload; // Use message if exists, otherwise use payload directly
+
+  // Bug #7 fix: Handle combined signature (new) or split v/r/s (old)
+  let v: number, r: string, s: string;
+
+  if (payload.signature) {
+    // New format: combined signature "0x{r}{s}{v}"
+    const sig = payload.signature.startsWith('0x') ? payload.signature.slice(2) : payload.signature;
+    // Signature is 65 bytes: r (32) + s (32) + v (1)
+    r = '0x' + sig.slice(0, 64);
+    s = '0x' + sig.slice(64, 128);
+    v = parseInt(sig.slice(128, 130), 16);
+  } else {
+    // Old format: separate v/r/s fields
+    v = payload.v;
+    r = payload.r;
+    s = payload.s;
+  }
+
   return {
     version: header.x402Version,
     scheme: header.scheme,
     network: header.network,
-    from: header.payload.message.from,
-    to: header.payload.message.to,
-    value:
-      typeof header.payload.message.value === 'bigint'
-        ? header.payload.message.value.toString()
-        : String(header.payload.message.value),
+    from: message.from,
+    to: message.to,
+    value: typeof message.value === 'bigint' ? message.value.toString() : String(message.value),
     validAfter:
-      typeof header.payload.message.validAfter === 'bigint'
-        ? header.payload.message.validAfter.toString()
-        : String(header.payload.message.validAfter),
+      typeof message.validAfter === 'bigint'
+        ? message.validAfter.toString()
+        : String(message.validAfter),
     validBefore:
-      typeof header.payload.message.validBefore === 'bigint'
-        ? header.payload.message.validBefore.toString()
-        : String(header.payload.message.validBefore),
-    nonce: header.payload.message.nonce,
-    v: header.payload.v,
-    r: header.payload.r,
-    s: header.payload.s,
+      typeof message.validBefore === 'bigint'
+        ? message.validBefore.toString()
+        : String(message.validBefore),
+    nonce: message.nonce,
+    v,
+    r,
+    s,
   };
 }
 
@@ -1320,41 +1339,40 @@ export interface X402SettlementRequest {
  */
 export interface SettlementRequest {
   /**
-   * Combined authorization message with signature
-   * This is the format expected by the facilitator API
+   * x402 protocol version
+   * @example 1
    */
-  authorization: {
-    /** Token sender's address (the signer/payer) */
-    from: string;
-    /** Token recipient's address (the arcade) */
-    to: string;
-    /** Amount to transfer in smallest units (as string for uint256) */
-    value: string;
-    /** Unix timestamp after which the authorization is valid */
-    validAfter: string;
-    /** Unix timestamp before which the authorization is valid */
-    validBefore: string;
-    /** Unique 32-byte nonce (0x + 64 hex chars) */
-    nonce: string;
-    /** ECDSA signature recovery identifier (27 or 28) */
-    v: number;
-    /** First 32 bytes of the ECDSA signature */
-    r: string;
-    /** Second 32 bytes of the ECDSA signature */
-    s: string;
+  x402Version: number;
+
+  /**
+   * Base64-encoded payment header containing the authorization and signature
+   * This is the X-Payment header value sent by the client
+   */
+  paymentHeader: string;
+
+  /**
+   * Payment requirements that must be met for successful settlement
+   */
+  paymentRequirements: {
+    /** Payment scheme (always "exact" for fixed-price payments) */
+    scheme: string;
+    /** Blockchain network identifier */
+    network: string;
+    /** Maximum amount required in smallest units */
+    maxAmountRequired: string;
+    /** Address to receive payment */
+    payTo: string;
+    /** Token contract address */
+    asset: string;
+    /** Protected resource path */
+    resource: string;
+    /** Human-readable description of what the payment is for */
+    description: string;
+    /** MIME type of the protected resource */
+    mimeType: string;
+    /** Maximum time in seconds the payment authorization is valid */
+    maxTimeoutSeconds: number;
   };
-
-  /**
-   * The blockchain chain ID for the settlement
-   * @example 338 for Cronos Testnet
-   */
-  chainId: number;
-
-  /**
-   * The ERC-20 token contract address supporting EIP-3009
-   * @example '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0' for devUSDC.e
-   */
-  tokenAddress: string;
 }
 
 /**
@@ -1429,22 +1447,34 @@ export function createSettlementRequest(request: X402SettlementRequest): Settlem
  */
 export function createSettlementRequestFromPayload(
   payload: PaymentPayload,
-  config: X402Config
+  config: X402Config,
+  paymentHeader: string,
+  resource: string
 ): SettlementRequest {
+  // Determine network name from chain ID
+  const networkMap: Record<number, string> = {
+    338: 'cronos-testnet',
+    25: 'cronos-mainnet',
+  };
+  const network = networkMap[config.chainId] || `chain-${config.chainId}`;
+
   return {
-    authorization: {
-      from: payload.from,
-      to: payload.to,
-      value: payload.value,
-      validAfter: payload.validAfter,
-      validBefore: payload.validBefore,
-      nonce: payload.nonce,
-      v: payload.v,
-      r: payload.r,
-      s: payload.s,
+    x402Version: 1,
+    paymentHeader,
+    paymentRequirements: {
+      scheme: 'exact',
+      network,
+      maxAmountRequired:
+        typeof config.paymentAmount === 'bigint'
+          ? config.paymentAmount.toString()
+          : config.paymentAmount,
+      payTo: config.payTo,
+      asset: config.tokenAddress,
+      resource,
+      description: `Payment for ${resource}`,
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 300,
     },
-    chainId: config.chainId,
-    tokenAddress: config.tokenAddress,
   };
 }
 
@@ -1626,42 +1656,24 @@ export interface X402SettlementResponse {
  * @see https://facilitator.cronoslabs.org/docs - Facilitator API Documentation
  */
 export interface SettlementResponse {
-  /**
-   * Whether the settlement was successful
-   */
-  success: boolean;
-
-  /**
-   * Transaction details (present if success is true)
-   */
+  // V1 API format
+  success?: boolean;
   transaction?: {
-    /**
-     * The on-chain transaction hash
-     * Hex string with 0x prefix
-     */
     hash: string;
-
-    /**
-     * The block number containing the transaction
-     */
     blockNumber: number;
   };
-
-  /**
-   * Error details (present if success is false)
-   */
   error?: {
-    /**
-     * Machine-readable error code
-     * @see X402SettlementErrorCode for standard codes
-     */
     code: string;
-
-    /**
-     * Human-readable error description
-     */
     message: string;
   };
+
+  // V2 API format (event-based) - Bug #4 fix: Correct event names
+  x402Version?: number;
+  event?: 'payment.settled' | 'payment.failed';
+  network?: string;
+  timestamp?: string;
+  transactionHash?: string;
+  blockNumber?: number;
 }
 
 /**
@@ -1692,6 +1704,30 @@ export function parseSettlementResponse(
 ): X402SettlementResponse {
   const timestamp = (settledAt ?? new Date()).toISOString();
 
+  // Handle V2 event-based format
+  if (response.event) {
+    // Bug #4 fix: Correct event name is 'payment.settled' not 'payment.success'
+    // Bug #9 fix: Facilitator returns 'txHash' not 'transactionHash'
+    const txHash = response.txHash || response.transactionHash;
+    if (response.event === 'payment.settled' && txHash && response.blockNumber) {
+      return {
+        success: true,
+        transactionHash: txHash,
+        blockNumber: response.blockNumber,
+        settledAt: response.timestamp || timestamp,
+      };
+    }
+
+    // V2 failure
+    return {
+      success: false,
+      errorCode: 'FACILITATOR_ERROR',
+      errorMessage: typeof response.error === 'string' ? response.error : 'Payment failed',
+      settledAt: response.timestamp || timestamp,
+    };
+  }
+
+  // Handle V1 format
   if (response.success && response.transaction) {
     return {
       success: true,

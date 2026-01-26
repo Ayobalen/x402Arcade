@@ -9,7 +9,7 @@
  * @see https://eips.ethereum.org/EIPS/eip-712 - EIP-712 Typed Data Standard
  */
 
-import { CRONOS_TESTNET_CHAIN_ID, USDC_CONTRACT_ADDRESS } from './chain'
+import { CRONOS_TESTNET_CHAIN_ID, USDC_CONTRACT_ADDRESS } from './chain';
 
 // ============================================================================
 // USDC Token Constants
@@ -21,7 +21,7 @@ import { CRONOS_TESTNET_CHAIN_ID, USDC_CONTRACT_ADDRESS } from './chain'
  * This MUST match the deployed contract's name() function return value.
  * Used in the EIP-712 domain separator for signature verification.
  */
-export const USDC_NAME = 'Bridged USDC (Stargate)'
+export const USDC_NAME = 'Bridged USDC (Stargate)';
 
 /**
  * USDC EIP-712 Domain Version
@@ -32,7 +32,7 @@ export const USDC_NAME = 'Bridged USDC (Stargate)'
  * - Testnet (devUSDC.e): "1"
  * - Mainnet (USDC): "2"
  */
-export const USDC_VERSION = '1'
+export const USDC_VERSION = '1';
 
 /**
  * USDC Token Decimals
@@ -41,7 +41,7 @@ export const USDC_VERSION = '1'
  * - 1 USDC = 1,000,000 (10^6) smallest units
  * - $0.01 = 10,000 smallest units
  */
-export const USDC_DECIMALS = 6 as const
+export const USDC_DECIMALS = 6 as const;
 
 // ============================================================================
 // EIP-712 Domain Types
@@ -54,9 +54,9 @@ export const USDC_DECIMALS = 6 as const
  */
 export interface TypedDataField {
   /** The name of the field */
-  name: string
+  name: string;
   /** The Solidity type of the field */
-  type: string
+  type: string;
 }
 
 /**
@@ -70,7 +70,7 @@ export const EIP712_DOMAIN_TYPE: readonly TypedDataField[] = [
   { name: 'version', type: 'string' },
   { name: 'chainId', type: 'uint256' },
   { name: 'verifyingContract', type: 'address' },
-] as const
+] as const;
 
 /**
  * EIP-712 Domain Configuration Interface
@@ -79,13 +79,13 @@ export const EIP712_DOMAIN_TYPE: readonly TypedDataField[] = [
  */
 export interface EIP712Domain {
   /** Human-readable name of the signing domain */
-  name: string
+  name: string;
   /** Current version of the signing domain */
-  version: string
-  /** EIP-155 chain ID */
-  chainId: number | bigint
+  version: string;
+  /** EIP-155 chain ID - must be string for Cronos facilitator (Bug #2 fix) */
+  chainId: number | bigint | string;
   /** Address of the contract that will verify the signature */
-  verifyingContract: `0x${string}`
+  verifyingContract: `0x${string}`;
 }
 
 // ============================================================================
@@ -113,7 +113,7 @@ export const TRANSFER_WITH_AUTHORIZATION_TYPE: readonly TypedDataField[] = [
   { name: 'validAfter', type: 'uint256' },
   { name: 'validBefore', type: 'uint256' },
   { name: 'nonce', type: 'bytes32' },
-] as const
+] as const;
 
 /**
  * TransferWithAuthorization Message Interface
@@ -122,17 +122,17 @@ export const TRANSFER_WITH_AUTHORIZATION_TYPE: readonly TypedDataField[] = [
  */
 export interface TransferWithAuthorizationMessage {
   /** Token sender's address (must match the signer) */
-  from: `0x${string}`
+  from: `0x${string}`;
   /** Token recipient's address */
-  to: `0x${string}`
+  to: `0x${string}`;
   /** Amount to transfer in smallest units (as string for uint256) */
-  value: string | bigint
+  value: string | bigint;
   /** Unix timestamp after which the authorization is valid */
-  validAfter: string | bigint
+  validAfter: string | bigint;
   /** Unix timestamp before which the authorization is valid */
-  validBefore: string | bigint
+  validBefore: string | bigint;
   /** Unique 32-byte nonce (as hex string with 0x prefix) */
-  nonce: `0x${string}`
+  nonce: `0x${string}`;
 }
 
 /**
@@ -142,11 +142,11 @@ export interface TransferWithAuthorizationMessage {
  */
 export interface SignatureComponents {
   /** Signature recovery identifier (27 or 28) */
-  v: number
+  v: number;
   /** First 32 bytes of the ECDSA signature */
-  r: `0x${string}`
+  r: `0x${string}`;
   /** Second 32 bytes of the ECDSA signature */
-  s: `0x${string}`
+  s: `0x${string}`;
 }
 
 /**
@@ -157,7 +157,7 @@ export interface SignatureComponents {
  */
 export interface SignedTransferWithAuthorization extends SignatureComponents {
   /** The authorization message that was signed */
-  message: TransferWithAuthorizationMessage
+  message: TransferWithAuthorizationMessage;
 }
 
 // ============================================================================
@@ -199,14 +199,14 @@ export const TRANSFER_WITH_AUTHORIZATION_TYPES = {
     { name: 'validBefore', type: 'uint256' },
     { name: 'nonce', type: 'bytes32' },
   ],
-} as const
+} as const;
 
 /**
  * Primary type for TransferWithAuthorization
  *
  * Use this constant when calling signTypedData to ensure type safety.
  */
-export const TRANSFER_WITH_AUTHORIZATION_PRIMARY_TYPE = 'TransferWithAuthorization' as const
+export const TRANSFER_WITH_AUTHORIZATION_PRIMARY_TYPE = 'TransferWithAuthorization' as const;
 
 // ============================================================================
 // Domain Configuration
@@ -235,9 +235,9 @@ export function getUsdcEip712Domain(): EIP712Domain {
   return {
     name: USDC_NAME,
     version: USDC_VERSION,
-    chainId: CRONOS_TESTNET_CHAIN_ID,
+    chainId: CRONOS_TESTNET_CHAIN_ID, // Bug #8 fix: Must be NUMBER for viem signTypedData
     verifyingContract: USDC_CONTRACT_ADDRESS,
-  }
+  };
 }
 
 /**
@@ -260,17 +260,17 @@ export function getUsdcEip712Domain(): EIP712Domain {
  * ```
  */
 export function createEip712Domain(options: {
-  name: string
-  version: string
-  chainId: number | bigint
-  verifyingContract: `0x${string}`
+  name: string;
+  version: string;
+  chainId: number | bigint;
+  verifyingContract: `0x${string}`;
 }): EIP712Domain {
   return {
     name: options.name,
     version: options.version,
     chainId: options.chainId,
     verifyingContract: options.verifyingContract,
-  }
+  };
 }
 
 // ============================================================================
@@ -297,29 +297,29 @@ export function createEip712Domain(options: {
  * ```
  */
 export function createTransferWithAuthorizationMessage(options: {
-  from: `0x${string}`
-  to: `0x${string}`
-  value: bigint | string | number
-  validAfter?: bigint | string | number
-  validBefore?: bigint | string | number
-  validitySeconds?: number
-  nonce: `0x${string}`
+  from: `0x${string}`;
+  to: `0x${string}`;
+  value: bigint | string | number;
+  validAfter?: bigint | string | number;
+  validBefore?: bigint | string | number;
+  validitySeconds?: number;
+  nonce: `0x${string}`;
 }): TransferWithAuthorizationMessage {
   // Calculate validity window
-  const now = Math.floor(Date.now() / 1000)
-  const validAfter = options.validAfter !== undefined
-    ? BigInt(options.validAfter)
-    : BigInt(0)
-  const validBefore = options.validBefore !== undefined
-    ? BigInt(options.validBefore)
-    : BigInt(now + (options.validitySeconds || 3600)) // Default 1 hour
+  const now = Math.floor(Date.now() / 1000);
+  const validAfter = options.validAfter !== undefined ? BigInt(options.validAfter) : BigInt(0);
+  const validBefore =
+    options.validBefore !== undefined
+      ? BigInt(options.validBefore)
+      : BigInt(now + (options.validitySeconds || 3600)); // Default 1 hour
 
   // Convert value to string (for uint256 compatibility)
-  const value = typeof options.value === 'bigint'
-    ? options.value.toString()
-    : typeof options.value === 'number'
-      ? BigInt(Math.floor(options.value)).toString()
-      : options.value
+  const value =
+    typeof options.value === 'bigint'
+      ? options.value.toString()
+      : typeof options.value === 'number'
+        ? BigInt(Math.floor(options.value)).toString()
+        : options.value;
 
   return {
     from: options.from,
@@ -328,7 +328,7 @@ export function createTransferWithAuthorizationMessage(options: {
     validAfter: validAfter.toString(),
     validBefore: validBefore.toString(),
     nonce: options.nonce,
-  }
+  };
 }
 
 /**
@@ -339,14 +339,12 @@ export function createTransferWithAuthorizationMessage(options: {
  * @param message - The authorization message to check
  * @returns true if the authorization is currently valid
  */
-export function isAuthorizationValid(
-  message: TransferWithAuthorizationMessage
-): boolean {
-  const now = BigInt(Math.floor(Date.now() / 1000))
-  const validAfter = BigInt(message.validAfter)
-  const validBefore = BigInt(message.validBefore)
+export function isAuthorizationValid(message: TransferWithAuthorizationMessage): boolean {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  const validAfter = BigInt(message.validAfter);
+  const validBefore = BigInt(message.validBefore);
 
-  return now > validAfter && now < validBefore
+  return now > validAfter && now < validBefore;
 }
 
 /**
@@ -364,9 +362,11 @@ export function isAuthorizationValid(
  * ```
  */
 export function generateNonce(): `0x${string}` {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return `0x${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')}`
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return `0x${Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')}`;
 }
 
 // ============================================================================
@@ -387,21 +387,21 @@ export function generateNonce(): `0x${string}` {
  * ```
  */
 export function parseUSDC(amount: string | number): bigint {
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
 
   if (isNaN(numAmount)) {
-    throw new Error(`Invalid USDC amount: ${amount}`)
+    throw new Error(`Invalid USDC amount: ${amount}`);
   }
 
   if (numAmount < 0) {
-    throw new Error(`USDC amount cannot be negative: ${amount}`)
+    throw new Error(`USDC amount cannot be negative: ${amount}`);
   }
 
   // Multiply by 10^6 and round to avoid floating point issues
-  const multiplier = 10 ** USDC_DECIMALS
-  const smallestUnits = Math.round(numAmount * multiplier)
+  const multiplier = 10 ** USDC_DECIMALS;
+  const smallestUnits = Math.round(numAmount * multiplier);
 
-  return BigInt(smallestUnits)
+  return BigInt(smallestUnits);
 }
 
 /**
@@ -418,25 +418,23 @@ export function parseUSDC(amount: string | number): bigint {
  * formatUSDC(1500000n, 6) // => "1.500000"
  * ```
  */
-export function formatUSDC(
-  amount: bigint | number | string,
-  decimalPlaces: number = 2
-): string {
-  const bigAmount = typeof amount === 'bigint'
-    ? amount
-    : BigInt(typeof amount === 'string' ? amount : Math.floor(amount))
+export function formatUSDC(amount: bigint | number | string, decimalPlaces: number = 2): string {
+  const bigAmount =
+    typeof amount === 'bigint'
+      ? amount
+      : BigInt(typeof amount === 'string' ? amount : Math.floor(amount));
 
-  const divisor = BigInt(10 ** USDC_DECIMALS)
-  const wholePart = bigAmount / divisor
-  const fractionalPart = bigAmount % divisor
+  const divisor = BigInt(10 ** USDC_DECIMALS);
+  const wholePart = bigAmount / divisor;
+  const fractionalPart = bigAmount % divisor;
 
   // Pad fractional part with leading zeros
-  const fractionalStr = fractionalPart.toString().padStart(USDC_DECIMALS, '0')
+  const fractionalStr = fractionalPart.toString().padStart(USDC_DECIMALS, '0');
 
   // Truncate or pad to desired decimal places
-  const truncatedFractional = fractionalStr.slice(0, decimalPlaces).padEnd(decimalPlaces, '0')
+  const truncatedFractional = fractionalStr.slice(0, decimalPlaces).padEnd(decimalPlaces, '0');
 
-  return `${wholePart}.${truncatedFractional}`
+  return `${wholePart}.${truncatedFractional}`;
 }
 
 /**
@@ -456,7 +454,7 @@ export function formatUSDCWithSymbol(
   amount: bigint | number | string,
   decimalPlaces: number = 2
 ): string {
-  return `$${formatUSDC(amount, decimalPlaces)}`
+  return `$${formatUSDC(amount, decimalPlaces)}`;
 }
 
 // ============================================================================
@@ -487,22 +485,22 @@ export function parseSignature(signature: string): SignatureComponents {
   if (!/^0x[a-fA-F0-9]{130}$/.test(signature)) {
     throw new Error(
       `Invalid signature format: expected 0x + 130 hex characters (65 bytes), got ${signature.length - 2} hex characters`
-    )
+    );
   }
 
   // Extract r (bytes 0-32): chars 2-66 (first 64 hex chars after 0x)
-  const r = `0x${signature.slice(2, 66)}` as `0x${string}`
+  const r = `0x${signature.slice(2, 66)}` as `0x${string}`;
 
   // Extract s (bytes 32-64): chars 66-130 (next 64 hex chars)
-  const s = `0x${signature.slice(66, 130)}` as `0x${string}`
+  const s = `0x${signature.slice(66, 130)}` as `0x${string}`;
 
   // Extract v (byte 64): chars 130-132 (last 2 hex chars)
-  const v = parseInt(signature.slice(130, 132), 16)
+  const v = parseInt(signature.slice(130, 132), 16);
 
   // Normalize v to 27/28 if it's 0/1 (EIP-155 to legacy format)
-  const normalizedV = v < 27 ? v + 27 : v
+  const normalizedV = v < 27 ? v + 27 : v;
 
-  return { r, s, v: normalizedV }
+  return { r, s, v: normalizedV };
 }
 
 /**
@@ -526,20 +524,16 @@ export function parseSignature(signature: string): SignatureComponents {
  * // compact = '0x1234...abcd...00' (65 bytes)
  * ```
  */
-export function combineSignature(
-  r: string,
-  s: string,
-  v: number
-): `0x${string}` {
+export function combineSignature(r: string, s: string, v: number): `0x${string}` {
   // Strip 0x prefix if present
-  const normalizedR = r.startsWith('0x') ? r.slice(2) : r
-  const normalizedS = s.startsWith('0x') ? s.slice(2) : s
+  const normalizedR = r.startsWith('0x') ? r.slice(2) : r;
+  const normalizedS = s.startsWith('0x') ? s.slice(2) : s;
 
   // Normalize v to 0/1 format for compact signature
-  const vByte = v >= 27 ? v - 27 : v
-  const vHex = vByte.toString(16).padStart(2, '0')
+  const vByte = v >= 27 ? v - 27 : v;
+  const vHex = vByte.toString(16).padStart(2, '0');
 
-  return `0x${normalizedR}${normalizedS}${vHex}`
+  return `0x${normalizedR}${normalizedS}${vHex}`;
 }
 
 /**
@@ -550,29 +544,25 @@ export function combineSignature(
  * @param signature - The signature components to validate
  * @throws Error if any component is invalid
  */
-export function validateSignatureComponents(signature: {
-  r: string
-  s: string
-  v: number
-}): void {
+export function validateSignatureComponents(signature: { r: string; s: string; v: number }): void {
   // Validate r (32 bytes = 64 hex chars + 0x prefix)
   if (!/^0x[a-fA-F0-9]{64}$/.test(signature.r)) {
     throw new Error(
       `Invalid signature component 'r': expected 0x-prefixed hex string with 64 characters (32 bytes), got '${signature.r}'`
-    )
+    );
   }
 
   // Validate s (32 bytes = 64 hex chars + 0x prefix)
   if (!/^0x[a-fA-F0-9]{64}$/.test(signature.s)) {
     throw new Error(
       `Invalid signature component 's': expected 0x-prefixed hex string with 64 characters (32 bytes), got '${signature.s}'`
-    )
+    );
   }
 
   // Validate v (should be 27 or 28 for legacy, or 0/1 for EIP-155)
   if (signature.v !== 27 && signature.v !== 28 && signature.v !== 0 && signature.v !== 1) {
     throw new Error(
       `Invalid signature component 'v': expected 27, 28, 0, or 1, got ${signature.v}`
-    )
+    );
   }
 }

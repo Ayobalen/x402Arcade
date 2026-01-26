@@ -76,8 +76,12 @@ const leaderboardService = new LeaderboardService(db);
 // Create scheduler instance
 export const scheduler = new JobScheduler(db, prizePoolService, leaderboardService);
 
-// Import the configured Express app
-import { app } from './app.js';
+// Import the app factory function (NOT the app instance)
+import { createApp } from './app.js';
+
+// Create app AFTER environment is loaded and validated
+// This ensures getEnv() in app.ts uses actual env vars, not defaults
+const app = createApp();
 
 // Import and mount jobs routes
 import { createJobsRouter } from './routes/jobs.routes.js';

@@ -131,8 +131,21 @@ export function createApp(): Express {
     cors({
       origin: env.CORS_ORIGIN,
       credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-402-Payment', 'X-402-Signature'],
-      exposedHeaders: ['X-402-Required', 'X-402-Price', 'X-402-Network', 'X-402-Recipient'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Payment',
+        'X-402-Payment',
+        'X-402-Signature',
+      ],
+      exposedHeaders: [
+        'X-Payment-Required',
+        'X-Payment-Version',
+        'X-402-Required',
+        'X-402-Price',
+        'X-402-Network',
+        'X-402-Recipient',
+      ],
     })
   );
 
@@ -246,13 +259,12 @@ export function createApp(): Express {
 }
 
 /**
- * Configured Express application instance.
- * Ready to be imported by index.ts for server startup or by tests.
+ * NOTE: Do NOT create app instance at module load time!
+ * The app must be created AFTER environment variables are loaded in index.ts.
+ *
+ * Module-level code runs during import, BEFORE index.ts can load .env,
+ * which causes getEnv() to cache default values instead of actual env vars.
+ *
+ * Solution: Export the createApp function and let index.ts call it after
+ * loading environment variables.
  */
-export const app = createApp();
-
-/**
- * Default export for convenience.
- * Allows: import app from './app.js'
- */
-export default app;
