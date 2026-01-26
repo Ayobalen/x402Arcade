@@ -21,11 +21,19 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables from packages/backend/.env
-dotenv.config({ path: join(__dirname, '../.env') });
-
 // Validate environment variables at startup
-import { getEnv, validateEnv, type ValidationResult } from './config/env.js';
+import { getEnv, revalidateEnv, validateEnv, type ValidationResult } from './config/env.js';
+
+// Load environment variables from packages/backend/.env
+const envPath = join(__dirname, '../.env');
+// eslint-disable-next-line no-console
+console.log('📄 Loading .env from:', envPath);
+dotenv.config({ path: envPath });
+// eslint-disable-next-line no-console
+console.log('🔧 CORS_ORIGIN from process.env:', process.env.CORS_ORIGIN);
+
+// Re-validate environment after loading .env (clears cache and re-parses with actual values)
+revalidateEnv();
 
 /**
  * Format environment validation errors for display

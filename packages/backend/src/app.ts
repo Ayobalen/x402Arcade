@@ -125,6 +125,8 @@ export function createApp(): Express {
 
   // CORS: Enable cross-origin requests from frontend
   // Configure allowed headers for x402 payment protocol
+  // eslint-disable-next-line no-console
+  console.log('🔧 CORS configuration:', env.CORS_ORIGIN);
   app.use(
     cors({
       origin: env.CORS_ORIGIN,
