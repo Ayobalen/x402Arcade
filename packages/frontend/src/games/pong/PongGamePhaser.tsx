@@ -62,6 +62,7 @@ class PongScene extends Phaser.Scene {
   private gameActive = true;
   private isPaused = false;
   private lastAiUpdate = 0;
+  private lastPaddleHit = 0; // Collision cooldown
 
   private config: typeof DIFFICULTY_CONFIG.normal;
   private onGameOver: (score: number) => void;
@@ -187,15 +188,25 @@ class PongScene extends Phaser.Scene {
       this.ballVelocity.y *= -1;
     }
 
-    // Ball collision with paddles
-    if (this.checkPaddleCollision(this.ball, this.playerPaddle)) {
-      this.ballVelocity.x = Math.abs(this.ballVelocity.x) * 1.05; // Speed up slightly
-      const hitPos = (this.ball.y - this.playerPaddle.y) / (this.config.paddleHeight / 2);
-      this.ballVelocity.y = hitPos * this.config.ballSpeed;
-    } else if (this.checkPaddleCollision(this.ball, this.aiPaddle)) {
-      this.ballVelocity.x = -Math.abs(this.ballVelocity.x) * 1.05; // Speed up slightly
-      const hitPos = (this.ball.y - this.aiPaddle.y) / (this.config.paddleHeight / 2);
-      this.ballVelocity.y = hitPos * this.config.ballSpeed;
+    // Ball collision with paddles (with cooldown to prevent multiple hits)
+    const timeSinceLastHit = time - this.lastPaddleHit;
+    if (timeSinceLastHit > 100) {
+      // 100ms cooldown
+      if (this.checkPaddleCollision(this.ball, this.playerPaddle)) {
+        this.ballVelocity.x = Math.abs(this.ballVelocity.x) * 1.05; // Speed up slightly
+        const hitPos = (this.ball.y - this.playerPaddle.y) / (this.config.paddleHeight / 2);
+        this.ballVelocity.y = hitPos * this.config.ballSpeed;
+        this.lastPaddleHit = time;
+        // Move ball away from paddle to prevent sticking
+        this.ball.x = this.playerPaddle.x + 15;
+      } else if (this.checkPaddleCollision(this.ball, this.aiPaddle)) {
+        this.ballVelocity.x = -Math.abs(this.ballVelocity.x) * 1.05; // Speed up slightly
+        const hitPos = (this.ball.y - this.aiPaddle.y) / (this.config.paddleHeight / 2);
+        this.ballVelocity.y = hitPos * this.config.ballSpeed;
+        this.lastPaddleHit = time;
+        // Move ball away from paddle to prevent sticking
+        this.ball.x = this.aiPaddle.x - 15;
+      }
     }
 
     // Ball out of bounds (scoring)
@@ -232,12 +243,24 @@ class PongScene extends Phaser.Scene {
     this.ball.x = width / 2;
     this.ball.y = height / 2;
 
-    // Random direction
-    const angle = Phaser.Math.Between(-45, 45) * (Math.PI / 180);
+    // Random direction with guaranteed horizontal movement
+    // Angle between -30 and +30 degrees for better gameplay
+    const angle = Phaser.Math.Between(-30, 30) * (Math.PI / 180);
     const direction = Math.random() > 0.5 ? 1 : -1;
 
-    this.ballVelocity.x = Math.cos(angle) * this.config.ballSpeed * direction;
-    this.ballVelocity.y = Math.sin(angle) * this.config.ballSpeed;
+    // Ensure minimum horizontal velocity
+    const vx = Math.cos(angle) * this.config.ballSpeed * direction;
+    const vy = Math.sin(angle) * this.config.ballSpeed;
+
+    // Guarantee at least 70% of speed is horizontal
+    const minHorizontalSpeed = this.config.ballSpeed * 0.7;
+    if (Math.abs(vx) < minHorizontalSpeed) {
+      this.ballVelocity.x = minHorizontalSpeed * direction;
+      this.ballVelocity.y = vy * 0.5; // Reduce vertical if we're correcting horizontal
+    } else {
+      this.ballVelocity.x = vx;
+      this.ballVelocity.y = vy;
+    }
   }
 
   private updateScore() {
@@ -285,7 +308,7 @@ export function PongGamePhaser({
     container.focus();
 
     const phaserConfig: Phaser.Types.Core.GameConfig = {
-      type: Phaser.AUTO,
+      type: Phaser.CANVAS, // Force canvas renderer for stability
       parent: container,
       width: 800,
       height: 600,
@@ -296,6 +319,11 @@ export function PongGamePhaser({
         autoCenter: Phaser.Scale.CENTER_BOTH,
       },
       disableContextMenu: true,
+      render: {
+        pixelArt: false,
+        antialias: true,
+        roundPixels: true, // Prevent sub-pixel rendering
+      },
     };
 
     gameRef.current = new Phaser.Game(phaserConfig);
@@ -322,6 +350,13 @@ export function PongGamePhaser({
         alignItems: 'center',
         position: 'relative',
         outline: 'none',
+        // Force GPU acceleration and prevent sub-pixel jitter
+        transform: 'translateZ(0)',
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
+        perspective: '1000px',
+        // Disable any inherited transforms
+        transformStyle: 'flat',
       }}
     />
   );
