@@ -62,19 +62,15 @@ const env = getEnv();
 import { initDatabase, getDatabase } from './db/index.js';
 initDatabase();
 
-// Import services for background jobs
-import { PrizePoolService } from './services/prizePool.js';
-import { LeaderboardService } from './services/leaderboard.js';
-
 // Import and initialize job scheduler
-import { JobScheduler } from './jobs/scheduler.js';
+import { startScheduler, stopScheduler } from './jobs/scheduler.js';
 
-const db = getDatabase();
-const prizePoolService = new PrizePoolService(db);
-const leaderboardService = new LeaderboardService(db);
+// Initialize database (will be used by routes and future Vercel Cron jobs)
+getDatabase();
 
-// Create scheduler instance
-export const scheduler = new JobScheduler(db, prizePoolService, leaderboardService);
+// Services will be initialized when Vercel Cron jobs are implemented
+// For now, scheduler is stubbed
+export const scheduler = { start: startScheduler, stop: stopScheduler };
 
 // Import the app factory function (NOT the app instance)
 import { createApp } from './app.js';
