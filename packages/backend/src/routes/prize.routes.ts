@@ -54,7 +54,7 @@ const VALID_PERIOD_TYPES = new Set<string>(['daily', 'weekly']);
  * - 404: Prize pool not found
  * - 200: Prize pool information
  */
-router.get('/:gameType/:periodType', (req: Request, res: Response) => {
+router.get('/:gameType/:periodType', async (req: Request, res: Response) => {
   // Extract path parameters
   const { gameType, periodType } = req.params;
 
@@ -81,10 +81,7 @@ router.get('/:gameType/:periodType', (req: Request, res: Response) => {
     const service = getPrizePoolService();
 
     // Query current prize pool
-    const pool = service.getCurrentPool({
-      gameType: gameType as GameType,
-      periodType: periodType as PeriodType,
-    });
+    const pool = await service.getCurrentPool(gameType as GameType, periodType as PeriodType);
 
     // Return 404 if no pool exists
     if (!pool) {
@@ -126,7 +123,7 @@ router.get('/:gameType/:periodType', (req: Request, res: Response) => {
  * - 400: Invalid parameters
  * - 200: Array of historical prize pools
  */
-router.get('/:gameType/history', (req: Request, res: Response) => {
+router.get('/:gameType/history', async (req: Request, res: Response) => {
   // Extract path parameters
   const { gameType } = req.params;
 
@@ -182,12 +179,11 @@ router.get('/:gameType/history', (req: Request, res: Response) => {
 
     // If periodType is specified, get history for that period type only
     if (periodType) {
-      const history = service.getPoolHistory({
-        gameType: gameType as GameType,
-        periodType: periodType as PeriodType,
-        limit,
-        offset,
-      });
+      const history = await service.getPoolHistory(
+        gameType as GameType,
+        periodType as PeriodType,
+        limit
+      );
 
       res.status(200).json({
         history,
@@ -201,19 +197,9 @@ router.get('/:gameType/history', (req: Request, res: Response) => {
     }
 
     // If no periodType specified, get history for both daily and weekly
-    const dailyHistory = service.getPoolHistory({
-      gameType: gameType as GameType,
-      periodType: 'daily',
-      limit,
-      offset,
-    });
+    const dailyHistory = await service.getPoolHistory(gameType as GameType, 'daily', limit);
 
-    const weeklyHistory = service.getPoolHistory({
-      gameType: gameType as GameType,
-      periodType: 'weekly',
-      limit,
-      offset,
-    });
+    const weeklyHistory = await service.getPoolHistory(gameType as GameType, 'weekly', limit);
 
     res.status(200).json({
       daily: dailyHistory,

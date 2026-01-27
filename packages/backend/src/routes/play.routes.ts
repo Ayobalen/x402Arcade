@@ -154,7 +154,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
 
     // Step 5: Check for existing active session
     // Prevent double-payment: player can only have one active session per game at a time
-    const activeSession = gameService.getActiveSession(playerAddress, gameType);
+    const activeSession = await gameService.getActiveSession(playerAddress, gameType);
     if (activeSession) {
       res.status(409).json({
         error: 'Active session exists',
@@ -170,7 +170,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
     }
 
     // Step 6: Create game session
-    const session = gameService.createSession({
+    const session = await gameService.createSession({
       gameType,
       playerAddress,
       paymentTxHash,
@@ -181,18 +181,18 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
     // This is done outside the session transaction to avoid blocking session creation
     // if prize pool update fails. The payment has already been verified at this point.
     try {
-      const poolUpdate = prizePoolService.addToPrizePool({
-        gameType: gameType as 'snake' | 'tetris' | 'pong-phaser',
-        amountUsdc: amountPaidUsdc,
-      });
+      // Prize pool takes 75% of payment by default
+      await prizePoolService.addToPrizePool(
+        gameType as 'snake' | 'tetris' | 'pong-phaser',
+        amountPaidUsdc,
+        75
+      );
 
       // eslint-disable-next-line no-console
       console.log('[Prize Pool] Updated successfully', {
         sessionId: session.id,
         gameType,
         paymentAmount: amountPaidUsdc,
-        dailyPoolTotal: poolUpdate.dailyTotal,
-        weeklyPoolTotal: poolUpdate.weeklyTotal,
       });
     } catch (poolError) {
       // Log error but don't fail the session creation

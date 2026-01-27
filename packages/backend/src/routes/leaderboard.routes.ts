@@ -48,7 +48,7 @@ const VALID_PERIOD_TYPES = new Set<string>(['daily', 'weekly', 'alltime']);
  * - 400: Invalid parameters
  * - 200: Leaderboard entries
  */
-router.get('/:gameType/:periodType', (req: Request, res: Response) => {
+router.get('/:gameType/:periodType', async (req: Request, res: Response) => {
   // Extract path parameters
   const { gameType, periodType } = req.params;
 
@@ -111,13 +111,22 @@ router.get('/:gameType/:periodType', (req: Request, res: Response) => {
     // Get leaderboard service
     const service = getLeaderboardService();
 
+    // Get current period dates
+    const periods = LeaderboardService.getCurrentPeriods();
+    const periodDate =
+      periodType === 'alltime'
+        ? 'alltime'
+        : periodType === 'daily'
+          ? periods.daily
+          : periods.weekly;
+
     // Query leaderboard
-    const entries = service.getTopScores({
-      gameType: gameType as GameType,
-      periodType: periodType as PeriodType,
-      limit,
-      offset,
-    });
+    const entries = await service.getTopScores(
+      gameType as GameType,
+      periodType as PeriodType,
+      periodDate,
+      limit
+    );
 
     // Set caching headers for leaderboard response
     // Cache for 30 seconds to balance freshness with performance

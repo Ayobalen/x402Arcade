@@ -65,7 +65,7 @@ export class LeaderboardServiceRedis {
    * Alias for addScore (API compatibility)
    */
   async addEntry(
-    sessionId: string,
+    _sessionId: string,
     gameType: GameType,
     playerAddress: string,
     score: number

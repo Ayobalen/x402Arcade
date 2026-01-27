@@ -3,12 +3,13 @@
  */
 
 import { Router, type Request, type Response } from 'express';
+import type { Router as RouterType } from 'express';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { db } from '../db/index.js';
 
-const router = Router();
+const router: RouterType = Router();
 
 // Get package.json version
 const __filename = fileURLToPath(import.meta.url);

@@ -44,7 +44,7 @@ function getServices() {
  * - 409: Session already completed or not active
  * - 200: Score submitted successfully
  */
-router.post('/submit', (req: Request, res: Response) => {
+router.post('/submit', async (req: Request, res: Response) => {
   const { sessionId, score, playerAddress } = req.body;
 
   // Validate required fields
@@ -78,7 +78,7 @@ router.post('/submit', (req: Request, res: Response) => {
   const { gameService, leaderboardService } = getServices();
 
   // Fetch session to get gameType for game-specific score validation
-  const existingSession = gameService.getSession(sessionId);
+  const existingSession = await gameService.getSession(sessionId);
   if (!existingSession) {
     res.status(404).json({
       error: 'Not found',
@@ -101,7 +101,7 @@ router.post('/submit', (req: Request, res: Response) => {
   // Call GameService.completeSession() - throws on error
   let session;
   try {
-    session = gameService.completeSession(sessionId, score);
+    session = await gameService.completeSession(sessionId, score);
   } catch (error) {
     if (error instanceof Error) {
       // Determine appropriate status code based on error message
@@ -141,42 +141,43 @@ router.post('/submit', (req: Request, res: Response) => {
   let alltimeRanking = null;
 
   try {
-    leaderboardService.addEntry({
-      sessionId: session.id,
-      gameType: session.gameType,
-      playerAddress,
-      score: session.score!,
-    });
+    await leaderboardService.addEntry(session.id, session.gameType, playerAddress, session.score!);
+
+    // Get current period dates
+    const periods = LeaderboardService.getCurrentPeriods();
 
     // Get player rankings for all periods
     try {
-      dailyRanking = leaderboardService.getPlayerRanking({
-        gameType: session.gameType,
+      dailyRanking = await leaderboardService.getPlayerRank(
+        session.gameType,
         playerAddress,
-        periodType: 'daily',
-      });
+        'daily',
+        periods.daily
+      );
     } catch (rankError) {
       // eslint-disable-next-line no-console
       console.error('Failed to get daily ranking:', rankError);
     }
 
     try {
-      weeklyRanking = leaderboardService.getPlayerRanking({
-        gameType: session.gameType,
+      weeklyRanking = await leaderboardService.getPlayerRank(
+        session.gameType,
         playerAddress,
-        periodType: 'weekly',
-      });
+        'weekly',
+        periods.weekly
+      );
     } catch (rankError) {
       // eslint-disable-next-line no-console
       console.error('Failed to get weekly ranking:', rankError);
     }
 
     try {
-      alltimeRanking = leaderboardService.getPlayerRanking({
-        gameType: session.gameType,
+      alltimeRanking = await leaderboardService.getPlayerRank(
+        session.gameType,
         playerAddress,
-        periodType: 'alltime',
-      });
+        'alltime',
+        'alltime'
+      );
     } catch (rankError) {
       // eslint-disable-next-line no-console
       console.error('Failed to get alltime ranking:', rankError);
