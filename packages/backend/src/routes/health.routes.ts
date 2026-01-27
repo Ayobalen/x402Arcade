@@ -25,7 +25,7 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'
 router.get('/health', async (_req: Request, res: Response) => {
   try {
     // Test Redis connection
-    await db.ping();
+    await db.client.ping();
 
     res.json({
       status: 'healthy',
@@ -56,7 +56,7 @@ router.get('/health/live', (_req: Request, res: Response) => {
  */
 router.get('/health/ready', async (_req: Request, res: Response) => {
   try {
-    await db.ping();
+    await db.client.ping();
     res.json({ status: 'ready' });
   } catch (_error) {
     res.status(503).json({ status: 'not ready' });

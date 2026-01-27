@@ -1,8 +1,8 @@
 /**
- * Redis-based Prize Pool Service for Vercel KV
+ * Redis-based Prize Pool Service
  */
 
-import type { VercelKV } from '@vercel/kv';
+import type { Redis } from 'ioredis';
 import { RedisKeys, type PrizePoolHash } from '../db/schema.js';
 import type { GameType } from './game.js';
 
@@ -23,10 +23,10 @@ export interface PrizePool {
 }
 
 export class PrizePoolServiceRedis {
-  private kv: VercelKV;
+  private redis: Redis;
 
-  constructor(kv: VercelKV) {
-    this.kv = kv;
+  constructor(redis: Redis) {
+    this.redis = redis;
   }
 
   /**
@@ -38,10 +38,10 @@ export class PrizePoolServiceRedis {
     periodDate: string
   ): Promise<PrizePool> {
     const key = RedisKeys.prizePool(gameType, periodType, periodDate);
-    const existing = await this.kv.hgetall<PrizePoolHash>(key);
+    const existing = await this.redis.hgetall(key);
 
-    if (existing) {
-      return this.hashToPool(existing);
+    if (existing && Object.keys(existing).length > 0) {
+      return this.hashToPool(existing as PrizePoolHash);
     }
 
     // Create new pool
@@ -59,8 +59,8 @@ export class PrizePoolServiceRedis {
       finalizedAt: null,
     };
 
-    await this.kv.hset(key, poolData);
-    await this.kv.sadd(RedisKeys.activePrizePools(), key);
+    await this.redis.hset(key, poolData as any);
+    await this.redis.sadd(RedisKeys.activePrizePools(), key);
 
     return this.hashToPool(poolData);
   }
@@ -78,8 +78,8 @@ export class PrizePoolServiceRedis {
 
     // Use HINCRBYFLOAT to atomically increment
     await Promise.all([
-      this.kv.hincrbyfloat(key, 'totalAmountUsdc', amount),
-      this.kv.hincrby(key, 'totalGames', 1),
+      this.redis.hincrbyfloat(key, 'totalAmountUsdc', amount),
+      this.redis.hincrby(key, 'totalGames', 1),
     ]);
   }
 
@@ -137,10 +137,10 @@ export class PrizePoolServiceRedis {
     periodDate: string
   ): Promise<PrizePool | null> {
     const key = RedisKeys.prizePool(gameType, periodType, periodDate);
-    const data = await this.kv.hgetall<PrizePoolHash>(key);
+    const data = await this.redis.hgetall(key);
 
-    if (!data) return null;
-    return this.hashToPool(data);
+    if (!data || Object.keys(data).length === 0) return null;
+    return this.hashToPool(data as PrizePoolHash);
   }
 
   /**
@@ -156,13 +156,13 @@ export class PrizePoolServiceRedis {
     const now = new Date().toISOString();
 
     await Promise.all([
-      this.kv.hset(key, {
+      this.redis.hset(key, {
         status: 'finalized',
         winnerAddress: winnerAddress.toLowerCase(),
         finalizedAt: now,
-      }),
-      this.kv.srem(RedisKeys.activePrizePools(), key),
-      this.kv.sadd(RedisKeys.finalizedPrizePools(), key),
+      } as any),
+      this.redis.srem(RedisKeys.activePrizePools(), key),
+      this.redis.sadd(RedisKeys.finalizedPrizePools(), key),
     ]);
   }
 
@@ -178,11 +178,11 @@ export class PrizePoolServiceRedis {
     const key = RedisKeys.prizePool(gameType, periodType, periodDate);
 
     await Promise.all([
-      this.kv.hset(key, {
+      this.redis.hset(key, {
         status: 'paid',
         payoutTxHash: txHash,
-      }),
-      this.kv.srem(RedisKeys.finalizedPrizePools(), key),
+      } as any),
+      this.redis.srem(RedisKeys.finalizedPrizePools(), key),
     ]);
   }
 
@@ -190,13 +190,13 @@ export class PrizePoolServiceRedis {
    * Get all active pools
    */
   async getActivePools(): Promise<PrizePool[]> {
-    const keys = await this.kv.smembers(RedisKeys.activePrizePools());
+    const keys = await this.redis.smembers(RedisKeys.activePrizePools());
     const pools: PrizePool[] = [];
 
     for (const key of keys) {
-      const data = await this.kv.hgetall<PrizePoolHash>(key);
-      if (data) {
-        pools.push(this.hashToPool(data));
+      const data = await this.redis.hgetall(key);
+      if (data && Object.keys(data).length > 0) {
+        pools.push(this.hashToPool(data as PrizePoolHash));
       }
     }
 

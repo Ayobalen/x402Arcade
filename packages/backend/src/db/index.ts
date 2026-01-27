@@ -1,54 +1,81 @@
 /**
  * Database Module
  *
- * Initializes and exports the Vercel KV (Redis) connection.
+ * Initializes and exports the Redis connection using ioredis.
  * Provides high-performance in-memory database operations.
  *
  * @module db
  */
 
-import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
+
+let redisClient: Redis | null = null;
 
 /**
- * Redis client instance from Vercel KV
- * Automatically configured via environment variables:
- * - KV_REST_API_URL
- * - KV_REST_API_TOKEN
+ * Redis client instance
+ * Configured via REDIS_URL environment variable
  */
-export const db = kv;
+export const db = {
+  get client(): Redis {
+    return getDatabase();
+  }
+};
 
 /**
  * Initialize the database connection
  *
- * For Vercel KV, initialization happens automatically via environment variables.
- * This function exists for API compatibility but doesn't need to do anything.
- *
- * @returns KV client instance
+ * @returns Redis client instance
  */
-export function initDatabase() {
-  // Vercel KV is initialized automatically from environment variables
-  // No explicit initialization needed
-  return db;
+export function initDatabase(): Redis {
+  if (!redisClient) {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      throw new Error('REDIS_URL environment variable is not set');
+    }
+
+    console.log('[Database] Initializing Redis connection...');
+
+    redisClient = new Redis(redisUrl, {
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      },
+    });
+
+    redisClient.on('connect', () => {
+      console.log('[Database] Connected to Redis successfully');
+    });
+
+    redisClient.on('error', (err) => {
+      console.error('[Database] Redis connection error:', err.message);
+    });
+  }
+
+  return redisClient;
 }
 
 /**
  * Get the database instance
  *
- * @returns KV client instance
+ * @returns Redis client instance
  */
-export function getDatabase() {
-  return db;
+export function getDatabase(): Redis {
+  if (!redisClient) {
+    return initDatabase();
+  }
+  return redisClient;
 }
 
 /**
  * Close the database connection
- *
- * For Vercel KV, connections are managed automatically.
- * This function exists for API compatibility.
  */
 export function closeDatabase(): void {
-  // Vercel KV connections are managed automatically
-  // No explicit cleanup needed
+  if (redisClient) {
+    console.log('[Database] Closing Redis connection...');
+    redisClient.disconnect();
+    redisClient = null;
+  }
 }
 
 // Default export for convenience

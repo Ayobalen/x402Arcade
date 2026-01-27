@@ -1,8 +1,8 @@
 /**
- * Redis-based Leaderboard Service for Vercel KV
+ * Redis-based Leaderboard Service
  */
 
-import type { VercelKV } from '@vercel/kv';
+import type { Redis } from 'ioredis';
 import { RedisKeys } from '../db/schema.js';
 import type { GameType } from './game.js';
 
@@ -18,10 +18,10 @@ export interface LeaderboardEntry {
 }
 
 export class LeaderboardServiceRedis {
-  private kv: VercelKV;
+  private redis: Redis;
 
-  constructor(kv: VercelKV) {
-    this.kv = kv;
+  constructor(redis: Redis) {
+    this.redis = redis;
   }
 
   /**
@@ -38,11 +38,12 @@ export class LeaderboardServiceRedis {
     const normalizedAddress = playerAddress.toLowerCase();
 
     // Check if player already has a score
-    const existingScore = await this.kv.zscore(key, normalizedAddress);
+    const existingScoreStr = await this.redis.zscore(key, normalizedAddress);
+    const existingScore = existingScoreStr ? parseFloat(existingScoreStr) : null;
 
     // Only update if new score is higher or no existing score
     if (!existingScore || score > existingScore) {
-      await this.kv.zadd(key, { score, member: normalizedAddress });
+      await this.redis.zadd(key, score, normalizedAddress);
 
       // Store detailed entry
       const entryKey = RedisKeys.leaderboardEntry(
@@ -50,14 +51,14 @@ export class LeaderboardServiceRedis {
         normalizedAddress,
         `${periodType}:${periodDate}`
       );
-      await this.kv.hset(entryKey, {
+      await this.redis.hset(entryKey, {
         playerAddress: normalizedAddress,
         score: score.toString(),
         gameType,
         periodType,
         periodDate,
         updatedAt: new Date().toISOString(),
-      });
+      } as any);
     }
   }
 
@@ -104,15 +105,12 @@ export class LeaderboardServiceRedis {
     const key = RedisKeys.leaderboard(gameType, periodType, periodDate);
 
     // Get top scores with ZREVRANGE (highest to lowest)
-    const results = await this.kv.zrange(key, 0, limit - 1, {
-      rev: true,
-      withScores: true,
-    });
+    const results = await this.redis.zrevrange(key, 0, limit - 1, 'WITHSCORES');
 
     const entries: LeaderboardEntry[] = [];
     for (let i = 0; i < results.length; i += 2) {
       const playerAddress = results[i] as string;
-      const score = results[i + 1] as number;
+      const score = parseFloat(results[i + 1] as string);
 
       entries.push({
         rank: Math.floor(i / 2) + 1,
@@ -139,18 +137,18 @@ export class LeaderboardServiceRedis {
     const key = RedisKeys.leaderboard(gameType, periodType, periodDate);
     const normalizedAddress = playerAddress.toLowerCase();
 
-    const [score, rank] = await Promise.all([
-      this.kv.zscore(key, normalizedAddress),
-      this.kv.zrevrank(key, normalizedAddress),
+    const [scoreStr, rank] = await Promise.all([
+      this.redis.zscore(key, normalizedAddress),
+      this.redis.zrevrank(key, normalizedAddress),
     ]);
 
-    if (score === null || rank === null) {
+    if (scoreStr === null || rank === null) {
       return null;
     }
 
     return {
       rank: rank + 1, // Redis ranks are 0-indexed
-      score,
+      score: parseFloat(scoreStr),
     };
   }
 

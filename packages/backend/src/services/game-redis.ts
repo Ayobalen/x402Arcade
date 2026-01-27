@@ -1,9 +1,9 @@
 /**
- * Redis-based Game Service for Vercel KV
+ * Redis-based Game Service
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import type { VercelKV } from '@vercel/kv';
+import type { Redis } from 'ioredis';
 import { RedisKeys, type GameSessionHash } from '../db/schema.js';
 import type {
   GameType,
@@ -15,13 +15,13 @@ import type {
 export const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
 
 /**
- * GameService for Redis (Vercel KV)
+ * GameService for Redis
  */
 export class GameServiceRedis {
-  private kv: VercelKV;
+  private redis: Redis;
 
-  constructor(kv: VercelKV) {
-    this.kv = kv;
+  constructor(redis: Redis) {
+    this.redis = redis;
   }
 
   /**
@@ -34,7 +34,7 @@ export class GameServiceRedis {
     const now = new Date().toISOString();
 
     // Check for duplicate payment
-    const existingSession = await this.kv.get(RedisKeys.sessionByPayment(paymentTxHash));
+    const existingSession = await this.redis.get(RedisKeys.sessionByPayment(paymentTxHash));
     if (existingSession) {
       throw new Error(`Payment transaction hash already used: ${paymentTxHash}`);
     }
@@ -53,13 +53,13 @@ export class GameServiceRedis {
     };
 
     // Store session hash
-    await this.kv.hset(RedisKeys.session(sessionId), sessionData);
+    await this.redis.hset(RedisKeys.session(sessionId), sessionData as any);
 
     // Add to indexes
     await Promise.all([
-      this.kv.sadd(RedisKeys.sessionsByPlayer(normalizedAddress), sessionId),
-      this.kv.sadd(RedisKeys.activeSessions(), sessionId),
-      this.kv.set(RedisKeys.sessionByPayment(paymentTxHash), sessionId),
+      this.redis.sadd(RedisKeys.sessionsByPlayer(normalizedAddress), sessionId),
+      this.redis.sadd(RedisKeys.activeSessions(), sessionId),
+      this.redis.set(RedisKeys.sessionByPayment(paymentTxHash), sessionId),
     ]);
 
     return this.hashToSession(sessionData);
@@ -69,9 +69,9 @@ export class GameServiceRedis {
    * Get session by ID
    */
   async getSession(id: string): Promise<GameSession | null> {
-    const data = await this.kv.hgetall<GameSessionHash>(RedisKeys.session(id));
-    if (!data) return null;
-    return this.hashToSession(data);
+    const data = await this.redis.hgetall(RedisKeys.session(id));
+    if (!data || Object.keys(data).length === 0) return null;
+    return this.hashToSession(data as GameSessionHash);
   }
 
   /**
@@ -90,14 +90,14 @@ export class GameServiceRedis {
     const gameDurationMs = Date.now() - new Date(session.createdAt).getTime();
 
     await Promise.all([
-      this.kv.hset(RedisKeys.session(id), {
+      this.redis.hset(RedisKeys.session(id), {
         score: score.toString(),
         status: 'completed',
         completedAt,
         gameDurationMs: gameDurationMs.toString(),
-      }),
-      this.kv.srem(RedisKeys.activeSessions(), id),
-      this.kv.sadd(RedisKeys.completedSessions(), id),
+      } as any),
+      this.redis.srem(RedisKeys.activeSessions(), id),
+      this.redis.sadd(RedisKeys.completedSessions(), id),
     ]);
 
     return {
@@ -114,7 +114,7 @@ export class GameServiceRedis {
    */
   async getActiveSession(playerAddress: string, gameType: GameType): Promise<GameSession | null> {
     const normalizedAddress = playerAddress.toLowerCase();
-    const sessionIds = await this.kv.smembers(RedisKeys.sessionsByPlayer(normalizedAddress));
+    const sessionIds = await this.redis.smembers(RedisKeys.sessionsByPlayer(normalizedAddress));
 
     for (const sessionId of sessionIds) {
       const session = await this.getSession(sessionId);
@@ -142,11 +142,11 @@ export class GameServiceRedis {
 
     const completedAt = new Date().toISOString();
     await Promise.all([
-      this.kv.hset(RedisKeys.session(id), {
+      this.redis.hset(RedisKeys.session(id), {
         status: 'expired',
         completedAt,
-      }),
-      this.kv.srem(RedisKeys.activeSessions(), id),
+      } as any),
+      this.redis.srem(RedisKeys.activeSessions(), id),
     ]);
 
     return true;
@@ -159,7 +159,7 @@ export class GameServiceRedis {
     const { playerAddress, gameType, status, limit = 50 } = options;
     const normalizedAddress = playerAddress.toLowerCase();
 
-    const sessionIds = await this.kv.smembers(RedisKeys.sessionsByPlayer(normalizedAddress));
+    const sessionIds = await this.redis.smembers(RedisKeys.sessionsByPlayer(normalizedAddress));
     const sessions: GameSession[] = [];
 
     for (const sessionId of sessionIds) {
@@ -183,7 +183,7 @@ export class GameServiceRedis {
    * Expire old sessions
    */
   async expireOldSessions(maxAgeMinutes: number = 30): Promise<number> {
-    const activeIds = await this.kv.smembers(RedisKeys.activeSessions());
+    const activeIds = await this.redis.smembers(RedisKeys.activeSessions());
     const maxAge = maxAgeMinutes * 60 * 1000;
     let count = 0;
 

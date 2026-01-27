@@ -1,14 +1,15 @@
 {
-  "buildCommand": "cd packages/backend && pnpm run build",
+  "buildCommand": "pnpm run build",
   "installCommand": "pnpm install",
+  "outputDirectory": "packages/frontend/dist",
   "rewrites": [
     {
-      "source": "/api/v1/(.*)",
+      "source": "/api/:path*",
       "destination": "/api/index"
     },
     {
-      "source": "/health",
-      "destination": "/api/index"
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }

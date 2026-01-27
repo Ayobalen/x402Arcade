@@ -8,6 +8,7 @@
   "scripts": {
     "dev:frontend": "pnpm --dir packages/frontend dev",
     "dev:backend": "pnpm --dir packages/backend dev",
+    "build": "pnpm run build:frontend && pnpm run build:backend",
     "build:frontend": "pnpm --dir packages/frontend build",
     "build:backend": "pnpm --dir packages/backend build",
     "test:frontend": "pnpm --dir packages/frontend test",
