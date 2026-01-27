@@ -1,0 +1,218 @@
+/**
+ * Redis-based Game Service for Vercel KV
+ */
+
+import { v4 as uuidv4 } from 'uuid';
+import type { VercelKV } from '@vercel/kv';
+import { RedisKeys, type GameSessionHash } from '../db/schema.js';
+import type {
+  GameType,
+  GameSession,
+  CreateSessionParams,
+  GetPlayerSessionsOptions,
+} from './game.js';
+
+export const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+
+/**
+ * GameService for Redis (Vercel KV)
+ */
+export class GameServiceRedis {
+  private kv: VercelKV;
+
+  constructor(kv: VercelKV) {
+    this.kv = kv;
+  }
+
+  /**
+   * Create a new game session
+   */
+  async createSession(params: CreateSessionParams): Promise<GameSession> {
+    const { gameType, playerAddress, paymentTxHash, amountPaidUsdc } = params;
+    const normalizedAddress = playerAddress.toLowerCase();
+    const sessionId = uuidv4();
+    const now = new Date().toISOString();
+
+    // Check for duplicate payment
+    const existingSession = await this.kv.get(RedisKeys.sessionByPayment(paymentTxHash));
+    if (existingSession) {
+      throw new Error(`Payment transaction hash already used: ${paymentTxHash}`);
+    }
+
+    const sessionData: GameSessionHash = {
+      id: sessionId,
+      gameType,
+      playerAddress: normalizedAddress,
+      paymentTxHash,
+      amountPaidUsdc: amountPaidUsdc.toString(),
+      score: null,
+      status: 'active',
+      createdAt: now,
+      completedAt: null,
+      gameDurationMs: null,
+    };
+
+    // Store session hash
+    await this.kv.hset(RedisKeys.session(sessionId), sessionData);
+
+    // Add to indexes
+    await Promise.all([
+      this.kv.sadd(RedisKeys.sessionsByPlayer(normalizedAddress), sessionId),
+      this.kv.sadd(RedisKeys.activeSessions(), sessionId),
+      this.kv.set(RedisKeys.sessionByPayment(paymentTxHash), sessionId),
+    ]);
+
+    return this.hashToSession(sessionData);
+  }
+
+  /**
+   * Get session by ID
+   */
+  async getSession(id: string): Promise<GameSession | null> {
+    const data = await this.kv.hgetall<GameSessionHash>(RedisKeys.session(id));
+    if (!data) return null;
+    return this.hashToSession(data);
+  }
+
+  /**
+   * Complete a session
+   */
+  async completeSession(id: string, score: number): Promise<GameSession> {
+    const session = await this.getSession(id);
+    if (!session) {
+      throw new Error(`Session not found: ${id}`);
+    }
+    if (session.status !== 'active') {
+      throw new Error(`Cannot complete session with status: ${session.status}`);
+    }
+
+    const completedAt = new Date().toISOString();
+    const gameDurationMs = Date.now() - new Date(session.createdAt).getTime();
+
+    await Promise.all([
+      this.kv.hset(RedisKeys.session(id), {
+        score: score.toString(),
+        status: 'completed',
+        completedAt,
+        gameDurationMs: gameDurationMs.toString(),
+      }),
+      this.kv.srem(RedisKeys.activeSessions(), id),
+      this.kv.sadd(RedisKeys.completedSessions(), id),
+    ]);
+
+    return {
+      ...session,
+      score,
+      status: 'completed',
+      completedAt,
+      gameDurationMs,
+    };
+  }
+
+  /**
+   * Get active session for player/game
+   */
+  async getActiveSession(playerAddress: string, gameType: GameType): Promise<GameSession | null> {
+    const normalizedAddress = playerAddress.toLowerCase();
+    const sessionIds = await this.kv.smembers(RedisKeys.sessionsByPlayer(normalizedAddress));
+
+    for (const sessionId of sessionIds) {
+      const session = await this.getSession(sessionId);
+      if (session && session.status === 'active' && session.gameType === gameType) {
+        // Check if stale
+        const age = Date.now() - new Date(session.createdAt).getTime();
+        if (age > SESSION_TIMEOUT_MS) {
+          await this.expireSession(sessionId);
+          return null;
+        }
+        return session;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Expire a session
+   */
+  async expireSession(id: string): Promise<boolean> {
+    const session = await this.getSession(id);
+    if (!session || session.status !== 'active') {
+      return false;
+    }
+
+    const completedAt = new Date().toISOString();
+    await Promise.all([
+      this.kv.hset(RedisKeys.session(id), {
+        status: 'expired',
+        completedAt,
+      }),
+      this.kv.srem(RedisKeys.activeSessions(), id),
+    ]);
+
+    return true;
+  }
+
+  /**
+   * Get player sessions
+   */
+  async getPlayerSessions(options: GetPlayerSessionsOptions): Promise<GameSession[]> {
+    const { playerAddress, gameType, status, limit = 50 } = options;
+    const normalizedAddress = playerAddress.toLowerCase();
+
+    const sessionIds = await this.kv.smembers(RedisKeys.sessionsByPlayer(normalizedAddress));
+    const sessions: GameSession[] = [];
+
+    for (const sessionId of sessionIds) {
+      if (sessions.length >= limit) break;
+
+      const session = await this.getSession(sessionId);
+      if (!session) continue;
+
+      if (gameType && session.gameType !== gameType) continue;
+      if (status && session.status !== status) continue;
+
+      sessions.push(session);
+    }
+
+    return sessions.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  /**
+   * Expire old sessions
+   */
+  async expireOldSessions(maxAgeMinutes: number = 30): Promise<number> {
+    const activeIds = await this.kv.smembers(RedisKeys.activeSessions());
+    const maxAge = maxAgeMinutes * 60 * 1000;
+    let count = 0;
+
+    for (const sessionId of activeIds) {
+      const session = await this.getSession(sessionId);
+      if (!session) continue;
+
+      const age = Date.now() - new Date(session.createdAt).getTime();
+      if (age > maxAge) {
+        await this.expireSession(sessionId);
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  private hashToSession(hash: GameSessionHash): GameSession {
+    return {
+      id: hash.id,
+      gameType: hash.gameType as GameType,
+      playerAddress: hash.playerAddress,
+      paymentTxHash: hash.paymentTxHash,
+      amountPaidUsdc: parseFloat(hash.amountPaidUsdc),
+      score: hash.score ? parseInt(hash.score) : null,
+      status: hash.status as 'active' | 'completed' | 'expired',
+      createdAt: hash.createdAt,
+      completedAt: hash.completedAt,
+      gameDurationMs: hash.gameDurationMs ? parseInt(hash.gameDurationMs) : null,
+    };
+  }
+}

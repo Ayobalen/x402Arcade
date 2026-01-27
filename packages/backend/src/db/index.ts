@@ -1,90 +1,55 @@
 /**
  * Database Module
  *
- * Initializes and exports the SQLite database connection using better-sqlite3.
- * Provides synchronous, high-performance database operations.
+ * Initializes and exports the Vercel KV (Redis) connection.
+ * Provides high-performance in-memory database operations.
  *
  * @module db
  */
 
-import Database from 'better-sqlite3';
-import type { Database as DatabaseType } from 'better-sqlite3';
-import { mkdirSync } from 'fs';
-import { dirname } from 'path';
-import { env } from '../config/env.js';
-import { initializeSchema } from './schema.js';
+import { kv } from '@vercel/kv';
 
 /**
- * SQLite database instance
+ * Redis client instance from Vercel KV
+ * Automatically configured via environment variables:
+ * - KV_REST_API_URL
+ * - KV_REST_API_TOKEN
  */
-export let db: DatabaseType;
+export const db = kv;
 
 /**
  * Initialize the database connection
  *
- * Creates or opens the SQLite database at the configured path.
- * Enables WAL mode for better performance and concurrency.
+ * For Vercel KV, initialization happens automatically via environment variables.
+ * This function exists for API compatibility but doesn't need to do anything.
  *
- * @returns Database instance
+ * @returns KV client instance
  */
-export function initDatabase(): DatabaseType {
-  const dbPath = env.DATABASE_PATH;
-
-  // Ensure database directory exists (skip for :memory:)
-  if (dbPath !== ':memory:') {
-    try {
-      const dbDir = dirname(dbPath);
-      mkdirSync(dbDir, { recursive: true });
-    } catch (error) {
-      // Directory might already exist, or there's a permission issue
-      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
-        throw new Error(`Failed to create database directory: ${(error as Error).message}`);
-      }
-    }
-  }
-
-  // Create database connection
-  db = new Database(dbPath, {
-    // eslint-disable-next-line no-console
-    verbose: env.NODE_ENV === 'development' ? console.log : undefined,
-  });
-
-  // Enable Write-Ahead Logging for better performance
-  db.pragma('journal_mode = WAL');
-
-  // Enable foreign keys
-  db.pragma('foreign_keys = ON');
-
-  // Set busy timeout for write conflicts (5 seconds)
-  db.pragma('busy_timeout = 5000');
-
-  // Initialize database schema (creates tables and indexes)
-  initializeSchema(db);
-
+export function initDatabase() {
+  // Vercel KV is initialized automatically from environment variables
+  // No explicit initialization needed
   return db;
 }
 
 /**
  * Get the database instance
  *
- * @throws Error if database is not initialized
- * @returns Database instance
+ * @returns KV client instance
  */
-export function getDatabase(): DatabaseType {
-  if (!db) {
-    throw new Error('Database not initialized. Call initDatabase() first.');
-  }
+export function getDatabase() {
   return db;
 }
 
 /**
  * Close the database connection
+ *
+ * For Vercel KV, connections are managed automatically.
+ * This function exists for API compatibility.
  */
 export function closeDatabase(): void {
-  if (db) {
-    db.close();
-  }
+  // Vercel KV connections are managed automatically
+  // No explicit cleanup needed
 }
 
 // Default export for convenience
-export default { initDatabase, getDatabase, closeDatabase };
+export default { initDatabase, getDatabase, closeDatabase, db };
