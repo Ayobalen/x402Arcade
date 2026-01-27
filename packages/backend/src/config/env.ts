@@ -99,7 +99,9 @@ export const envSchema = z.object({
   USDC_CONTRACT_ADDRESS: z
     .string()
     .transform((val) => val?.trim())
-    .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+    .refine((val) => !val || /^0x[a-fA-F0-9]{40}$/.test(val), {
+      message: 'Invalid Ethereum address',
+    })
     .optional()
     .describe(
       'ERC-20 USDC contract address on Cronos (testnet: 0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0)'
@@ -122,7 +124,9 @@ export const envSchema = z.object({
   ARCADE_WALLET_ADDRESS: z
     .string()
     .transform((val) => val?.trim())
-    .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+    .refine((val) => !val || /^0x[a-fA-F0-9]{40}$/.test(val), {
+      message: 'Invalid Ethereum address',
+    })
     .optional()
     .describe('Arcade platform wallet address that receives game payments and sends prize payouts'),
   ARCADE_PRIVATE_KEY: z

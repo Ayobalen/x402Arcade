@@ -127,11 +127,11 @@ export function createApp(): Express {
   // CORS: Enable cross-origin requests from frontend
   // Configure allowed headers for x402 payment protocol
    
-   
+
   console.log('🔧 CORS configuration:', env.CORS_ORIGIN);
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: env.CORS_ORIGIN as string | string[],
       credentials: true,
       allowedHeaders: [
         'Content-Type',
@@ -154,8 +154,8 @@ export function createApp(): Express {
   // Rate Limiting: Prevent abuse with configurable limits
   if (env.RATE_LIMIT_ENABLED) {
     const limiter = rateLimit({
-      windowMs: env.RATE_LIMIT_WINDOW_MS,
-      max: env.RATE_LIMIT_MAX_REQUESTS,
+      windowMs: env.RATE_LIMIT_WINDOW_MS as number,
+      max: env.RATE_LIMIT_MAX_REQUESTS as number,
       standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
       legacyHeaders: false, // Disable `X-RateLimit-*` headers
       message: 'Too many requests from this IP, please try again later.',
