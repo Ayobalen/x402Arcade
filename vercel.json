@@ -3,6 +3,10 @@
   "installCommand": "pnpm install",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api"
     }
