@@ -1,15 +1,11 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "cd packages/backend && pnpm install && pnpm run build",
+  "installCommand": "pnpm install --filter @x402arcade/backend",
+  "rewrites": [
     {
-      "src": "packages/backend/src/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "packages/backend/src/index.ts"
+      "source": "/(.*)",
+      "destination": "/api"
     }
   ]
 }
