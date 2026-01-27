@@ -1,0 +1,7 @@
+{
+  "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @x402arcade/backend build",
+  "devCommand": "pnpm --filter @x402arcade/backend dev",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": null,
+  "outputDirectory": null
+}
