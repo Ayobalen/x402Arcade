@@ -98,6 +98,7 @@ export const envSchema = z.object({
   // USDC Contract Configuration
   USDC_CONTRACT_ADDRESS: z
     .string()
+    .transform((val) => val?.trim())
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
     .optional()
     .describe(
@@ -120,6 +121,7 @@ export const envSchema = z.object({
   // Arcade Wallet Configuration (optional for development)
   ARCADE_WALLET_ADDRESS: z
     .string()
+    .transform((val) => val?.trim())
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
     .optional()
     .describe('Arcade platform wallet address that receives game payments and sends prize payouts'),
