@@ -877,6 +877,7 @@ async function settlePayment(
 
   // Should not reach here, but handle it gracefully
   // Log max retries exceeded with facilitator URL
+   
   console.error('[x402] Max retries exceeded for facilitator:', {
     facilitatorUrl: settleUrl,
     lastError: lastError?.message,

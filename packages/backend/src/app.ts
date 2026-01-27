@@ -126,7 +126,8 @@ export function createApp(): Express {
 
   // CORS: Enable cross-origin requests from frontend
   // Configure allowed headers for x402 payment protocol
-  // eslint-disable-next-line no-console
+   
+   
   console.log('🔧 CORS configuration:', env.CORS_ORIGIN);
   app.use(
     cors({
@@ -175,7 +176,7 @@ export function createApp(): Express {
         skip: (req: Request) => req.path.startsWith('/health'),
         stream: {
           write: (message: string) => {
-            // eslint-disable-next-line no-console
+             
             console.log(message.trim());
           },
         },
@@ -236,7 +237,7 @@ export function createApp(): Express {
   app.use((req: Request, res: Response) => {
     // Log 404s for API monitoring
     // In production, integrate with monitoring service (e.g., Sentry, Datadog)
-    // eslint-disable-next-line no-console
+     
     console.warn('404 Not Found:', {
       method: req.method,
       path: req.path,

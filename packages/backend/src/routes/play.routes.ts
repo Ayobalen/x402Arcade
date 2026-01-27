@@ -188,7 +188,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
         75
       );
 
-      // eslint-disable-next-line no-console
+       
       console.log('[Prize Pool] Updated successfully', {
         sessionId: session.id,
         gameType,
@@ -197,7 +197,7 @@ router.post('/:gameType', async (req: X402Request, res: Response) => {
     } catch (poolError) {
       // Log error but don't fail the session creation
       // The session is already created and player has paid
-      // eslint-disable-next-line no-console
+       
       console.error('[Prize Pool] Update failed', {
         sessionId: session.id,
         error: poolError instanceof Error ? poolError.message : 'Unknown error',

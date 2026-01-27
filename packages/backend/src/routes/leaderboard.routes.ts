@@ -143,7 +143,7 @@ router.get('/:gameType/:periodType', async (req: Request, res: Response) => {
       entries,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
+     
     console.error('Error retrieving leaderboard:', error);
     res.status(500).json({
       error: 'Internal server error',

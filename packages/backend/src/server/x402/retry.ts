@@ -496,6 +496,7 @@ export function logRetryAttempt(
   delayMs: number,
   error: Error,
 ): void {
+   
   console.log(
     `[x402-retry] Retry ${attempt} after ${delayMs}ms (previous error: ${error.message})`,
   );

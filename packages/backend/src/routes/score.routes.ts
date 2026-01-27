@@ -155,7 +155,7 @@ router.post('/submit', async (req: Request, res: Response) => {
         periods.daily
       );
     } catch (rankError) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to get daily ranking:', rankError);
     }
 
@@ -167,7 +167,7 @@ router.post('/submit', async (req: Request, res: Response) => {
         periods.weekly
       );
     } catch (rankError) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to get weekly ranking:', rankError);
     }
 
@@ -179,13 +179,13 @@ router.post('/submit', async (req: Request, res: Response) => {
         'alltime'
       );
     } catch (rankError) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to get alltime ranking:', rankError);
     }
   } catch (error) {
     // Log error but don't fail the request
     // Score was already recorded in GameService
-    // eslint-disable-next-line no-console
+     
     console.error('Failed to add leaderboard entry:', error);
   }
 

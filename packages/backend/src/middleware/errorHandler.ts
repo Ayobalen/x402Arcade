@@ -53,7 +53,8 @@ export const errorHandler: ErrorRequestHandler = (
 ): void => {
   // Log error for debugging
   // In production, this should integrate with a logging service (e.g., Sentry, Winston)
-  // eslint-disable-next-line no-console
+   
+   
   console.error('Error occurred:', {
     message: err.message,
     name: err.name,

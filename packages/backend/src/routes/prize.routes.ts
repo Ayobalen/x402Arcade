@@ -97,7 +97,7 @@ router.get('/:gameType/:periodType', async (req: Request, res: Response) => {
       pool,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
+     
     console.error('Error retrieving prize pool:', error);
     res.status(500).json({
       error: 'Internal server error',
@@ -211,7 +211,7 @@ router.get('/:gameType/history', async (req: Request, res: Response) => {
       gameType,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
+     
     console.error('Error retrieving prize pool history:', error);
     res.status(500).json({
       error: 'Internal server error',
