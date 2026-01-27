@@ -18,6 +18,7 @@ import {
   SNAKE_COLORS,
   FOOD_COLORS,
   GRID_COLORS,
+  getThemeColors,
 } from './constants';
 
 // ============================================================================
@@ -25,35 +26,77 @@ import {
 // ============================================================================
 
 /**
- * Rendering color palette matching the arcade design system.
+ * Gets rendering colors dynamically from current theme.
+ * This function reads CSS custom properties to support theme switching.
  *
- * @description Colors follow the retro arcade/neon aesthetic:
- * - Background: Deep dark purple (#0F0F1A)
- * - Grid: Subtle purple (#1A1A2E)
- * - Snake: Neon green (#00ff00)
- * - Food: Neon red (#ff0000)
- * - Accents: Cyan (#00ffff), Magenta (#ff00ff)
+ * @description Colors now sync with theme system:
+ * - Background: From design system
+ * - Grid: From design system
+ * - Snake: Theme primary color
+ * - Food: Theme primary color
+ * - Bonus Food: Theme secondary color
+ * - Accents: Theme colors
+ */
+export function getRenderColors() {
+  const theme = getThemeColors();
+
+  return {
+    /** Main background color */
+    background: GRID_COLORS.background,
+    /** Grid line color (subtle) */
+    gridLine: GRID_COLORS.gridLine,
+    /** Border color */
+    border: GRID_COLORS.border,
+    /** Snake head color - uses theme primary */
+    snakeHead: theme.primary,
+    /** Snake body color - slightly darker theme primary */
+    snakeBody: theme.primary,
+    /** Snake body gradient end - darker theme primary */
+    snakeBodyEnd: adjustBrightness(theme.primary, -30),
+    /** Snake outline */
+    snakeOutline: adjustBrightness(theme.primary, -50),
+    /** Standard food color - theme primary */
+    food: theme.primary,
+    /** Bonus food color - theme secondary */
+    bonusFood: theme.secondary,
+    /** Food glow effect */
+    foodGlow: theme.primaryGlow,
+  };
+}
+
+/**
+ * Helper to adjust hex color brightness.
+ * @param hex - Hex color string (e.g., '#00ffff')
+ * @param amount - Brightness adjustment (-100 to 100)
+ * @returns Adjusted hex color
+ */
+function adjustBrightness(hex: string, amount: number): string {
+  // Remove # if present
+  const color = hex.replace('#', '');
+
+  // Parse RGB components
+  const r = Math.max(0, Math.min(255, parseInt(color.substring(0, 2), 16) + amount));
+  const g = Math.max(0, Math.min(255, parseInt(color.substring(2, 4), 16) + amount));
+  const b = Math.max(0, Math.min(255, parseInt(color.substring(4, 6), 16) + amount));
+
+  // Convert back to hex
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+/**
+ * Legacy RENDER_COLORS for backward compatibility.
+ * @deprecated Use getRenderColors() for theme support
  */
 export const RENDER_COLORS = {
-  /** Main background color */
   background: GRID_COLORS.background,
-  /** Grid line color (subtle) */
   gridLine: GRID_COLORS.gridLine,
-  /** Border color */
   border: GRID_COLORS.border,
-  /** Snake head color */
   snakeHead: SNAKE_COLORS.head,
-  /** Snake body color */
   snakeBody: SNAKE_COLORS.body,
-  /** Snake body gradient end */
   snakeBodyEnd: SNAKE_COLORS.bodyEnd,
-  /** Snake outline */
   snakeOutline: SNAKE_COLORS.outline,
-  /** Standard food color */
   food: FOOD_COLORS.standard,
-  /** Bonus food color */
   bonusFood: FOOD_COLORS.bonus,
-  /** Food glow effect */
   foodGlow: FOOD_COLORS.glow,
 } as const;
 
@@ -82,7 +125,8 @@ export const RENDER_COLORS = {
  * ```
  */
 export function renderBackground(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = RENDER_COLORS.background;
+  const colors = getRenderColors();
+  ctx.fillStyle = colors.background;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
@@ -115,7 +159,8 @@ export function renderBackground(ctx: CanvasRenderingContext2D): void {
  * ```
  */
 export function renderGrid(ctx: CanvasRenderingContext2D): void {
-  ctx.strokeStyle = RENDER_COLORS.gridLine;
+  const colors = getRenderColors();
+  ctx.strokeStyle = colors.gridLine;
   ctx.lineWidth = 0.5;
 
   // Draw vertical lines (columns)
@@ -169,13 +214,15 @@ export function renderFood(
   ctx: CanvasRenderingContext2D,
   food: { x: number; y: number; type?: string }
 ): void {
+  const colors = getRenderColors();
+
   // Calculate pixel position (center of cell)
   const pixelX = food.x * CELL_SIZE + CELL_SIZE / 2;
   const pixelY = food.y * CELL_SIZE + CELL_SIZE / 2;
   const radius = CELL_SIZE / 3;
 
-  // Determine color based on food type
-  const foodColor = food.type === 'bonus' ? RENDER_COLORS.bonusFood : RENDER_COLORS.food;
+  // Determine color based on food type (now theme-aware)
+  const foodColor = food.type === 'bonus' ? colors.bonusFood : colors.food;
 
   // Apply neon glow effect (stronger for bonus food)
   const glowIntensity = food.type === 'bonus' ? 15 : 10;
@@ -221,6 +268,8 @@ export function renderFoodPulsing(
   food: { x: number; y: number; type?: string },
   time: number
 ): void {
+  const colors = getRenderColors();
+
   // Calculate pixel position (center of cell)
   const pixelX = food.x * CELL_SIZE + CELL_SIZE / 2;
   const pixelY = food.y * CELL_SIZE + CELL_SIZE / 2;
@@ -236,8 +285,8 @@ export function renderFoodPulsing(
   const baseRadius = CELL_SIZE / 3;
   const radius = baseRadius * scale;
 
-  // Determine color based on food type
-  const foodColor = food.type === 'bonus' ? RENDER_COLORS.bonusFood : RENDER_COLORS.food;
+  // Determine color based on food type (now theme-aware)
+  const foodColor = food.type === 'bonus' ? colors.bonusFood : colors.food;
 
   // Glow intensity also pulses (stronger when larger)
   const baseGlow = food.type === 'bonus' ? 15 : 10;
@@ -325,23 +374,26 @@ function lerp(start: number, end: number, t: number): number {
 
 /**
  * Calculates gradient color for a snake segment based on its position.
+ * Now theme-aware using getRenderColors().
  *
  * @param index - Segment index in snake array
  * @param totalSegments - Total number of segments
  * @returns Hex color string for this segment
  */
 function getSegmentColor(index: number, totalSegments: number): string {
+  const colors = getRenderColors();
+
   // Head (index 0) uses brightest color
   if (index === 0) {
-    return RENDER_COLORS.snakeHead;
+    return colors.snakeHead;
   }
 
   // Calculate interpolation factor (0 at head, 1 at tail)
   const t = (index - 1) / Math.max(totalSegments - 2, 1);
 
   // Parse hex colors to RGB
-  const bodyRgb = parseInt(RENDER_COLORS.snakeBody.slice(1), 16);
-  const endRgb = parseInt(RENDER_COLORS.snakeBodyEnd.slice(1), 16);
+  const bodyRgb = parseInt(colors.snakeBody.slice(1), 16);
+  const endRgb = parseInt(colors.snakeBodyEnd.slice(1), 16);
 
   const bodyR = (bodyRgb >> 16) & 0xff;
   const bodyG = (bodyRgb >> 8) & 0xff;
@@ -387,14 +439,15 @@ export function renderSnakeHead(
   head: { x: number; y: number },
   direction: 'up' | 'down' | 'left' | 'right'
 ): void {
+  const colors = getRenderColors();
   const pixelX = head.x * CELL_SIZE;
   const pixelY = head.y * CELL_SIZE;
 
-  // Apply neon glow effect to head
-  applyNeonGlow(ctx, RENDER_COLORS.snakeHead, 12);
+  // Apply neon glow effect to head (theme-aware)
+  applyNeonGlow(ctx, colors.snakeHead, 12);
 
-  // Draw head
-  ctx.fillStyle = RENDER_COLORS.snakeHead;
+  // Draw head with theme color
+  ctx.fillStyle = colors.snakeHead;
   ctx.fillRect(pixelX + 1, pixelY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
 
   // Reset glow before drawing eyes

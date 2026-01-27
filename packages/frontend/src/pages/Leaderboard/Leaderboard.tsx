@@ -94,10 +94,11 @@ interface LeaderboardResponse {
   count: number;
   entries: Array<{
     rank: number;
-    player_address: string;
+    playerAddress: string; // Backend returns camelCase, not snake_case
     score: number;
-    game_type: string;
-    created_at: string;
+    gameType: string;
+    periodType: string;
+    periodDate: string;
   }>;
 }
 
@@ -138,13 +139,15 @@ async function fetchLeaderboard(
         if (!response.ok) return [];
 
         const data: LeaderboardResponse = await response.json();
-        return data.entries.map((entry) => ({
-          rank: entry.rank,
-          playerAddress: entry.player_address,
-          score: entry.score,
-          gameType: entry.game_type,
-          timestamp: entry.created_at,
-        }));
+        return data.entries
+          .filter((entry) => entry.playerAddress) // Filter out entries without playerAddress
+          .map((entry) => ({
+            rank: entry.rank,
+            playerAddress: entry.playerAddress,
+            score: entry.score,
+            gameType: entry.gameType,
+            timestamp: entry.periodDate, // Use periodDate as timestamp
+          }));
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error(`Error fetching ${gt} leaderboard:`, error);
@@ -179,13 +182,15 @@ async function fetchLeaderboard(
 
     const data: LeaderboardResponse = await response.json();
 
-    return data.entries.map((entry) => ({
-      rank: entry.rank,
-      playerAddress: entry.player_address,
-      score: entry.score,
-      gameType: entry.game_type,
-      timestamp: entry.created_at,
-    }));
+    return data.entries
+      .filter((entry) => entry.playerAddress) // Filter out entries without playerAddress
+      .map((entry) => ({
+        rank: entry.rank,
+        playerAddress: entry.playerAddress,
+        score: entry.score,
+        gameType: entry.gameType,
+        timestamp: entry.periodDate, // Use periodDate as timestamp
+      }));
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error fetching leaderboard:', error);
@@ -319,7 +324,7 @@ export function Leaderboard() {
   }, [selectedGame, selectedPeriod]);
 
   return (
-    <div className="w-full min-h-screen py-12 px-4">
+    <div className="w-full">
       <div className="max-w-6xl mx-auto">
         {/* Page Header */}
         <div className="text-center mb-12">
@@ -450,7 +455,7 @@ export function Leaderboard() {
                   <AnimatePresence mode="popLayout">
                     {leaderboardData.map((entry) => {
                       const isCurrentUser =
-                        address && entry.playerAddress.toLowerCase() === address.toLowerCase();
+                        address && entry.playerAddress && entry.playerAddress.toLowerCase() === address.toLowerCase();
 
                       return (
                         <motion.tr

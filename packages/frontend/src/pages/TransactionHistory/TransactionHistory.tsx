@@ -145,7 +145,7 @@ export const TransactionHistory: React.FC = () => {
   // Not connected state
   if (!address) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg-primary)] py-8 px-4">
+      <div className="w-full">
         <div className="max-w-4xl mx-auto">
           <motion.div
             className="text-center py-12"
@@ -166,7 +166,7 @@ export const TransactionHistory: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] py-8 px-4">
+    <div className="w-full">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Page Header */}
         <motion.div

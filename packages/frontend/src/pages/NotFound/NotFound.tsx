@@ -85,7 +85,7 @@ function TrophyIcon({ className }: { className?: string }) {
  */
 export function NotFound() {
   return (
-    <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="w-full min-h-full flex items-center justify-center py-12">
       <div className="max-w-2xl mx-auto text-center">
         {/* Arcade-themed 404 Illustration */}
         <div className="mb-8">

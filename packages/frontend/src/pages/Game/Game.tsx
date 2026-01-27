@@ -49,35 +49,35 @@ const GAMES: Record<string, GameInfo> = {
     name: 'Pong',
     emoji: '🏓',
     description: 'Classic arcade pong. Keep the ball in play and beat the AI.',
-    status: 'available',
+    status: 'coming-soon',
   },
   tetris: {
     id: 'tetris',
     name: 'Tetris',
     emoji: '🟦',
     description: 'Stack falling blocks to clear lines. Speed increases as you progress.',
-    status: 'available',
+    status: 'coming-soon',
   },
   breakout: {
     id: 'breakout',
     name: 'Breakout',
     emoji: '🧱',
     description: 'Break all the bricks with your paddle and ball. Classic arcade action.',
-    status: 'available',
+    status: 'coming-soon',
   },
   'space-invaders': {
     id: 'space-invaders',
     name: 'Space Invaders',
     emoji: '👾',
     description: 'Defend Earth from alien invaders. Shoot them down before they reach you.',
-    status: 'available',
+    status: 'coming-soon',
   },
   'pong-phaser': {
     id: 'pong-phaser',
     name: 'Pong (Phaser)',
     emoji: '🎮',
     description: 'Phaser 3 version of classic Pong. Demonstrates library-based implementation.',
-    status: 'available',
+    status: 'coming-soon',
   },
 };
 
@@ -207,6 +207,22 @@ export function Game() {
     // This will show the payment gate again
   };
 
+  // Handle retry to fetch existing session
+  const handleRetrySession = async () => {
+    setIsProcessing(true);
+    setErrorMessage(null);
+
+    try {
+      // Simply retry the payment flow - it will detect the existing session
+      // and automatically load it via the 409 handling we added
+      await handlePayment();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to load session');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   /**
    * Handle x402 payment flow
    * 1. Call backend endpoint (returns 402)
@@ -237,6 +253,31 @@ export function Game() {
           'Content-Type': 'application/json',
         },
       });
+
+      // Handle 409: Active session exists before payment
+      if (initialResponse.status === 409) {
+        const errorData = await initialResponse.json();
+        console.log('[Game.tsx] 409 on initial request:', errorData);
+
+        if (errorData.session?.id) {
+          console.log('[Game.tsx] Resuming session from initial request:', errorData.session.id);
+
+          // Store the existing session
+          if (gameId) {
+            localStorage.setItem(`game_session_${gameId}`, errorData.session.id);
+            localStorage.setItem(`game_session_${gameId}_timestamp`, new Date(errorData.session.createdAt).getTime().toString());
+          }
+
+          // Set session state to load the game
+          setSessionId(errorData.session.id);
+          setSessionCreatedAt(errorData.session.createdAt);
+          setIsProcessing(false);
+          return; // Exit early - don't attempt payment
+        } else {
+          console.warn('[Game.tsx] 409 on initial request missing session data');
+          // Fall through to normal 402 handling - unlikely case
+        }
+      }
 
       if (initialResponse.status !== 402) {
         throw new Error(
@@ -289,6 +330,30 @@ export function Game() {
       if (!paymentResponse.ok) {
         const errorData = await paymentResponse.json();
 
+        // Handle 409: Active session exists - automatically resume it
+        if (paymentResponse.status === 409) {
+          console.log('[Game.tsx] Active session detected (409):', errorData);
+
+          if (errorData.session?.id) {
+            console.log('[Game.tsx] Resuming session:', errorData.session.id);
+
+            // Store the existing session
+            if (gameId) {
+              localStorage.setItem(`game_session_${gameId}`, errorData.session.id);
+              localStorage.setItem(`game_session_${gameId}_timestamp`, new Date(errorData.session.createdAt).getTime().toString());
+            }
+
+            // Set session state to load the game
+            setSessionId(errorData.session.id);
+            setSessionCreatedAt(errorData.session.createdAt);
+            setIsProcessing(false);
+            return; // Exit early - don't throw error
+          } else {
+            console.warn('[Game.tsx] 409 response missing session data:', errorData);
+            // Fall through to show error message with "Continue" button
+          }
+        }
+
         // Handle specific error codes with user-friendly messages
         if (errorData.error?.code === 'INSUFFICIENT_BALANCE') {
           throw new Error(
@@ -333,19 +398,19 @@ export function Game() {
   // If game not found, show error message
   if (!gameInfo || !gameId) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full min-h-full flex items-center justify-center py-12">
         <div className="max-w-2xl mx-auto text-center">
           <div className="mb-8">
             <h1
               className={cn(
                 'text-6xl md:text-7xl font-bold mb-4',
-                'bg-gradient-to-r from-[#ff00ff] via-[#00ffff] to-[#ff00ff]',
+                'bg-gradient-to-r from-theme-secondary via-theme-primary to-theme-secondary',
                 'bg-clip-text text-transparent'
               )}
             >
               Game Not Found
             </h1>
-            <p className="text-xl text-white/70 mb-6">
+            <p className="text-xl text-theme-text-secondary mb-6">
               The game "{gameId}" doesn't exist in our arcade.
             </p>
           </div>
@@ -356,15 +421,70 @@ export function Game() {
               'inline-flex items-center gap-2',
               'px-8 py-4',
               'rounded-lg',
-              'bg-gradient-to-r from-[#00ffff] to-[#ff00ff]',
-              'text-black font-bold text-lg',
+              'bg-gradient-to-r from-theme-primary to-theme-secondary',
+              'text-theme-text-inverse font-bold text-lg',
               'hover:scale-105',
-              'hover:shadow-[0_0_30px_rgba(0,255,255,0.6)]',
+              'shadow-theme-glow',
+              'hover:shadow-theme-glow-lg',
               'transition-all duration-200'
             )}
           >
             <ArrowLeftIcon className="w-5 h-5" />
             Back to Games
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // If game is coming soon, show coming soon page
+  if (gameInfo.status === 'coming-soon') {
+    return (
+      <div className="w-full min-h-full flex items-center justify-center py-12">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="mb-8">
+            {/* Game emoji */}
+            <div className="text-9xl mb-6">{gameInfo.emoji}</div>
+
+            <h1
+              className={cn(
+                'text-6xl md:text-7xl font-bold mb-4',
+                'bg-gradient-to-r from-theme-primary via-theme-secondary to-theme-primary',
+                'bg-clip-text text-transparent'
+              )}
+            >
+              {gameInfo.name}
+            </h1>
+
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-theme-primary/10 border border-theme-primary/30 rounded-full mb-6">
+              <span className="text-theme-primary font-bold">Coming Soon</span>
+            </div>
+
+            <p className="text-xl text-theme-text-secondary mb-6">
+              {gameInfo.description}
+            </p>
+
+            <p className="text-lg text-theme-text-muted">
+              This game is currently under development. Check back soon!
+            </p>
+          </div>
+
+          <Link
+            to="/play"
+            className={cn(
+              'inline-flex items-center gap-2',
+              'px-8 py-4',
+              'rounded-lg',
+              'bg-gradient-to-r from-theme-primary to-theme-secondary',
+              'text-theme-text-inverse font-bold text-lg',
+              'hover:scale-105',
+              'shadow-theme-glow',
+              'hover:shadow-theme-glow-lg',
+              'transition-all duration-200'
+            )}
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+            Browse Other Games
           </Link>
         </div>
       </div>
@@ -409,31 +529,51 @@ export function Game() {
     // If payment successful and session created, render the game
     if (sessionId && sessionCreatedAt) {
       return (
-        <div className="w-full min-h-screen flex flex-col items-center justify-center px-4 py-12 gap-6">
-          {/* Session Timer */}
-          <SessionTimer sessionCreatedAt={sessionCreatedAt} onExpired={handleSessionExpired} />
+        <>
+          {/* Session Timer - Fixed in top-right corner, high z-index (above header z-50) */}
+          <div className="fixed top-20 right-4 z-[100]">
+            <SessionTimer sessionCreatedAt={sessionCreatedAt} onExpired={handleSessionExpired} />
+          </div>
 
-          {/* Game + Live Leaderboard Layout */}
-          <div className="flex flex-col lg:flex-row items-start justify-center gap-6 w-full max-w-7xl mx-auto">
-            {/* Game */}
-            <div className="flex-shrink-0">
-              <SnakeGame
-                sessionId={sessionId}
-                playerAddress={address}
-                enableScoreSubmission={true}
-                onFetchRankings={handleFetchRankings}
-              />
+          <div className="relative w-full min-h-full flex items-center justify-center py-8">
+            {/* Main Game Area - Centered with proper hierarchy */}
+            <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 w-full max-w-[1400px]">
+            {/* Game Canvas - PRIMARY FOCUS (Dominant) */}
+            <div className="relative flex-shrink-0">
+              {/* Enhanced container with arcade glow/elevation */}
+              <div
+                className={cn(
+                  'relative',
+                  'p-3',
+                  'bg-theme-bg-elevated',
+                  'rounded-2xl',
+                  'border-4 border-theme-primary/30',
+                  'shadow-theme-glow-lg',
+                  'transition-all duration-300',
+                  'hover:border-theme-primary/50',
+                  'hover:shadow-theme-glow-intense'
+                )}
+              >
+                <SnakeGame
+                  sessionId={sessionId}
+                  playerAddress={address}
+                  enableScoreSubmission={true}
+                  onFetchRankings={handleFetchRankings}
+                />
+              </div>
             </div>
 
-            {/* Live Leaderboard Widget */}
-            <div className="flex-shrink-0">
-              <LiveLeaderboardWidget
-                gameType="snake"
-                periodType="daily"
-                playerAddress={address}
-                pollInterval={15000}
-                limit={10}
-              />
+            {/* Live Leaderboard - SECONDARY (Subordinate) */}
+            <div className="w-full lg:w-auto lg:max-w-[340px] flex-shrink-0">
+              <div className="opacity-95">
+                <LiveLeaderboardWidget
+                  gameType="snake"
+                  periodType="daily"
+                  playerAddress={address}
+                  pollInterval={15000}
+                  limit={10}
+                />
+              </div>
             </div>
           </div>
 
@@ -445,7 +585,7 @@ export function Game() {
             >
               <div
                 className={cn(
-                  'bg-[#1a1a2e]',
+                  'bg-theme-bg-elevated',
                   'border-2 border-red-500/50',
                   'rounded-xl',
                   'p-8',
@@ -456,8 +596,8 @@ export function Game() {
               >
                 <div className="text-center">
                   <div className="text-6xl mb-4">⏱️</div>
-                  <h2 className="text-2xl font-bold text-white mb-4">Session Expired</h2>
-                  <p className="text-white/70 mb-6">
+                  <h2 className="text-2xl font-bold text-theme-text-primary mb-4">Session Expired</h2>
+                  <p className="text-theme-text-secondary mb-6">
                     Your 15-minute game session has expired. Pay ${GAME_PRICES[gameId]} USDC to play
                     again and submit your score.
                   </p>
@@ -468,10 +608,11 @@ export function Game() {
                       className={cn(
                         'px-6 py-3',
                         'rounded-lg',
-                        'bg-gradient-to-r from-[#00ffff] to-[#ff00ff]',
+                        'bg-gradient-to-r from-theme-primary to-theme-secondary',
                         'text-black font-bold',
                         'hover:scale-105',
-                        'transition-all duration-200'
+                        'transition-all duration-200',
+                        'shadow-theme-glow'
                       )}
                     >
                       Pay & Play Again
@@ -482,11 +623,11 @@ export function Game() {
                       className={cn(
                         'px-6 py-3',
                         'rounded-lg',
-                        'bg-[#0f0f1a]',
-                        'border border-[#2d2d4a]',
-                        'text-white font-semibold',
-                        'hover:border-[#00ffff]',
-                        'hover:text-[#00ffff]',
+                        'bg-theme-bg-main',
+                        'border border-theme-border',
+                        'text-theme-text-primary font-semibold',
+                        'hover:border-theme-primary',
+                        'hover:text-theme-primary',
                         'transition-all duration-200'
                       )}
                     >
@@ -497,81 +638,72 @@ export function Game() {
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </>
       );
     }
 
     // Show payment gate
     return (
-      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
-        <div className="max-w-2xl mx-auto text-center">
-          {/* Game Header */}
-          <div className="mb-8">
-            <div className="text-8xl mb-6">{gameInfo.emoji}</div>
+      <div className="w-full min-h-full flex items-center justify-center py-12">
+        <div className="max-w-lg mx-auto">
+          {/* Game Header - Centered and prominent */}
+          <div className="text-center mb-12">
+            <div className="text-9xl mb-6">{gameInfo.emoji}</div>
             <h1
               className={cn(
-                'text-5xl md:text-6xl font-bold mb-4',
-                'bg-gradient-to-r from-[#00ffff] via-[#ff00ff] to-[#00ffff]',
-                'bg-clip-text text-transparent'
+                'text-6xl md:text-7xl font-bold mb-6',
+                'bg-gradient-to-r from-theme-primary via-theme-secondary to-theme-primary',
+                'bg-clip-text text-transparent',
+                'leading-tight'
               )}
             >
               {gameInfo.name}
             </h1>
-            <p className="text-xl text-white/70 mb-6">{gameInfo.description}</p>
+            <p className="text-lg text-theme-text-secondary max-w-md mx-auto leading-relaxed">
+              {gameInfo.description}
+            </p>
           </div>
 
-          {/* Payment Info */}
-          <div className="mb-8">
-            <div
-              className={cn(
-                'inline-block',
-                'px-6 py-3',
-                'rounded-lg',
-                'bg-[#1a1a2e]',
-                'border border-[#2d2d4a]',
-                'mb-3'
-              )}
-            >
-              <p className="text-2xl font-bold text-white">${GAME_PRICES[gameId]} USDC</p>
-              <p className="text-sm text-white/60 mt-1">Gasless payment via x402</p>
-            </div>
-
-            {/* Session Duration Info */}
-            <div className="mb-6">
-              <p className="text-sm text-[#00ffff] font-semibold">
-                ⏱️ 15 minutes of gameplay per payment
-              </p>
-              <p className="text-xs text-white/50 mt-1">
-                Complete your game within 15 minutes to save your score
-              </p>
-            </div>
-
-            {/* Prize Pool Display - Daily Only */}
-            <div className="max-w-sm mx-auto">
-              <div
-                className={cn(
-                  'px-6 py-4',
-                  'rounded-lg',
-                  'bg-[#1a1a2e]',
-                  'border-2 border-[#00ffff]/50',
-                  'shadow-[0_0_20px_rgba(0,255,255,0.3)]'
-                )}
-              >
-                <p className="text-sm text-white/70 mb-2 text-center">Today's Prize Pool</p>
-                <p className="text-3xl font-bold text-[#00ffff] text-center">
-                  {dailyPool !== null ? `$${dailyPool.toFixed(2)} USDC` : '$0.00 USDC'}
-                </p>
-                <p className="text-xs text-white/50 mt-2 text-center">
-                  Winner takes all at midnight
-                </p>
+          {/* Prize Pool - Subtle motivational element */}
+          {dailyPool !== null && dailyPool > 0 && (
+            <div className="mb-8 text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-theme-primary/10 border border-theme-primary/30">
+                <span className="text-sm text-theme-text-muted">Prize Pool:</span>
+                <span className="text-lg font-bold text-theme-primary">
+                  ${dailyPool.toFixed(2)} USDC
+                </span>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Error Message */}
           {errorMessage && (
             <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-              <p className="text-red-400">{errorMessage}</p>
+              <p className="text-red-400 mb-3">{errorMessage}</p>
+              {errorMessage.includes('already have an active') && (
+                <div className="mt-4">
+                  <p className="text-sm text-white/60 mb-2">
+                    Click below to resume your active session:
+                  </p>
+                  <button
+                    onClick={handleRetrySession}
+                    disabled={isProcessing || !walletReady}
+                    className={cn(
+                      'px-6 py-3',
+                      'rounded-lg',
+                      'bg-gradient-to-r from-theme-primary to-theme-secondary',
+                      'text-black font-bold text-base',
+                      'hover:scale-105',
+                      'transition-all duration-200',
+                      'shadow-theme-glow',
+                      'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
+                    )}
+                  >
+                    {isProcessing ? '⏳ Loading...' : '🎮 Continue to Game'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -589,45 +721,50 @@ export function Game() {
             </div>
           )}
 
-          {/* Pay & Play Button */}
-          <div className="flex gap-4 justify-center">
+          {/* Primary CTA - Large and prominent */}
+          <div className="space-y-4">
             <button
               onClick={handlePayment}
               disabled={!walletReady || isProcessing}
               className={cn(
-                'px-8 py-4',
-                'rounded-lg',
-                'bg-gradient-to-r from-[#00ffff] to-[#ff00ff]',
-                'text-black font-bold text-lg',
-                'hover:scale-105',
-                'hover:shadow-[0_0_30px_rgba(0,255,255,0.6)]',
+                'w-full',
+                'px-8 py-6',
+                'rounded-xl',
+                'bg-gradient-to-r from-theme-primary to-theme-secondary',
+                'text-theme-text-inverse font-bold text-xl',
+                'hover:scale-[1.02]',
+                'shadow-theme-glow-lg',
+                'hover:shadow-theme-glow-intense',
                 'transition-all duration-200',
                 'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
               )}
             >
-              {isProcessing
-                ? 'Processing...'
-                : paymentStatus === 'signing'
-                  ? 'Sign in wallet...'
-                  : `Pay & Play - $${GAME_PRICES[gameId]}`}
+              {isProcessing ? (
+                'Processing...'
+              ) : paymentStatus === 'signing' ? (
+                'Sign in wallet...'
+              ) : (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-2xl">Pay & Play</span>
+                  <span className="text-base font-normal opacity-90">${GAME_PRICES[gameId]} USDC · 15 min session</span>
+                </div>
+              )}
             </button>
 
+            {/* Back button - subtle */}
             <Link
               to="/play"
               className={cn(
-                'inline-flex items-center gap-2',
-                'px-8 py-4',
+                'w-full inline-flex items-center justify-center gap-2',
+                'px-6 py-3',
                 'rounded-lg',
-                'bg-[#1a1a2e]',
-                'border border-[#2d2d4a]',
-                'text-white font-semibold text-lg',
-                'hover:border-[#00ffff]',
-                'hover:text-[#00ffff]',
-                'transition-all duration-200'
+                'text-theme-text-muted font-medium',
+                'hover:text-theme-primary',
+                'transition-colors duration-200'
               )}
             >
-              <ArrowLeftIcon className="w-5 h-5" />
-              Back
+              <ArrowLeftIcon className="w-4 h-4" />
+              <span>Back to games</span>
             </Link>
           </div>
         </div>
@@ -643,7 +780,7 @@ export function Game() {
   // Render available game - Tetris
   if (gameInfo.status === 'available' && gameId === 'tetris') {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full min-h-full flex items-center justify-center py-12">
         <div className="max-w-4xl mx-auto w-full">
           <TetrisGameWrapper onExit={handleExit} />
         </div>
@@ -654,7 +791,7 @@ export function Game() {
   // Render available game - Breakout
   if (gameInfo.status === 'available' && gameId === 'breakout') {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full min-h-full flex items-center justify-center py-12">
         <div className="max-w-4xl mx-auto w-full">
           <BreakoutGameWrapper onExit={handleExit} />
         </div>
@@ -665,7 +802,7 @@ export function Game() {
   // Render available game - Space Invaders
   if (gameInfo.status === 'available' && gameId === 'space-invaders') {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full min-h-full flex items-center justify-center py-12">
         <div className="max-w-4xl mx-auto w-full">
           <SpaceInvadersGameWrapper onExit={handleExit} />
         </div>
@@ -675,7 +812,7 @@ export function Game() {
 
   // Game exists but is coming soon
   return (
-    <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="w-full min-h-full flex items-center justify-center py-12">
       <div className="max-w-4xl mx-auto text-center">
         {/* Game Header */}
         <div className="mb-8">

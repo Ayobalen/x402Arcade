@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { audioManager, AudioOptions, AudioCategory } from '../utils/AudioManager';
 
 /**
@@ -188,29 +189,38 @@ export function useAudio(
   }, []);
 
   /**
-   * Mute audio
+   * Mute audio - optimized for instant UI update
    */
   const mute = useCallback(() => {
     audioManager.mute();
-    updateState();
-  }, [updateState]);
+    // Optimized: Only update muted state, don't read all properties
+    flushSync(() => {
+      setState((prev) => ({ ...prev, isMuted: true }));
+    });
+  }, []);
 
   /**
-   * Unmute audio
+   * Unmute audio - optimized for instant UI update
    */
   const unmute = useCallback(() => {
     audioManager.unmute();
-    updateState();
-  }, [updateState]);
+    // Optimized: Only update muted state, don't read all properties
+    flushSync(() => {
+      setState((prev) => ({ ...prev, isMuted: false }));
+    });
+  }, []);
 
   /**
-   * Toggle mute
+   * Toggle mute - optimized for instant UI update
    */
   const toggleMute = useCallback(() => {
     const muted = audioManager.toggleMute();
-    updateState();
+    // Optimized: Only update muted state, don't read all properties
+    flushSync(() => {
+      setState((prev) => ({ ...prev, isMuted: muted }));
+    });
     return muted;
-  }, [updateState]);
+  }, []);
 
   /**
    * Enable audio

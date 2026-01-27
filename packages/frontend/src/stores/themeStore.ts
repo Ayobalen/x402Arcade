@@ -89,6 +89,7 @@ export interface ThemeState {
   variation: ThemeVariation;
   mode: ThemeMode;
   gameThemes: GameTheme[];
+  glowIntensity: number; // 0-100, controls glow effects intensity
 
   // Theme configurations
   themes: Record<ThemeVariation, ThemeConfig>;
@@ -98,6 +99,7 @@ export interface ThemeState {
   setMode: (mode: ThemeMode) => void;
   setGameTheme: (game: GameTheme['game'], theme: ThemeVariation) => void;
   removeGameTheme: (game: GameTheme['game']) => void;
+  setGlowIntensity: (intensity: number) => void;
   resetToDefaults: () => void;
 
   // Utilities
@@ -292,18 +294,19 @@ export const useThemeStore = create<ThemeState>()(
       variation: 'classic',
       mode: 'dark',
       gameThemes: [],
+      glowIntensity: 100, // 0-100, default full glow
       themes: themeConfigurations,
 
       // Set theme variation
       setVariation: (variation: ThemeVariation) => {
         set({ variation });
-        applyThemeToDOM(variation, get().mode);
+        applyThemeToDOM(variation, get().mode, get().glowIntensity);
       },
 
       // Set theme mode (dark/light)
       setMode: (mode: ThemeMode) => {
         set({ mode });
-        applyThemeToDOM(get().variation, mode);
+        applyThemeToDOM(get().variation, mode, get().glowIntensity);
       },
 
       // Set per-game theme override
@@ -320,10 +323,18 @@ export const useThemeStore = create<ThemeState>()(
         }));
       },
 
+      // Set glow intensity (0-100)
+      setGlowIntensity: (intensity: number) => {
+        const clampedIntensity = Math.max(0, Math.min(100, intensity));
+        set({ glowIntensity: clampedIntensity });
+        // Re-apply theme with new glow intensity
+        applyThemeToDOM(get().variation, get().mode, clampedIntensity);
+      },
+
       // Reset to defaults
       resetToDefaults: () => {
-        set({ variation: 'classic', mode: 'dark', gameThemes: [] });
-        applyThemeToDOM('classic', 'dark');
+        set({ variation: 'classic', mode: 'dark', gameThemes: [], glowIntensity: 100 });
+        applyThemeToDOM('classic', 'dark', 100);
       },
 
       // Get active theme configuration
@@ -345,6 +356,7 @@ export const useThemeStore = create<ThemeState>()(
         variation: state.variation,
         mode: state.mode,
         gameThemes: state.gameThemes,
+        glowIntensity: state.glowIntensity,
       }),
     }
   )
@@ -357,7 +369,7 @@ export const useThemeStore = create<ThemeState>()(
 /**
  * Apply theme to DOM by setting CSS custom properties
  */
-function applyThemeToDOM(variation: ThemeVariation, mode: ThemeMode): void {
+function applyThemeToDOM(variation: ThemeVariation, mode: ThemeMode, glowIntensity: number = 100): void {
   const root = document.documentElement;
   const theme = themeConfigurations[variation];
 
@@ -406,14 +418,14 @@ function applyThemeToDOM(variation: ThemeVariation, mode: ThemeMode): void {
   root.style.setProperty('--color-error', theme.colors.error);
   root.style.setProperty('--color-info', theme.colors.info);
 
-  // Update glow shadows to match theme
-  updateGlowShadows(theme);
+  // Update glow shadows to match theme with intensity
+  updateGlowShadows(theme, glowIntensity);
 }
 
 /**
- * Update glow shadow CSS variables based on theme colors
+ * Update glow shadow CSS variables based on theme colors and intensity
  */
-function updateGlowShadows(theme: ThemeConfig): void {
+function updateGlowShadows(theme: ThemeConfig, glowIntensity: number = 100): void {
   const root = document.documentElement;
 
   // Extract RGB from hex color
@@ -427,28 +439,45 @@ function updateGlowShadows(theme: ThemeConfig): void {
   const primaryRgb = hexToRgb(theme.colors.primary);
   const secondaryRgb = hexToRgb(theme.colors.secondary);
 
+  // Calculate intensity multiplier (0-1)
+  const intensity = glowIntensity / 100;
+
+  // If intensity is 0, remove all glows (set to 'none')
+  if (intensity === 0) {
+    root.style.setProperty('--glow-cyan', 'none');
+    root.style.setProperty('--glow-cyan-md', 'none');
+    root.style.setProperty('--glow-cyan-lg', 'none');
+    root.style.setProperty('--glow-cyan-intense', 'none');
+    root.style.setProperty('--glow-magenta', 'none');
+    root.style.setProperty('--glow-magenta-md', 'none');
+    root.style.setProperty('--glow-magenta-lg', 'none');
+    root.style.setProperty('--glow-magenta-intense', 'none');
+    return;
+  }
+
+  // Apply intensity multiplier to alpha values
   // Update primary glows
-  root.style.setProperty('--glow-cyan', `0 0 10px rgba(${primaryRgb}, 0.3)`);
-  root.style.setProperty('--glow-cyan-md', `0 0 20px rgba(${primaryRgb}, 0.4)`);
+  root.style.setProperty('--glow-cyan', `0 0 10px rgba(${primaryRgb}, ${0.3 * intensity})`);
+  root.style.setProperty('--glow-cyan-md', `0 0 20px rgba(${primaryRgb}, ${0.4 * intensity})`);
   root.style.setProperty(
     '--glow-cyan-lg',
-    `0 0 30px rgba(${primaryRgb}, 0.5), 0 0 60px rgba(${primaryRgb}, 0.3)`
+    `0 0 30px rgba(${primaryRgb}, ${0.5 * intensity}), 0 0 60px rgba(${primaryRgb}, ${0.3 * intensity})`
   );
   root.style.setProperty(
     '--glow-cyan-intense',
-    `0 0 20px rgba(${primaryRgb}, 0.6), 0 0 40px rgba(${primaryRgb}, 0.4), 0 0 60px rgba(${primaryRgb}, 0.2)`
+    `0 0 20px rgba(${primaryRgb}, ${0.6 * intensity}), 0 0 40px rgba(${primaryRgb}, ${0.4 * intensity}), 0 0 60px rgba(${primaryRgb}, ${0.2 * intensity})`
   );
 
   // Update secondary glows
-  root.style.setProperty('--glow-magenta', `0 0 10px rgba(${secondaryRgb}, 0.3)`);
-  root.style.setProperty('--glow-magenta-md', `0 0 20px rgba(${secondaryRgb}, 0.4)`);
+  root.style.setProperty('--glow-magenta', `0 0 10px rgba(${secondaryRgb}, ${0.3 * intensity})`);
+  root.style.setProperty('--glow-magenta-md', `0 0 20px rgba(${secondaryRgb}, ${0.4 * intensity})`);
   root.style.setProperty(
     '--glow-magenta-lg',
-    `0 0 30px rgba(${secondaryRgb}, 0.5), 0 0 60px rgba(${secondaryRgb}, 0.3)`
+    `0 0 30px rgba(${secondaryRgb}, ${0.5 * intensity}), 0 0 60px rgba(${secondaryRgb}, ${0.3 * intensity})`
   );
   root.style.setProperty(
     '--glow-magenta-intense',
-    `0 0 20px rgba(${secondaryRgb}, 0.6), 0 0 40px rgba(${secondaryRgb}, 0.4), 0 0 60px rgba(${secondaryRgb}, 0.2)`
+    `0 0 20px rgba(${secondaryRgb}, ${0.6 * intensity}), 0 0 40px rgba(${secondaryRgb}, ${0.4 * intensity}), 0 0 60px rgba(${secondaryRgb}, ${0.2 * intensity})`
   );
 }
 
@@ -491,7 +520,7 @@ export const selectGameThemes = (state: ThemeState) => state.gameThemes;
  */
 export function initializeTheme(): void {
   const state = useThemeStore.getState();
-  applyThemeToDOM(state.variation, state.mode);
+  applyThemeToDOM(state.variation, state.mode, state.glowIntensity);
 }
 
 // ============================================
@@ -527,6 +556,13 @@ export function useAllThemes() {
 }
 
 /**
+ * Hook to get glow intensity
+ */
+export function useGlowIntensity() {
+  return useThemeStore((state) => state.glowIntensity);
+}
+
+/**
  * Hook to get theme actions
  */
 export function useThemeActions() {
@@ -535,6 +571,7 @@ export function useThemeActions() {
     setMode: useThemeStore((state) => state.setMode),
     setGameTheme: useThemeStore((state) => state.setGameTheme),
     removeGameTheme: useThemeStore((state) => state.removeGameTheme),
+    setGlowIntensity: useThemeStore((state) => state.setGlowIntensity),
     resetToDefaults: useThemeStore((state) => state.resetToDefaults),
   };
 }

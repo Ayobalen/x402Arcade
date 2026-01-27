@@ -29,7 +29,7 @@ export default function ComponentShowcase() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary p-8">
+    <div className="w-full">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">

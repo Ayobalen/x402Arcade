@@ -45,7 +45,7 @@ const GAMES: Game[] = [
     emoji: '🏓',
     description: 'Classic arcade pong. Keep the ball in play and beat the AI.',
     price: '$0.01',
-    status: 'available',
+    status: 'coming-soon',
     route: '/play/pong',
   },
   {
@@ -54,7 +54,7 @@ const GAMES: Game[] = [
     emoji: '🟦',
     description: 'Stack falling blocks to clear lines. Speed increases as you progress.',
     price: '$0.01',
-    status: 'available',
+    status: 'coming-soon',
     route: '/play/tetris',
   },
   {
@@ -63,7 +63,7 @@ const GAMES: Game[] = [
     emoji: '🧱',
     description: 'Break all the bricks with your paddle and ball. Classic arcade action.',
     price: '$0.01',
-    status: 'available',
+    status: 'coming-soon',
     route: '/play/breakout',
   },
   {
@@ -72,7 +72,7 @@ const GAMES: Game[] = [
     emoji: '👾',
     description: 'Defend Earth from alien invaders. Shoot them down before they reach you.',
     price: '$0.02',
-    status: 'available',
+    status: 'coming-soon',
     route: '/play/space-invaders',
   },
   {
@@ -81,7 +81,7 @@ const GAMES: Game[] = [
     emoji: '🎮',
     description: 'Phaser 3 version of classic Pong. Demonstrates library-based implementation.',
     price: '$0.01',
-    status: 'available',
+    status: 'coming-soon',
     route: '/play/pong-phaser',
   },
 ];
@@ -148,14 +148,14 @@ export function Play() {
   });
 
   return (
-    <div className="w-full min-h-screen py-12 px-4">
+    <div className="w-full">
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
         <div className="text-center mb-12">
           <h1
             className={cn(
               'text-4xl md:text-5xl lg:text-6xl font-bold',
-              'bg-gradient-to-r from-[#00ffff] via-[#ff00ff] to-[#00ffff]',
+              'bg-gradient-to-r from-theme-primary via-theme-secondary to-theme-primary',
               'bg-clip-text text-transparent',
               'mb-4',
               'leading-tight'
@@ -163,7 +163,7 @@ export function Play() {
           >
             Choose Your Game
           </h1>
-          <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-theme-text-secondary max-w-2xl mx-auto">
             Select a game to play. Pay with USDC, compete for daily prizes.
           </p>
         </div>
@@ -172,16 +172,16 @@ export function Play() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
           {/* Filter Buttons */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-white/60 mr-2">Filter:</span>
+            <span className="text-sm text-theme-text-muted mr-2">Filter:</span>
             <button
               onClick={() => setFilter('all')}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium',
                 'transition-all duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-primary focus-visible:ring-offset-2 focus-visible:ring-offset-theme-bg-main',
                 filter === 'all'
-                  ? 'bg-gradient-to-r from-[#00ffff] to-[#ff00ff] text-black'
-                  : 'bg-[#1a1a2e] border border-[#2d2d4a] text-white hover:border-[#00ffff] hover:text-[#00ffff]'
+                  ? 'bg-gradient-to-r from-theme-primary to-theme-secondary text-theme-text-inverse'
+                  : 'bg-theme-bg-elevated border border-theme-border text-theme-text-primary hover:border-theme-primary hover:text-theme-primary'
               )}
             >
               All Games ({GAMES.length})
@@ -191,10 +191,10 @@ export function Play() {
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium',
                 'transition-all duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-primary focus-visible:ring-offset-2 focus-visible:ring-offset-theme-bg-main',
                 filter === 'available'
-                  ? 'bg-gradient-to-r from-[#00ffff] to-[#ff00ff] text-black'
-                  : 'bg-[#1a1a2e] border border-[#2d2d4a] text-white hover:border-[#00ffff] hover:text-[#00ffff]'
+                  ? 'bg-gradient-to-r from-theme-primary to-theme-secondary text-theme-text-inverse'
+                  : 'bg-theme-bg-elevated border border-theme-border text-theme-text-primary hover:border-theme-primary hover:text-theme-primary'
               )}
             >
               Available ({GAMES.filter((g) => g.status === 'available').length})
@@ -204,10 +204,10 @@ export function Play() {
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium',
                 'transition-all duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-primary focus-visible:ring-offset-2 focus-visible:ring-offset-theme-bg-main',
                 filter === 'coming-soon'
-                  ? 'bg-gradient-to-r from-[#00ffff] to-[#ff00ff] text-black'
-                  : 'bg-[#1a1a2e] border border-[#2d2d4a] text-white hover:border-[#00ffff] hover:text-[#00ffff]'
+                  ? 'bg-gradient-to-r from-theme-primary to-theme-secondary text-theme-text-inverse'
+                  : 'bg-theme-bg-elevated border border-theme-border text-theme-text-primary hover:border-theme-primary hover:text-theme-primary'
               )}
             >
               Coming Soon ({GAMES.filter((g) => g.status === 'coming-soon').length})
@@ -216,15 +216,15 @@ export function Play() {
 
           {/* Sort Dropdown */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-white/60">Sort by:</span>
+            <span className="text-sm text-theme-text-muted">Sort by:</span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortOption)}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium',
-                'bg-[#1a1a2e] border border-[#2d2d4a] text-white',
-                'hover:border-[#00ffff]',
-                'focus:outline-none focus:ring-2 focus:ring-[#00ffff] focus:ring-offset-2 focus:ring-offset-[#0a0a0a]',
+                'bg-theme-bg-elevated border border-theme-border text-theme-text-primary',
+                'hover:border-theme-primary',
+                'focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-offset-2 focus:ring-offset-theme-bg-main',
                 'transition-all duration-200',
                 'cursor-pointer'
               )}
@@ -237,70 +237,78 @@ export function Play() {
 
         {/* Game Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sortedGames.map((game) => (
-            <Link
-              key={game.id}
-              to={game.route}
-              className={cn(
-                'group',
-                'p-6 rounded-xl',
-                'bg-[#16162a]',
-                'border border-[#2d2d4a]',
-                'hover:border-[#00ffff]',
-                'hover:shadow-[0_0_20px_rgba(0,255,255,0.3)]',
-                'transition-all duration-200',
-                game.status === 'coming-soon' && 'opacity-75'
-              )}
-            >
+          {sortedGames.map((game) => {
+            const isComingSoon = game.status === 'coming-soon';
+            const Component = isComingSoon ? 'div' : Link;
+            const componentProps = isComingSoon
+              ? { key: game.id }
+              : { key: game.id, to: game.route };
+
+            return (
+              <Component
+                {...componentProps}
+                className={cn(
+                  'group',
+                  'p-6 rounded-xl',
+                  'bg-theme-bg-surface',
+                  'border border-theme-border',
+                  'transition-all duration-200',
+                  isComingSoon
+                    ? 'opacity-60 cursor-not-allowed'
+                    : 'hover:border-theme-primary hover:shadow-theme-glow-md cursor-pointer'
+                )}
+              >
               {/* Game Icon */}
-              <div className="aspect-square bg-[#0a0a0a] rounded-lg mb-4 flex items-center justify-center">
+              <div className="aspect-square bg-theme-bg-main rounded-lg mb-4 flex items-center justify-center">
                 <span className="text-6xl md:text-7xl lg:text-8xl">{game.emoji}</span>
               </div>
 
               {/* Game Name */}
-              <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#00ffff] transition-colors">
+              <h3 className="text-xl font-bold mb-2 text-theme-text-primary group-hover:text-theme-primary transition-colors">
                 {game.name}
               </h3>
 
               {/* Game Description */}
-              <p className="text-white/60 mb-4 text-sm leading-relaxed">{game.description}</p>
+              <p className="text-theme-text-muted mb-4 text-sm leading-relaxed">{game.description}</p>
 
               {/* Game Price and Status */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#00ffff] font-semibold">{game.price} to play</span>
+                  <span className="text-sm text-theme-primary font-semibold">{game.price} to play</span>
                 </div>
                 {game.status === 'coming-soon' && (
-                  <span className="text-xs text-white/40 bg-[#1a1a2e] px-2 py-1 rounded">
+                  <span className="text-xs text-theme-text-muted bg-theme-bg-elevated px-2 py-1 rounded">
                     Coming Soon
                   </span>
                 )}
                 {game.status === 'available' && (
                   <div className="flex items-center gap-1">
-                    <GamepadIcon className="w-4 h-4 text-[#00ff00]" />
-                    <span className="text-xs text-[#00ff00] font-semibold">Play Now</span>
+                    <GamepadIcon className="w-4 h-4 text-theme-success" />
+                    <span className="text-xs text-theme-success font-semibold">Play Now</span>
                   </div>
                 )}
               </div>
-            </Link>
-          ))}
+            </Component>
+          );
+          })}
         </div>
 
         {/* Empty State */}
         {sortedGames.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-xl text-white/60">No games found matching your filters.</p>
+            <p className="text-xl text-theme-text-muted">No games found matching your filters.</p>
             <button
               onClick={() => setFilter('all')}
               className={cn(
                 'mt-6',
                 'px-6 py-3',
                 'rounded-lg',
-                'bg-gradient-to-r from-[#00ffff] to-[#ff00ff]',
-                'text-black font-semibold',
+                'bg-gradient-to-r from-theme-primary to-theme-secondary',
+                'text-theme-text-inverse font-semibold',
                 'hover:scale-105',
                 'transition-all duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]'
+                'shadow-theme-glow',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-primary focus-visible:ring-offset-2 focus-visible:ring-offset-theme-bg-main'
               )}
             >
               Show All Games

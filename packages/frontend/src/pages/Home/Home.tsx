@@ -87,9 +87,9 @@ function CoinsIcon({ className }: { className?: string }) {
  */
 export function Home() {
   return (
-    <div className="w-full min-h-screen">
+    <div className="w-full">
       {/* Hero Section */}
-      <section className="py-20 px-4 text-center">
+      <section className="py-20 text-center">
         <div className="max-w-4xl mx-auto">
           {/* Hero Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1a1a2e] border border-[#2d2d4a] mb-8">

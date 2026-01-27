@@ -72,6 +72,8 @@ export function LiveLeaderboardWidget({
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [playerHighScore, setPlayerHighScore] = useState<number | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   // API URL from environment
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -89,6 +91,12 @@ export function LiveLeaderboardWidget({
       });
 
       if (!response.ok) {
+        // Check for rate limiting
+        if (response.status === 429) {
+          setIsRateLimited(true);
+          setRetryCount((prev) => prev + 1);
+          throw new Error('Too Many Requests');
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -98,6 +106,8 @@ export function LiveLeaderboardWidget({
       if (data.entries && Array.isArray(data.entries)) {
         setEntries(data.entries);
         setError(null);
+        setIsRateLimited(false);
+        setRetryCount(0); // Reset retry count on success
         setLastUpdate(new Date());
 
         // Extract player's high score if they're in the leaderboard
@@ -120,7 +130,7 @@ export function LiveLeaderboardWidget({
     } finally {
       setIsLoading(false);
     }
-  }, [API_URL, gameType, periodType, limit]);
+  }, [API_URL, gameType, periodType, limit, playerAddress]);
 
   /**
    * Initial fetch on mount
@@ -130,15 +140,23 @@ export function LiveLeaderboardWidget({
   }, [fetchLeaderboard]);
 
   /**
-   * Set up polling interval
+   * Set up polling interval with exponential backoff for rate limiting
    */
   useEffect(() => {
+    // Calculate backoff delay: 15s, 30s, 60s, 120s, max 2 minutes
+    const backoffMultiplier = Math.min(Math.pow(2, retryCount), 8);
+    const currentPollInterval = isRateLimited ? pollInterval * backoffMultiplier : pollInterval;
+
+    console.log(
+      `[LiveLeaderboardWidget] Setting poll interval: ${currentPollInterval}ms (${isRateLimited ? 'rate limited' : 'normal'})`
+    );
+
     const intervalId = setInterval(() => {
       fetchLeaderboard();
-    }, pollInterval);
+    }, currentPollInterval);
 
     return () => clearInterval(intervalId);
-  }, [fetchLeaderboard, pollInterval]);
+  }, [fetchLeaderboard, pollInterval, isRateLimited, retryCount]);
 
   /**
    * Find current player's rank
@@ -169,11 +187,11 @@ export function LiveLeaderboardWidget({
   return (
     <div
       className={cn(
-        'bg-[#1a1a2e]',
-        'border-2 border-[#00ff9f]/30',
+        'bg-theme-bg-surface',
+        'border-2 border-theme-primary/30',
         'rounded-xl',
         'p-4',
-        'shadow-[0_0_20px_rgba(0,255,159,0.2)]',
+        'shadow-theme-glow-md',
         'min-w-[280px]',
         'max-w-[320px]',
         className
@@ -181,7 +199,7 @@ export function LiveLeaderboardWidget({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[#00ff9f] font-bold text-lg uppercase tracking-wide">Live Rankings</h3>
+        <h3 className="text-theme-primary font-bold text-lg uppercase tracking-wide">Live Rankings</h3>
         {lastUpdate && !isLoading && (
           <span className="text-xs text-gray-400">{formatLastUpdate()}</span>
         )}
@@ -193,20 +211,20 @@ export function LiveLeaderboardWidget({
           className={cn(
             'mb-4',
             'px-4 py-3',
-            'bg-[#00ff9f]/10',
-            'border border-[#00ff9f]/30',
+            'bg-theme-primary/10',
+            'border border-theme-primary/30',
             'rounded-lg'
           )}
         >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-gray-400 mb-1">Your High Score</div>
-              <div className="text-3xl font-bold text-[#00ff9f]">{playerHighScore.toLocaleString()}</div>
+              <div className="text-3xl font-bold text-theme-primary">{playerHighScore.toLocaleString()}</div>
             </div>
             {playerRank !== null && (
               <div className="text-right">
                 <div className="text-xs text-gray-400 mb-1">Rank</div>
-                <div className="text-2xl font-bold text-[#00ff9f]">#{playerRank}</div>
+                <div className="text-2xl font-bold text-theme-primary">#{playerRank}</div>
               </div>
             )}
           </div>
@@ -216,21 +234,41 @@ export function LiveLeaderboardWidget({
       {/* Loading State */}
       {isLoading && entries.length === 0 && (
         <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#00ff9f]"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-theme-primary"></div>
           <p className="text-gray-400 mt-2 text-sm">Loading rankings...</p>
         </div>
       )}
 
-      {/* Error State */}
+      {/* Error State - Full (no entries) */}
       {error && !isLoading && entries.length === 0 && (
         <div className="text-center py-8">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={fetchLeaderboard}
-            className="mt-3 px-4 py-2 bg-[#00ff9f]/20 text-[#00ff9f] rounded-lg text-sm hover:bg-[#00ff9f]/30 transition-colors"
+            className="mt-3 px-4 py-2 bg-theme-primary/20 text-theme-primary rounded-lg text-sm hover:bg-theme-primary/30 transition-colors"
           >
             Retry
           </button>
+        </div>
+      )}
+
+      {/* Error Banner - Small (with cached entries) */}
+      {error && entries.length > 0 && (
+        <div className="mb-3 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-red-400 text-xs flex-1">{error}</p>
+            <button
+              onClick={fetchLeaderboard}
+              className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs hover:bg-red-500/30 transition-colors flex-shrink-0"
+            >
+              Retry
+            </button>
+          </div>
+          {isRateLimited && (
+            <p className="text-red-400/70 text-[10px] mt-1">
+              Retrying automatically in {Math.floor((pollInterval * Math.min(Math.pow(2, retryCount), 8)) / 1000)}s...
+            </p>
+          )}
         </div>
       )}
 
@@ -258,8 +296,8 @@ export function LiveLeaderboardWidget({
                   'rounded-lg',
                   'transition-all duration-200',
                   isCurrentPlayer
-                    ? 'bg-[#00ff9f]/20 border border-[#00ff9f]/50 shadow-[0_0_10px_rgba(0,255,159,0.3)]'
-                    : 'bg-[#0f0f1a]/50 border border-gray-700/30 hover:bg-[#0f0f1a]/80'
+                    ? 'bg-theme-primary/20 border border-theme-primary/50 shadow-theme-glow'
+                    : 'bg-theme-bg-main/50 border border-gray-700/30 hover:bg-theme-bg-main/80'
                 )}
               >
                 {/* Rank Badge */}
@@ -284,12 +322,12 @@ export function LiveLeaderboardWidget({
                   <div
                     className={cn(
                       'font-mono text-sm truncate',
-                      isCurrentPlayer ? 'text-[#00ff9f] font-bold' : 'text-gray-300'
+                      isCurrentPlayer ? 'text-theme-primary font-bold' : 'text-gray-300'
                     )}
                   >
                     {formatAddress(entry.playerAddress)}
                   </div>
-                  {isCurrentPlayer && <div className="text-xs text-[#00ff9f]/70">You</div>}
+                  {isCurrentPlayer && <div className="text-xs text-theme-primary/70">You</div>}
                 </div>
 
                 {/* Score */}
@@ -297,7 +335,7 @@ export function LiveLeaderboardWidget({
                   className={cn(
                     'flex-shrink-0',
                     'font-bold',
-                    isCurrentPlayer ? 'text-[#00ff9f]' : 'text-gray-300'
+                    isCurrentPlayer ? 'text-theme-primary' : 'text-gray-300'
                   )}
                 >
                   {entry.score.toLocaleString()}
@@ -314,7 +352,7 @@ export function LiveLeaderboardWidget({
           <span className="capitalize">{periodType} Rankings</span>
           {isLoading && entries.length > 0 && (
             <span className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-[#00ff9f] rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-theme-primary rounded-full animate-pulse"></div>
               Updating...
             </span>
           )}

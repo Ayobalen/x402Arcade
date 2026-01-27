@@ -376,7 +376,8 @@ class AudioManager {
   public setMasterVolume(volume: number): void {
     this.masterVolume = Math.max(0, Math.min(1, volume));
     Howler.volume(this.masterVolume);
-    this.saveState();
+    // Defer state save to avoid blocking UI
+    queueMicrotask(() => this.saveState());
   }
 
   /**
@@ -391,7 +392,8 @@ class AudioManager {
    */
   public setCategoryVolume(category: AudioCategory, volume: number): void {
     this.categoryVolumes.set(category, Math.max(0, Math.min(1, volume)));
-    this.saveState();
+    // Defer state save to avoid blocking UI
+    queueMicrotask(() => this.saveState());
   }
 
   /**
@@ -407,7 +409,8 @@ class AudioManager {
   public mute(): void {
     this.isMuted = true;
     Howler.mute(true);
-    this.saveState();
+    // Defer state save to avoid blocking UI
+    queueMicrotask(() => this.saveState());
   }
 
   /**
@@ -416,7 +419,8 @@ class AudioManager {
   public unmute(): void {
     this.isMuted = false;
     Howler.mute(false);
-    this.saveState();
+    // Defer state save to avoid blocking UI
+    queueMicrotask(() => this.saveState());
   }
 
   /**
@@ -443,7 +447,8 @@ class AudioManager {
    */
   public enable(): void {
     this.isEnabled = true;
-    this.saveState();
+    // Defer state save to avoid blocking UI
+    queueMicrotask(() => this.saveState());
   }
 
   /**
@@ -452,7 +457,8 @@ class AudioManager {
   public disable(): void {
     this.isEnabled = false;
     Howler.stop();
-    this.saveState();
+    // Defer state save to avoid blocking UI
+    queueMicrotask(() => this.saveState());
   }
 
   /**

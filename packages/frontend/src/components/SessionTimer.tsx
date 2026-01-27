@@ -126,10 +126,10 @@ export function SessionTimer({ sessionCreatedAt, onExpired, className }: Session
         return {
           icon: '⏱️',
           text: formatTime(timeRemaining) + ' remaining',
-          bgColor: 'bg-[#1a1a2e]',
-          borderColor: 'border-[#2d2d4a]',
-          textColor: 'text-[#00ffff]',
-          glowColor: 'shadow-[0_0_20px_rgba(0,255,255,0.2)]',
+          bgColor: 'bg-theme-bg-elevated',
+          borderColor: 'border-theme-border',
+          textColor: 'text-theme-primary',
+          glowColor: 'shadow-theme-glow',
         };
     }
   };

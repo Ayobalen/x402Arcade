@@ -29,6 +29,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Theme-aware colors (use CSS variables from themeStore)
+        theme: {
+          primary: 'var(--color-primary)',
+          'primary-hover': 'var(--color-primary-hover)',
+          'primary-glow': 'var(--color-primary-glow)',
+          secondary: 'var(--color-secondary)',
+          'secondary-hover': 'var(--color-secondary-hover)',
+          'secondary-glow': 'var(--color-secondary-glow)',
+          accent: 'var(--color-accent)',
+          'accent-glow': 'var(--color-accent-glow)',
+          'bg-main': 'var(--color-bg-main)',
+          'bg-surface': 'var(--color-bg-elevated)',
+          'bg-elevated': 'var(--color-bg-elevated)',
+          'bg-hover': 'var(--color-bg-hover)',
+          'text-primary': 'var(--color-text-primary)',
+          'text-secondary': 'var(--color-text-secondary)',
+          'text-muted': 'var(--color-text-muted)',
+          'text-inverse': 'var(--color-text-inverse)',
+          border: 'var(--color-border)',
+          'border-hover': 'var(--color-border-hover)',
+          'border-focus': 'var(--color-border-focus)',
+          success: 'var(--color-success)',
+          warning: 'var(--color-warning)',
+          error: 'var(--color-error)',
+          info: 'var(--color-info)',
+        },
         // Background colors
         bg: {
           primary: backgrounds.primary,
@@ -201,6 +227,14 @@ const config: Config = {
         '8': borderWidth['8'],
       },
       boxShadow: {
+        // Theme-aware glows
+        'theme-glow': 'var(--glow-cyan)',
+        'theme-glow-md': 'var(--glow-cyan-md)',
+        'theme-glow-lg': 'var(--glow-cyan-lg)',
+        'theme-glow-intense': 'var(--glow-cyan-intense)',
+        'theme-glow-secondary': 'var(--glow-magenta)',
+        'theme-glow-secondary-md': 'var(--glow-magenta-md)',
+        'theme-glow-secondary-lg': 'var(--glow-magenta-lg)',
         // Elevation shadows
         xs: elevationShadows.xs,
         sm: elevationShadows.sm,

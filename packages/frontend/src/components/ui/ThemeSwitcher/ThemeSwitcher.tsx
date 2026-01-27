@@ -37,12 +37,12 @@ const ThemePreview: React.FC<{
         relative flex flex-col gap-3 p-4 rounded-lg border-2 transition-all
         ${
           isActive
-            ? 'border-current shadow-lg'
-            : 'border-[var(--color-border)] hover:border-[var(--color-border-focus)]'
+            ? 'border-current shadow-theme-glow-md'
+            : 'border-theme-border hover:border-theme-border-focus'
         }
-        bg-[var(--color-surface-primary)] hover:bg-[var(--color-surface-secondary)]
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-bg-primary)]
-        focus:ring-[var(--color-primary)]
+        bg-theme-bg-elevated hover:bg-theme-bg-hover
+        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-theme-bg-main
+        focus:ring-theme-primary
       `}
       style={{
         color: isActive ? theme.colors.primary : 'var(--color-text-primary)',
@@ -69,13 +69,13 @@ const ThemePreview: React.FC<{
       {/* Theme name */}
       <div className="flex flex-col items-start gap-1">
         <h3 className="font-display text-sm font-semibold">{theme.displayName}</h3>
-        <p className="text-xs text-[var(--color-text-tertiary)]">{theme.description}</p>
+        <p className="text-xs text-theme-text-muted">{theme.description}</p>
       </div>
 
       {/* Color swatches */}
       <div className="flex gap-2">
         <div
-          className="w-8 h-8 rounded border border-[var(--color-border)]"
+          className="w-8 h-8 rounded border border-theme-border"
           style={{
             backgroundColor: theme.colors.primary,
             boxShadow: `0 0 10px ${theme.colors.primaryGlow}`,
@@ -83,7 +83,7 @@ const ThemePreview: React.FC<{
           title="Primary color"
         />
         <div
-          className="w-8 h-8 rounded border border-[var(--color-border)]"
+          className="w-8 h-8 rounded border border-theme-border"
           style={{
             backgroundColor: theme.colors.secondary,
             boxShadow: `0 0 10px ${theme.colors.secondaryGlow}`,
@@ -92,7 +92,7 @@ const ThemePreview: React.FC<{
         />
         {theme.colors.accent && (
           <div
-            className="w-8 h-8 rounded border border-[var(--color-border)]"
+            className="w-8 h-8 rounded border border-theme-border"
             style={{
               backgroundColor: theme.colors.accent,
               boxShadow: `0 0 10px ${theme.colors.accentGlow}`,
@@ -156,10 +156,10 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ mode = 'panel', on
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="
-            p-2 rounded-lg border border-[var(--color-border)]
-            bg-[var(--color-surface-primary)] hover:bg-[var(--color-surface-secondary)]
-            text-[var(--color-text-primary)] hover:text-[var(--color-primary)]
-            transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]
+            p-2 rounded-lg border border-theme-border
+            bg-theme-bg-elevated hover:bg-theme-bg-hover
+            text-theme-text-primary hover:text-theme-primary
+            transition-colors focus:outline-none focus:ring-2 focus:ring-theme-primary
           "
           aria-label="Change theme"
           aria-expanded={isOpen}
@@ -181,8 +181,8 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ mode = 'panel', on
               <motion.div
                 className="
                   absolute right-0 top-full mt-2 p-4 rounded-lg
-                  bg-[var(--color-surface-primary)] border border-[var(--color-border)]
-                  shadow-[var(--shadow-lg)] z-[var(--z-dropdown)]
+                  bg-theme-bg-elevated border border-theme-border
+                  shadow-theme-glow-md z-[var(--z-dropdown)]
                   min-w-[280px]
                 "
                 initial={{ opacity: 0, y: -10 }}
@@ -191,12 +191,12 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ mode = 'panel', on
                 transition={{ duration: 0.2 }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-display text-sm font-semibold text-[var(--color-text-primary)]">
+                  <h3 className="font-display text-sm font-semibold text-theme-text-primary">
                     Choose Theme
                   </h3>
                   <button
                     onClick={() => setIsOpen(false)}
-                    className="p-1 rounded hover:bg-[var(--color-surface-secondary)] transition-colors"
+                    className="p-1 rounded hover:bg-theme-bg-hover transition-colors"
                     aria-label="Close theme switcher"
                   >
                     <X size={16} />
@@ -219,9 +219,9 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ mode = 'panel', on
                     onClick={handleReset}
                     className="
                       mt-4 w-full py-2 px-4 rounded-lg text-sm font-medium
-                      bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-tertiary)]
-                      text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]
-                      transition-colors border border-[var(--color-border)]
+                      bg-theme-bg-hover hover:bg-theme-bg-main
+                      text-theme-text-secondary hover:text-theme-text-primary
+                      transition-colors border border-theme-border
                     "
                   >
                     Reset to Classic
@@ -243,15 +243,14 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ mode = 'panel', on
         <div className="flex items-center gap-3">
           <Palette
             size={24}
-            className="text-[var(--color-primary)]"
-            style={{ filter: 'drop-shadow(0 0 8px var(--color-primary-glow))' }}
+            className="text-theme-primary drop-shadow-theme-glow"
           />
           <div>
-            <h2 className="font-display text-xl font-bold text-[var(--color-text-primary)]">
+            <h2 className="font-display text-xl font-bold text-theme-text-primary">
               Theme Customization
             </h2>
-            <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
-              Choose your arcade aesthetic
+            <p className="text-sm text-theme-text-secondary mt-1">
+              Choose your arcade aesthetic - see the entire app change!
             </p>
           </div>
         </div>
@@ -261,9 +260,10 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ mode = 'panel', on
             onClick={handleReset}
             className="
               px-4 py-2 rounded-lg text-sm font-medium
-              bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-tertiary)]
-              text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]
-              transition-colors border border-[var(--color-border)]
+              bg-theme-bg-hover hover:bg-theme-bg-main
+              text-theme-text-secondary hover:text-theme-text-primary
+              transition-colors border border-theme-border
+              hover:border-theme-primary
             "
           >
             Reset to Classic
@@ -284,24 +284,24 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ mode = 'panel', on
       </div>
 
       {/* Current theme info */}
-      <div className="p-4 rounded-lg bg-[var(--color-surface-primary)] border border-[var(--color-border)]">
-        <h3 className="text-sm font-semibold text-[var(--color-text-secondary)] mb-2">
+      <div className="p-4 rounded-lg bg-theme-bg-main border-2 border-theme-primary/30 shadow-theme-glow">
+        <h3 className="text-sm font-semibold text-theme-text-secondary mb-2">
           Active Theme
         </h3>
         <div className="flex items-center justify-between">
-          <span className="font-display text-lg font-bold text-[var(--color-primary)]">
+          <span className="font-display text-lg font-bold text-theme-primary">
             {themes[currentVariation].displayName}
           </span>
           <div className="flex gap-2">
             <div
-              className="w-6 h-6 rounded border border-[var(--color-border)]"
+              className="w-6 h-6 rounded border border-theme-border"
               style={{
                 backgroundColor: themes[currentVariation].colors.primary,
                 boxShadow: `0 0 8px ${themes[currentVariation].colors.primaryGlow}`,
               }}
             />
             <div
-              className="w-6 h-6 rounded border border-[var(--color-border)]"
+              className="w-6 h-6 rounded border border-theme-border"
               style={{
                 backgroundColor: themes[currentVariation].colors.secondary,
                 boxShadow: `0 0 8px ${themes[currentVariation].colors.secondaryGlow}`,

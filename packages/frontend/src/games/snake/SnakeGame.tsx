@@ -161,23 +161,19 @@ export function SnakeGame({
         </div>
       )}
 
-      {/* Game Over Overlay */}
+      {/* Game Over Overlay - Simplified */}
       {state.isGameOver && (
         <div className="game-over-overlay">
           <div className="game-over-content">
             <h2 className="game-over-title">Game Over</h2>
+
+            {/* Final Score - Prominent Display */}
             <div className="final-score">
               <span className="final-score-label">Final Score</span>
               <span className="final-score-value">{state.score}</span>
             </div>
 
-            {/* Ranking Display */}
-            {isLoadingRankings && (
-              <div className="ranking-loading">
-                <span className="loading-text">Loading rankings...</span>
-              </div>
-            )}
-
+            {/* Your Rank - Compact Display */}
             {!isLoadingRankings && playerRank !== null && (
               <div className="player-rank">
                 <span className="rank-label">Your Rank</span>
@@ -185,52 +181,21 @@ export function SnakeGame({
               </div>
             )}
 
-            <div className="nearby-rankings">
-              <span className="rankings-title">Leaderboard</span>
-              {isLoadingRankings && (
-                <div className="ranking-loading">
-                  <span className="loading-text">Loading...</span>
-                </div>
-              )}
-              {!isLoadingRankings && rankings.length === 0 && (
-                <div className="ranking-empty">
-                  <span className="empty-text">No rankings yet</span>
-                </div>
-              )}
-              {!isLoadingRankings && rankings.length > 0 && (
-                <div className="rankings-list">
-                  {rankings.slice(0, 5).map((entry) => (
-                    <div
-                      key={`rank-${entry.rank}`}
-                      className={`ranking-entry ${entry.isCurrentPlayer ? 'current-player' : ''}`}
-                    >
-                      <span className="ranking-position">#{entry.rank}</span>
-                      <span className="ranking-address">
-                        {entry.playerAddress.slice(0, 6)}...{entry.playerAddress.slice(-4)}
-                      </span>
-                      <span className="ranking-score">{entry.score}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Transaction Verification Link */}
-            {transactionHash && (
-              <a
-                href={getTxUrl(transactionHash)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transaction-link"
-              >
-                <span className="tx-icon">&#x2713;</span>
-                <span className="tx-text">Verify on Explorer</span>
-              </a>
+            {isLoadingRankings && (
+              <div className="ranking-loading">
+                <span className="loading-text">Loading rank...</span>
+              </div>
             )}
 
+            {/* Play Again Button */}
             <button className="restart-button" onClick={handleRestart}>
               Play Again
             </button>
+
+            {/* Helpful Hint */}
+            <div className="leaderboard-hint">
+              <span className="hint-text">Check the leaderboard for full rankings →</span>
+            </div>
           </div>
         </div>
       )}
@@ -272,7 +237,7 @@ export function SnakeGame({
         }
 
         .score-value {
-          color: #00ffff;
+          color: var(--color-primary);
           min-width: 4rem;
           text-align: right;
         }
@@ -304,13 +269,13 @@ export function SnakeGame({
         }
 
         .control-key {
-          color: #00ffff;
+          color: var(--color-primary);
           font-weight: 600;
           font-size: 0.75rem;
           padding: 0.25rem 0.5rem;
-          background: rgba(0, 255, 255, 0.1);
+          background: var(--color-primary-glow);
           border-radius: 0.25rem;
-          border: 1px solid rgba(0, 255, 255, 0.3);
+          border: 1px solid var(--color-primary);
         }
 
         .control-or {
@@ -336,30 +301,41 @@ export function SnakeGame({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(10, 10, 10, 0.9);
-          backdrop-filter: blur(4px);
+          background: rgba(10, 10, 10, 0.85);
+          backdrop-filter: blur(8px);
           border-radius: 0.5rem;
           z-index: 10;
+          animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         .game-over-content {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 2rem;
-          padding: 2rem;
-          background: #16162a;
-          border-radius: 1rem;
-          border: 2px solid #2d2d4a;
-          box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+          gap: 1.5rem;
+          padding: 2.5rem 3rem;
+          background: rgba(22, 22, 42, 0.95);
+          border-radius: 1.5rem;
+          border: 3px solid var(--color-primary);
+          box-shadow: var(--glow-cyan-lg);
+          max-width: 400px;
         }
 
         .game-over-title {
           font-family: 'Inter', sans-serif;
           font-size: 2.5rem;
           font-weight: 700;
-          color: #ff00ff;
-          text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+          color: var(--color-secondary);
+          text-shadow: var(--glow-magenta);
           margin: 0;
         }
 
@@ -382,8 +358,8 @@ export function SnakeGame({
           font-family: 'Inter', sans-serif;
           font-size: 3rem;
           font-weight: 700;
-          color: #00ffff;
-          text-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+          color: var(--color-primary);
+          text-shadow: var(--glow-cyan-md);
         }
 
         .ranking-loading {
@@ -410,18 +386,19 @@ export function SnakeGame({
 
         .player-rank {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           align-items: center;
-          gap: 0.25rem;
-          padding: 1rem 2rem;
-          background: rgba(0, 255, 0, 0.1);
-          border: 1px solid rgba(0, 255, 0, 0.3);
-          border-radius: 0.5rem;
+          gap: 1rem;
+          padding: 0.75rem 1.5rem;
+          background: var(--color-primary-glow);
+          border: 2px solid var(--color-primary);
+          border-radius: 0.75rem;
+          box-shadow: var(--glow-cyan);
         }
 
         .rank-label {
           font-family: 'Inter', sans-serif;
-          font-size: 0.75rem;
+          font-size: 0.875rem;
           color: #94a3b8;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -429,74 +406,25 @@ export function SnakeGame({
 
         .rank-value {
           font-family: 'Inter', sans-serif;
-          font-size: 2rem;
+          font-size: 1.75rem;
           font-weight: 700;
-          color: #00ff00;
-          text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+          color: var(--color-primary);
+          text-shadow: var(--glow-cyan-md);
         }
 
-        .nearby-rankings {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.75rem;
-          width: 100%;
-          max-width: 300px;
+        .leaderboard-hint {
+          margin-top: 0.5rem;
+          padding: 0.5rem 1rem;
+          background: rgba(148, 163, 184, 0.1);
+          border-radius: 0.5rem;
+          text-align: center;
         }
 
-        .rankings-title {
+        .hint-text {
           font-family: 'Inter', sans-serif;
-          font-size: 0.875rem;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .rankings-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          width: 100%;
-        }
-
-        .ranking-entry {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0.5rem 0.75rem;
-          background: rgba(26, 26, 46, 0.8);
-          border: 1px solid #2d2d4a;
-          border-radius: 0.375rem;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.875rem;
-        }
-
-        .ranking-entry.current-player {
-          background: rgba(0, 255, 255, 0.1);
-          border-color: rgba(0, 255, 255, 0.4);
-        }
-
-        .ranking-position {
-          font-weight: 600;
-          color: #f8fafc;
-          min-width: 2.5rem;
-        }
-
-        .ranking-address {
-          color: #94a3b8;
-          font-family: 'JetBrains Mono', monospace;
           font-size: 0.75rem;
-        }
-
-        .ranking-entry.current-player .ranking-address {
-          color: #00ffff;
-        }
-
-        .ranking-score {
-          font-weight: 600;
-          color: #00ffff;
-          min-width: 3rem;
-          text-align: right;
+          color: #94a3b8;
+          font-style: italic;
         }
 
         .submission-status {
@@ -520,9 +448,9 @@ export function SnakeGame({
         }
 
         .submission-loading {
-          color: #00ffff;
-          background: rgba(0, 255, 255, 0.1);
-          border: 1px solid rgba(0, 255, 255, 0.2);
+          color: var(--color-primary);
+          background: var(--color-primary-glow);
+          border: 1px solid var(--color-primary);
         }
 
         .submission-success {
@@ -540,8 +468,8 @@ export function SnakeGame({
         .submission-spinner {
           width: 1rem;
           height: 1rem;
-          border: 2px solid rgba(0, 255, 255, 0.3);
-          border-top-color: #00ffff;
+          border: 2px solid var(--color-primary-glow);
+          border-top-color: var(--color-primary);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -561,53 +489,30 @@ export function SnakeGame({
           font-weight: 500;
         }
 
-        .transaction-link {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 0.75rem;
-          color: #94a3b8;
-          text-decoration: none;
-          background: rgba(0, 255, 0, 0.05);
-          border: 1px solid rgba(0, 255, 0, 0.2);
-          border-radius: 0.375rem;
-          transition: all 0.2s ease;
-        }
-
-        .transaction-link:hover {
-          color: #00ff00;
-          background: rgba(0, 255, 0, 0.1);
-          border-color: rgba(0, 255, 0, 0.4);
-        }
-
-        .tx-icon {
-          color: #00ff00;
-          font-size: 0.875rem;
-        }
-
-        .tx-text {
-          letter-spacing: 0.025em;
-        }
-
         .restart-button {
-          padding: 0.75rem 2rem;
+          padding: 1rem 3rem;
           font-family: 'Inter', sans-serif;
-          font-size: 1rem;
-          font-weight: 600;
+          font-size: 1.125rem;
+          font-weight: 700;
           color: #ffffff;
-          background: linear-gradient(135deg, #00ffff 0%, #ff00ff 100%);
-          border: none;
-          border-radius: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+          border: 2px solid var(--color-primary);
+          border-radius: 0.75rem;
           cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+          transition: all 0.15s ease-out;
+          box-shadow: var(--glow-cyan-md);
         }
 
         .restart-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+          transform: translateY(-3px) scale(1.02);
+          box-shadow: var(--glow-cyan-intense);
+          border-color: var(--color-secondary);
+        }
+
+        .restart-button:active {
+          transform: translateY(-1px) scale(0.98);
         }
 
         .restart-button:active {

@@ -185,30 +185,63 @@ export const INITIAL_DIRECTION = 'right' as const;
 // ============================================================================
 
 /**
+ * Reads current theme colors from CSS custom properties.
+ * Canvas API requires actual hex/rgba values, not CSS variables.
+ * This function reads the computed styles from the document root.
+ *
+ * @returns Object with theme colors as hex/rgba strings
+ */
+export function getThemeColors() {
+  // Default fallback colors (cyan/magenta theme)
+  const defaults = {
+    primary: '#00ffff',
+    secondary: '#ff00ff',
+    primaryGlow: 'rgba(0, 255, 255, 0.3)',
+  };
+
+  // Try to read from CSS custom properties
+  if (typeof window !== 'undefined' && document.documentElement) {
+    const styles = getComputedStyle(document.documentElement);
+    const primary = styles.getPropertyValue('--color-primary').trim();
+    const secondary = styles.getPropertyValue('--color-secondary').trim();
+    const primaryGlow = styles.getPropertyValue('--color-primary-glow').trim();
+
+    return {
+      primary: primary || defaults.primary,
+      secondary: secondary || defaults.secondary,
+      primaryGlow: primaryGlow || defaults.primaryGlow,
+    };
+  }
+
+  return defaults;
+}
+
+/**
  * Snake color palette
+ * Now dynamically reads from theme colors
  */
 export const SNAKE_COLORS = {
-  /** Snake head color */
-  head: '#00ff00',
-  /** Snake body color */
-  body: '#00cc00',
-  /** Snake body gradient end */
-  bodyEnd: '#009900',
-  /** Snake outline */
-  outline: '#006600',
+  /** Snake head color - uses theme primary */
+  head: '#00ff00', // Fallback, will be overridden
+  /** Snake body color - uses theme primary (darker) */
+  body: '#00cc00', // Fallback, will be overridden
+  /** Snake body gradient end - uses theme primary (darkest) */
+  bodyEnd: '#009900', // Fallback, will be overridden
+  /** Snake outline - uses theme primary (darkest) */
+  outline: '#006600', // Fallback, will be overridden
 } as const;
 
 /**
  * Food color palette
- * Uses cyan for the retro arcade theme per design system
+ * Now dynamically reads from theme colors
  */
 export const FOOD_COLORS = {
-  /** Standard food color - cyan for retro arcade aesthetic */
-  standard: '#00ffff',
-  /** Bonus food color (worth more points) - magenta accent */
-  bonus: '#ff00ff',
-  /** Food glow effect - cyan glow */
-  glow: 'rgba(0, 255, 255, 0.3)',
+  /** Standard food color - uses theme primary */
+  standard: '#00ffff', // Fallback, will be overridden
+  /** Bonus food color - uses theme secondary */
+  bonus: '#ff00ff', // Fallback, will be overridden
+  /** Food glow effect - uses theme primary glow */
+  glow: 'rgba(0, 255, 255, 0.3)', // Fallback, will be overridden
 } as const;
 
 /**
