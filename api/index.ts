@@ -1,22 +1,33 @@
 /**
  * Vercel Serverless Function Entry Point
  *
- * This file exports the Express app as a serverless function for Vercel.
+ * This file wraps the Express app as a Vercel serverless function.
  */
 
-// Import the built app from dist
-import('../packages/backend/dist/index.js').then((module) => {
-  // Module loaded successfully
-  console.log('Backend module loaded');
-}).catch((err) => {
-  console.error('Failed to load backend:', err);
-});
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// For now, export a simple handler while we fix the routing
-export default async function handler(req: any, res: any) {
-  // Import the app dynamically
-  const { app } = await import('../packages/backend/dist/index.js');
+// Dynamic import to load the Express app
+let appInstance: any = null;
 
-  // Pass the request to Express
-  return app(req, res);
+async function getApp() {
+  if (!appInstance) {
+    const { app } = await import('../packages/backend/dist/index.js');
+    appInstance = app;
+  }
+  return appInstance;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    const app = await getApp();
+
+    // Pass the request to the Express app
+    return app(req, res);
+  } catch (error) {
+    console.error('Serverless function error:', error);
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }
