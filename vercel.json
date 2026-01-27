@@ -1,7 +1,6 @@
 {
-  "version": 2,
-  "buildCommand": "cd packages/backend && pnpm install && pnpm run build",
-  "installCommand": "pnpm install --filter @x402arcade/backend",
+  "buildCommand": "cd packages/backend && pnpm run build",
+  "installCommand": "pnpm install",
   "rewrites": [
     {
       "source": "/(.*)",
