@@ -4,8 +4,6 @@
  * This file wraps the Express app as a Vercel serverless function.
  */
 
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
 // Dynamic import to load the Express app
 let appInstance: any = null;
 
@@ -17,7 +15,7 @@ async function getApp() {
   return appInstance;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   try {
     const app = await getApp();
 
