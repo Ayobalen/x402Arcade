@@ -836,10 +836,13 @@ export interface TransferWithAuthorizationMessage {
  *
  * A complete signed authorization including the message and signature components.
  * This is what gets submitted to the facilitator for settlement.
+ *
+ * Supports both nested format (with message wrapper) and flat format (direct fields)
+ * for backwards compatibility and facilitator API flexibility.
  */
-export interface SignedTransferWithAuthorization {
-  /** The authorization message that was signed */
-  message: TransferWithAuthorizationMessage;
+export interface SignedTransferWithAuthorization extends TransferWithAuthorizationMessage {
+  /** The authorization message that was signed (optional for flat format) */
+  message?: TransferWithAuthorizationMessage;
   /** Signature recovery identifier (27 or 28) */
   v: number;
   /** First 32 bytes of the ECDSA signature */

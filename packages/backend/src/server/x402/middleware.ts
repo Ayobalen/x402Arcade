@@ -353,6 +353,8 @@ export function createX402Middleware(config: X402Config): X402Middleware {
       const settlementRequest = createSettlementRequestFromPayload(
         payload,
         config,
+        paymentHeader,
+        req.path,
       );
 
       // Validate settlement request

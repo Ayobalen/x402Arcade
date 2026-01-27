@@ -190,8 +190,18 @@ export async function verifyPaymentSignature(
   expectedAddress?: string,
   domain: EIP712Domain = getUsdcEip712Domain(),
 ): Promise<SignatureRecoveryResult> {
+  // Extract message from either nested format or flat format
+  const message = signedAuthorization.message || {
+    from: signedAuthorization.from,
+    to: signedAuthorization.to,
+    value: signedAuthorization.value,
+    validAfter: signedAuthorization.validAfter,
+    validBefore: signedAuthorization.validBefore,
+    nonce: signedAuthorization.nonce,
+  };
+
   const result = await recoverSignerAddress(
-    signedAuthorization.message,
+    message,
     {
       r: signedAuthorization.r,
       s: signedAuthorization.s,
@@ -241,7 +251,7 @@ export async function verifyPaymentSignatureOrThrow(
 ): Promise<string> {
   const result = await verifyPaymentSignature(
     signedAuthorization,
-    signedAuthorization.message.from,
+    signedAuthorization.from,
     domain,
   );
 
@@ -251,7 +261,7 @@ export async function verifyPaymentSignatureOrThrow(
 
   if (result.isValid === false) {
     throw X402ValidationError.recipientMismatch(
-      signedAuthorization.message.from,
+      signedAuthorization.from,
       result.recoveredAddress || 'unknown',
     );
   }

@@ -143,8 +143,15 @@ export function buildSettleUrl(facilitatorUrl: string): string {
 export function constructSettlementRequest(
   payload: PaymentPayload,
   config: Pick<X402Config, 'chainId' | 'tokenAddress'>,
+  paymentHeader?: string,
+  resource?: string,
 ): SettlementRequest {
-  return createSettlementRequestFromPayload(payload, config as X402Config);
+  return createSettlementRequestFromPayload(
+    payload,
+    config as X402Config,
+    paymentHeader || '',
+    resource || '/unknown',
+  );
 }
 
 /**

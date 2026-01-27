@@ -566,6 +566,14 @@ export function payloadToHeader(payload: PaymentPayload): X402PaymentHeader {
     scheme: payload.scheme,
     network: payload.network,
     payload: {
+      // Flat format (Bug #1 fix: Accept new flat structure)
+      from: payload.from,
+      to: payload.to,
+      value: payload.value,
+      validAfter: payload.validAfter,
+      validBefore: payload.validBefore,
+      nonce: payload.nonce,
+      // Nested format (backwards compatibility)
       message: {
         from: payload.from,
         to: payload.to,
@@ -1373,6 +1381,34 @@ export interface SettlementRequest {
     /** Maximum time in seconds the payment authorization is valid */
     maxTimeoutSeconds: number;
   };
+
+  /**
+   * The authorization message and signature (internal format)
+   * Used for logging and validation before sending to facilitator
+   */
+  authorization: {
+    from: string;
+    to: string;
+    value: string | bigint;
+    validAfter: string | bigint;
+    validBefore: string | bigint;
+    nonce: string;
+    v: number;
+    r: string;
+    s: string;
+  };
+
+  /**
+   * The blockchain chain ID for the settlement
+   * @example 338 for Cronos Testnet
+   */
+  chainId: number;
+
+  /**
+   * The ERC-20 token contract address
+   * @example '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0'
+   */
+  tokenAddress: string;
 }
 
 /**
@@ -1403,7 +1439,39 @@ export interface SettlementRequest {
  * ```
  */
 export function createSettlementRequest(request: X402SettlementRequest): SettlementRequest {
+  // Encode the authorization into a payment header (base64 JSON)
+  const authData = {
+    x402Version: '1',
+    scheme: 'exact',
+    network: request.chainId === 338 ? 'cronos-testnet' : request.chainId === 25 ? 'cronos-mainnet' : `chain-${request.chainId}`,
+    payload: {
+      from: request.authorization.from,
+      to: request.authorization.to,
+      value: typeof request.authorization.value === 'bigint' ? request.authorization.value.toString() : String(request.authorization.value),
+      validAfter: typeof request.authorization.validAfter === 'bigint' ? request.authorization.validAfter.toString() : String(request.authorization.validAfter),
+      validBefore: typeof request.authorization.validBefore === 'bigint' ? request.authorization.validBefore.toString() : String(request.authorization.validBefore),
+      nonce: request.authorization.nonce,
+      v: request.signature.v,
+      r: request.signature.r,
+      s: request.signature.s,
+    },
+  };
+  const paymentHeader = Buffer.from(JSON.stringify(authData)).toString('base64');
+
   return {
+    x402Version: 1,
+    paymentHeader,
+    paymentRequirements: {
+      scheme: 'exact',
+      network: authData.network,
+      maxAmountRequired: typeof request.authorization.value === 'bigint' ? request.authorization.value.toString() : String(request.authorization.value),
+      payTo: request.authorization.to,
+      asset: request.tokenAddress,
+      resource: '/api/unknown',
+      description: 'Payment settlement request',
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 300,
+    },
     authorization: {
       from: request.authorization.from,
       to: request.authorization.to,
@@ -1475,6 +1543,19 @@ export function createSettlementRequestFromPayload(
       mimeType: 'application/json',
       maxTimeoutSeconds: 300,
     },
+    authorization: {
+      from: payload.from,
+      to: payload.to,
+      value: String(payload.value),
+      validAfter: String(payload.validAfter),
+      validBefore: String(payload.validBefore),
+      nonce: payload.nonce,
+      v: payload.v,
+      r: payload.r,
+      s: payload.s,
+    },
+    chainId: config.chainId,
+    tokenAddress: config.tokenAddress,
   };
 }
 
@@ -1503,33 +1584,41 @@ export function validateSettlementRequest(request: SettlementRequest): {
 } {
   const errors: string[] = [];
 
+  // Convert values to strings for validation
+  const from = String(request.authorization.from);
+  const to = String(request.authorization.to);
+  const tokenAddress = String(request.tokenAddress);
+  const value = String(request.authorization.value);
+  const validAfter = String(request.authorization.validAfter);
+  const validBefore = String(request.authorization.validBefore);
+
   // Validate addresses
-  if (!isValidAddress(request.authorization.from)) {
-    errors.push(`Invalid 'from' address: ${request.authorization.from}`);
+  if (!isValidAddress(from)) {
+    errors.push(`Invalid 'from' address: ${from}`);
   }
 
-  if (!isValidAddress(request.authorization.to)) {
-    errors.push(`Invalid 'to' address: ${request.authorization.to}`);
+  if (!isValidAddress(to)) {
+    errors.push(`Invalid 'to' address: ${to}`);
   }
 
-  if (!isValidAddress(request.tokenAddress)) {
-    errors.push(`Invalid token address: ${request.tokenAddress}`);
+  if (!isValidAddress(tokenAddress)) {
+    errors.push(`Invalid token address: ${tokenAddress}`);
   }
 
   // Validate value
-  if (!request.authorization.value || !/^\d+$/.test(request.authorization.value)) {
-    errors.push(`Invalid value: ${request.authorization.value}`);
-  } else if (BigInt(request.authorization.value) <= 0n) {
+  if (!value || !/^\d+$/.test(value)) {
+    errors.push(`Invalid value: ${value}`);
+  } else if (BigInt(value) <= 0n) {
     errors.push('Value must be positive');
   }
 
   // Validate timestamps
-  if (!/^\d+$/.test(request.authorization.validAfter)) {
-    errors.push(`Invalid validAfter: ${request.authorization.validAfter}`);
+  if (!/^\d+$/.test(validAfter)) {
+    errors.push(`Invalid validAfter: ${validAfter}`);
   }
 
-  if (!/^\d+$/.test(request.authorization.validBefore)) {
-    errors.push(`Invalid validBefore: ${request.authorization.validBefore}`);
+  if (!/^\d+$/.test(validBefore)) {
+    errors.push(`Invalid validBefore: ${validBefore}`);
   }
 
   // Validate nonce (32 bytes = 64 hex chars + 0x prefix = 66 chars)
@@ -1673,6 +1762,7 @@ export interface SettlementResponse {
   network?: string;
   timestamp?: string;
   transactionHash?: string;
+  txHash?: string; // Bug #9: Facilitator sometimes returns txHash instead of transactionHash
   blockNumber?: number;
 }
 
@@ -1908,6 +1998,7 @@ export type X402ValidationErrorCode =
   | 'INVALID_SCHEME'
   | 'INVALID_NETWORK'
   | 'INVALID_PAYLOAD'
+  | 'INVALID_SIGNATURE'
   | 'AMOUNT_MISMATCH'
   | 'RECIPIENT_MISMATCH'
   | 'AUTHORIZATION_EXPIRED'
