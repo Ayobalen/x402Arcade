@@ -195,7 +195,7 @@ export const envSchema = z.object({
   // Total: ~50-90 requests in a 15-minute active gaming session
   RATE_LIMIT_ENABLED: z.coerce
     .boolean()
-    .default(true)
+    .default(false)
     .describe('Enable IP-based rate limiting middleware for API endpoints'),
   RATE_LIMIT_MAX_REQUESTS: z.coerce
     .number()

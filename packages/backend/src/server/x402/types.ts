@@ -18,7 +18,6 @@ import {
   isValidAddress,
   formatUSDC,
   getUsdcEip712Domain,
-  getTxUrl,
   USDC_NAME,
   USDC_DECIMALS,
   USDC_VERSION,
@@ -1340,29 +1339,40 @@ export interface X402SettlementRequest {
  */
 export interface SettlementRequest {
   /**
-   * The authorization message with signature components
+   * x402 protocol version
+   * @example 1
    */
-  authorization: {
-    from: string;
-    to: string;
-    value: string;
-    validAfter: string;
-    validBefore: string;
-    nonce: string;
-    v: number;
-    r: string;
-    s: string;
+  x402Version: number;
+
+  /**
+   * Base64-encoded payment header containing the authorization and signature
+   * This is the X-Payment header value sent by the client
+   */
+  paymentHeader: string;
+
+  /**
+   * Payment requirements that must be met for successful settlement
+   */
+  paymentRequirements: {
+    /** Payment scheme (always "exact" for fixed-price payments) */
+    scheme: string;
+    /** Blockchain network identifier */
+    network: string;
+    /** Maximum amount required in smallest units */
+    maxAmountRequired: string;
+    /** Address to receive payment */
+    payTo: string;
+    /** Token contract address */
+    asset: string;
+    /** Protected resource path */
+    resource: string;
+    /** Human-readable description of what the payment is for */
+    description: string;
+    /** MIME type of the protected resource */
+    mimeType: string;
+    /** Maximum time in seconds the payment authorization is valid */
+    maxTimeoutSeconds: number;
   };
-
-  /**
-   * The blockchain chain ID
-   */
-  chainId: number;
-
-  /**
-   * The token contract address
-   */
-  tokenAddress: string;
 }
 
 /**
@@ -1437,37 +1447,35 @@ export function createSettlementRequest(request: X402SettlementRequest): Settlem
  */
 export function createSettlementRequestFromPayload(
   payload: PaymentPayload,
-  config: X402Config
-): SettlementRequest {
-  return {
-    authorization: {
-      from: payload.from,
-      to: payload.to,
-      value: payload.value,
-      validAfter: payload.validAfter,
-      validBefore: payload.validBefore,
-      nonce: payload.nonce,
-      v: payload.v,
-      r: payload.r,
-      s: payload.s,
-    },
-    chainId: config.chainId,
-    tokenAddress: config.tokenAddress,
-  };
-}
-
-/**
- * DEPRECATED: Old function signature kept for backwards compatibility.
- * Use createSettlementRequestFromPayload(payload, config) instead.
- */
-export function createSettlementRequestFromPayloadLegacy(
-  payload: PaymentPayload,
   config: X402Config,
-  _paymentHeader: string,
-  _resource: string
+  paymentHeader: string,
+  resource: string
 ): SettlementRequest {
-  // Ignore unused parameters and delegate to the new implementation
-  return createSettlementRequestFromPayload(payload, config);
+  // Determine network name from chain ID
+  const networkMap: Record<number, string> = {
+    338: 'cronos-testnet',
+    25: 'cronos-mainnet',
+  };
+  const network = networkMap[config.chainId] || `chain-${config.chainId}`;
+
+  return {
+    x402Version: 1,
+    paymentHeader,
+    paymentRequirements: {
+      scheme: 'exact',
+      network,
+      maxAmountRequired:
+        typeof config.paymentAmount === 'bigint'
+          ? config.paymentAmount.toString()
+          : config.paymentAmount,
+      payTo: config.payTo,
+      asset: config.tokenAddress,
+      resource,
+      description: `Payment for ${resource}`,
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 300,
+    },
+  };
 }
 
 /**
@@ -1665,7 +1673,6 @@ export interface SettlementResponse {
   network?: string;
   timestamp?: string;
   transactionHash?: string;
-  txHash?: string; // Bug #9 fix: Facilitator returns 'txHash' not 'transactionHash'
   blockNumber?: number;
 }
 
@@ -1711,11 +1718,35 @@ export function parseSettlementResponse(
       };
     }
 
-    // V2 failure
+    // V2 failure - Parse common error patterns
+    const errorMsg = typeof response.error === 'string' ? response.error : 'Payment failed';
+
+    // Detect insufficient balance error
+    if (errorMsg.toLowerCase().includes('exceeds balance') ||
+        errorMsg.toLowerCase().includes('insufficient balance')) {
+      return {
+        success: false,
+        errorCode: 'INSUFFICIENT_BALANCE',
+        errorMessage: 'Insufficient USDC balance. Please add testnet USDC to your wallet.',
+        settledAt: response.timestamp || timestamp,
+      };
+    }
+
+    // Detect invalid signature
+    if (errorMsg.toLowerCase().includes('invalid signature') ||
+        errorMsg.toLowerCase().includes('signature verification failed')) {
+      return {
+        success: false,
+        errorCode: 'INVALID_SIGNATURE',
+        errorMessage: 'Payment signature verification failed. Please try again.',
+        settledAt: response.timestamp || timestamp,
+      };
+    }
+
     return {
       success: false,
       errorCode: 'FACILITATOR_ERROR',
-      errorMessage: typeof response.error === 'string' ? response.error : 'Payment failed',
+      errorMessage: errorMsg,
       settledAt: response.timestamp || timestamp,
     };
   }
@@ -1877,7 +1908,6 @@ export type X402ValidationErrorCode =
   | 'INVALID_SCHEME'
   | 'INVALID_NETWORK'
   | 'INVALID_PAYLOAD'
-  | 'INVALID_SIGNATURE'
   | 'AMOUNT_MISMATCH'
   | 'RECIPIENT_MISMATCH'
   | 'AUTHORIZATION_EXPIRED'
@@ -2322,6 +2352,11 @@ export function createPaymentResponsePayload(
   settlement: X402SettlementResponse,
   config: X402Config
 ): PaymentResponsePayload {
+  // Import getTxUrl lazily to avoid circular dependency
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getTxUrl } =
+    require('../../lib/chain/constants.js') as typeof import('../../lib/chain/constants.js');
+
   const network = `cronos-${config.chainId === 338 ? 'testnet' : 'mainnet'}`;
 
   return {

@@ -7,7 +7,7 @@
  * @module config/wagmi
  */
 
-import { http, createConfig } from 'wagmi';
+import { http, createConfig, createStorage, cookieStorage } from 'wagmi';
 import { cronosTestnet } from 'wagmi/chains';
 import { walletConnect, injected } from 'wagmi/connectors';
 import { getChainId, getRpcUrl } from './chain';
@@ -41,6 +41,11 @@ const cronosTestnetCustom = {
  * - WalletConnect (mobile wallets)
  * - Coinbase Wallet
  * - Any injected wallet
+ *
+ * Features:
+ * - Automatic reconnection on page load
+ * - Persistent connection state in localStorage
+ * - EIP-6963 multi-injected provider discovery
  */
 export const config = createConfig({
   chains: [cronosTestnetCustom],
@@ -72,6 +77,10 @@ export const config = createConfig({
     [cronosTestnetCustom.id]: http(getRpcUrl()),
   },
   multiInjectedProviderDiscovery: true, // Enable EIP-6963 for wallet detection
+  ssr: false, // Disable SSR for client-side only app
+  storage: createStorage({
+    storage: typeof window !== 'undefined' ? window.localStorage : cookieStorage,
+  }),
 });
 
 /**

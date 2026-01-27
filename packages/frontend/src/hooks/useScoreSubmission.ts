@@ -56,7 +56,7 @@ export interface UseScoreSubmissionReturn {
   /** Last successful submission result */
   result: SubmitScoreResponse | null;
   /** Submit a score */
-  submit: (sessionId: string, score: number) => Promise<SubmitScoreResponse | null>;
+  submit: (sessionId: string, score: number, playerAddress: string) => Promise<SubmitScoreResponse | null>;
   /** Reset the submission state */
   reset: () => void;
 }
@@ -115,7 +115,7 @@ export function useScoreSubmission(): UseScoreSubmissionReturn {
    * Submit a score
    */
   const submit = useCallback(
-    async (sessionId: string, score: number): Promise<SubmitScoreResponse | null> => {
+    async (sessionId: string, score: number, playerAddress: string): Promise<SubmitScoreResponse | null> => {
       // Validate inputs
       if (!sessionId) {
         setStatus('error');
@@ -137,13 +137,23 @@ export function useScoreSubmission(): UseScoreSubmissionReturn {
         return null;
       }
 
+      if (!playerAddress) {
+        setStatus('error');
+        setError({
+          code: 'INVALID_PLAYER_ADDRESS',
+          message: 'Player address is required',
+          retryable: false,
+        });
+        return null;
+      }
+
       // Start submission
       setStatus('submitting');
       setError(null);
 
       try {
         // Submit with retry
-        const response = await submitScoreWithRetry(sessionId, score);
+        const response = await submitScoreWithRetry(sessionId, score, playerAddress);
 
         if (response.success) {
           setStatus('success');

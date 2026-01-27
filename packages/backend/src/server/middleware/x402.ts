@@ -205,7 +205,12 @@ export function createX402Middleware(config: X402Config): X402Middleware {
       }
 
       // Create settlement request with original payment header and resource path
-      const settlementRequest = createSettlementRequestFromPayload(payload, config);
+      const settlementRequest = createSettlementRequestFromPayload(
+        payload,
+        config,
+        paymentHeader,
+        req.path
+      );
 
       // Bug #3 fix: Verify payment first before settling
       const verifyResponse = await verifyWithFacilitator(settlementRequest, config);
@@ -331,12 +336,8 @@ function decodePaymentHeader(header: string): X402PaymentHeader {
       throw X402ValidationError.missingField('payload');
     }
 
-    // Validate required fields - support both nested (message.from) and flat (from) structures
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payloadData = payment.payload as any;
-    const message = payloadData.message || payloadData;
-
-    if (!message.from || !message.to || !message.value) {
+    // Validate required fields in flat structure
+    if (!payment.payload.from || !payment.payload.to || !payment.payload.value) {
       throw X402ValidationError.missingField('payload fields (from/to/value)');
     }
 
@@ -374,6 +375,10 @@ async function verifyWithFacilitator(
   const startTime = Date.now();
 
   try {
+    console.log('[x402] Verify request to facilitator:', {
+      url: verifyUrl,
+      request: JSON.stringify(request, null, 2)
+    });
     const response = await fetch(verifyUrl, {
       method: 'POST',
       headers: {
@@ -384,6 +389,12 @@ async function verifyWithFacilitator(
     });
 
     const body = (await response.json()) as { isValid: boolean; invalidReason?: string };
+
+    console.log('[x402] Facilitator response:', {
+      status: response.status,
+      ok: response.ok,
+      body: JSON.stringify(body, null, 2)
+    });
 
     if (!response.ok) {
       const requestDurationMs = Date.now() - startTime;
@@ -424,6 +435,11 @@ async function settleWithFacilitator(
   const startTime = Date.now();
 
   try {
+    console.log('[x402] Settle request to facilitator:', {
+      url: settleUrl,
+      request: JSON.stringify(request, null, 2)
+    });
+
     const response = await fetch(settleUrl, {
       method: 'POST',
       headers: {
@@ -435,6 +451,12 @@ async function settleWithFacilitator(
 
     const requestDurationMs = Date.now() - startTime;
     const body = (await response.json()) as SettlementResponse;
+
+    console.log('[x402] Settlement response:', {
+      status: response.status,
+      ok: response.ok,
+      body: JSON.stringify(body, null, 2)
+    });
 
     if (!response.ok) {
       throw X402SettlementError.fromHttpResponse(

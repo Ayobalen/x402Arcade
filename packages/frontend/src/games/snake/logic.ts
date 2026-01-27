@@ -697,6 +697,7 @@ export function createMenuState(
  * Generates a unique session ID for the game session.
  *
  * @param state - Current game state (should be in menu)
+ * @param externalSessionId - Optional external session ID (from payment/backend)
  * @returns New game state with gameplay started
  *
  * @example
@@ -706,9 +707,13 @@ export function createMenuState(
  * console.log(playingState.isPlaying) // true
  * console.log(playingState.startTime) // timestamp
  * console.log(playingState.gameSpecific.sessionId) // unique ID
+ *
+ * // With external session ID
+ * const playingStateWithSession = startGame(menuState, 'payment-session-123')
+ * console.log(playingStateWithSession.gameSpecific.sessionId) // 'payment-session-123'
  * ```
  */
-export function startGame(state: SnakeState): SnakeState {
+export function startGame(state: SnakeState, externalSessionId?: string): SnakeState {
   // Only start if not already playing
   if (state.isPlaying || state.isGameOver) {
     return state;
@@ -737,8 +742,8 @@ export function startGame(state: SnakeState): SnakeState {
 
   const gameSpecific = createInitialSnakeState(config);
 
-  // Generate a unique session ID for this game session
-  const sessionId = generateSessionId();
+  // Use external session ID if provided, otherwise generate a unique session ID
+  const sessionId = externalSessionId || generateSessionId();
 
   return {
     ...state,

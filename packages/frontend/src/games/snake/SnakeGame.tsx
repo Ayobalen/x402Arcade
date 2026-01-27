@@ -35,6 +35,10 @@ export interface SnakeGameProps {
   enableScoreSubmission?: boolean;
   /** Callback when score submission completes */
   onScoreSubmitted?: (success: boolean, error?: string) => void;
+  /** External session ID from payment/backend */
+  sessionId?: string;
+  /** Player's wallet address for score submission */
+  playerAddress?: string;
   /** Optional CSS class name */
   className?: string;
 }
@@ -66,11 +70,13 @@ export function SnakeGame({
   transactionHash,
   enableScoreSubmission = false,
   onScoreSubmitted,
+  sessionId: externalSessionId,
+  playerAddress,
   className = '',
 }: SnakeGameProps) {
   // Use the Snake game hook
   const { state, canvasRef, restart, playerRank, rankings, isLoadingRankings, sessionId } =
-    useSnakeGame(difficulty, { onGameOver, onFetchRankings });
+    useSnakeGame(difficulty, { onGameOver, onFetchRankings, sessionId: externalSessionId });
 
   // Score submission hook
   const {
@@ -88,19 +94,29 @@ export function SnakeGame({
       state.isGameOver &&
       enableScoreSubmission &&
       sessionId &&
+      playerAddress &&
       !scoreSubmitted &&
       !isSubmittingScore
     ) {
-      submitScore(sessionId, state.score).then((result) => {
-        if (onScoreSubmitted) {
-          onScoreSubmitted(!!result, result ? undefined : scoreError?.message);
-        }
-      });
+      submitScore(sessionId, state.score, playerAddress || '')
+        .then((result) => {
+          if (onScoreSubmitted) {
+            onScoreSubmitted(!!result, result ? undefined : scoreError?.message);
+          }
+        })
+        .catch((error) => {
+          // Silently log score submission errors - don't block the UI
+          console.error('Score submission failed:', error);
+          if (onScoreSubmitted) {
+            onScoreSubmitted(false, error?.message || 'Failed to submit score');
+          }
+        });
     }
   }, [
     state.isGameOver,
     enableScoreSubmission,
     sessionId,
+    playerAddress,
     state.score,
     scoreSubmitted,
     isSubmittingScore,
@@ -169,9 +185,19 @@ export function SnakeGame({
               </div>
             )}
 
-            {!isLoadingRankings && rankings.length > 0 && (
-              <div className="nearby-rankings">
-                <span className="rankings-title">Leaderboard</span>
+            <div className="nearby-rankings">
+              <span className="rankings-title">Leaderboard</span>
+              {isLoadingRankings && (
+                <div className="ranking-loading">
+                  <span className="loading-text">Loading...</span>
+                </div>
+              )}
+              {!isLoadingRankings && rankings.length === 0 && (
+                <div className="ranking-empty">
+                  <span className="empty-text">No rankings yet</span>
+                </div>
+              )}
+              {!isLoadingRankings && rankings.length > 0 && (
                 <div className="rankings-list">
                   {rankings.slice(0, 5).map((entry) => (
                     <div
@@ -186,34 +212,8 @@ export function SnakeGame({
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Score Submission Status */}
-            {enableScoreSubmission && (
-              <div className="submission-status">
-                {isSubmittingScore && (
-                  <div className="submission-loading">
-                    <span className="submission-spinner"></span>
-                    <span className="submission-text">Submitting score...</span>
-                  </div>
-                )}
-                {scoreSubmitted && (
-                  <div className="submission-success">
-                    <span className="submission-icon">&#x2713;</span>
-                    <span className="submission-text">Score submitted!</span>
-                  </div>
-                )}
-                {scoreSubmissionFailed && (
-                  <div className="submission-error">
-                    <span className="submission-icon">&#x2717;</span>
-                    <span className="submission-text">
-                      {scoreError?.message || 'Submission failed'}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Transaction Verification Link */}
             {transactionHash && (
@@ -228,7 +228,7 @@ export function SnakeGame({
               </a>
             )}
 
-            <button className="restart-button" onClick={handleRestart} disabled={isSubmittingScore}>
+            <button className="restart-button" onClick={handleRestart}>
               Play Again
             </button>
           </div>

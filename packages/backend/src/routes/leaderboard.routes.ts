@@ -129,8 +129,8 @@ router.get('/:gameType/:periodType', async (req: Request, res: Response) => {
     );
 
     // Set caching headers for leaderboard response
-    // Cache for 30 seconds to balance freshness with performance
-    res.set('Cache-Control', 'public, max-age=30, s-maxage=30');
+    // Cache for 5 seconds for near-realtime leaderboard updates
+    res.set('Cache-Control', 'public, max-age=5, s-maxage=5');
     res.set('Vary', 'Accept-Encoding');
 
     // Return leaderboard entries

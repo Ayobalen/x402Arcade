@@ -18,6 +18,9 @@ import { SpaceInvadersGameWrapper } from '@/games/space-invaders/SpaceInvadersGa
 import { useX402 } from '@/hooks/useX402';
 import { useWallet } from '@/hooks/useWallet';
 import { createPaymentHeader } from '@/config/x402Client';
+import { LeaderboardWidget } from '@/components/LeaderboardWidget';
+import { SessionTimer } from '@/components/SessionTimer';
+import { LiveLeaderboardWidget } from '@/components/game/LiveLeaderboardWidget';
 
 /**
  * Game metadata
@@ -126,8 +129,10 @@ export function Game() {
 
   // Payment state
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionCreatedAt, setSessionCreatedAt] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showExpirationModal, setShowExpirationModal] = useState(false);
 
   // Prize pool state (only daily pools receive prize money)
   const [dailyPool, setDailyPool] = useState<number | null>(null);
@@ -169,6 +174,8 @@ export function Game() {
       // If session is less than 15 minutes old, restore it
       if (sessionAge < FIFTEEN_MINUTES) {
         setSessionId(storedSessionId);
+        // Restore session creation time as ISO string
+        setSessionCreatedAt(new Date(parseInt(storedTimestamp)).toISOString());
       } else {
         // Session expired, clean up
         localStorage.removeItem(`game_session_${gameId}`);
@@ -180,6 +187,24 @@ export function Game() {
   // Handle exit from game wrapper
   const handleExit = () => {
     navigate('/play');
+  };
+
+  // Handle session expiration
+  const handleSessionExpired = () => {
+    setShowExpirationModal(true);
+  };
+
+  // Handle pay again after expiration
+  const handlePayAgain = () => {
+    // Clear expired session
+    if (gameId) {
+      localStorage.removeItem(`game_session_${gameId}`);
+      localStorage.removeItem(`game_session_${gameId}_timestamp`);
+    }
+    setSessionId(null);
+    setSessionCreatedAt(null);
+    setShowExpirationModal(false);
+    // This will show the payment gate again
   };
 
   /**
@@ -263,18 +288,41 @@ export function Game() {
 
       if (!paymentResponse.ok) {
         const errorData = await paymentResponse.json();
-        throw new Error(errorData.message || 'Payment failed');
+
+        // Handle specific error codes with user-friendly messages
+        if (errorData.error?.code === 'INSUFFICIENT_BALANCE') {
+          throw new Error(
+            '💰 Insufficient USDC balance. Please add testnet USDC to your wallet to play.'
+          );
+        }
+
+        if (errorData.error?.code === 'INVALID_SIGNATURE') {
+          throw new Error(
+            '🔐 Payment signature verification failed. Please try again.'
+          );
+        }
+
+        if (errorData.error?.code === 'NONCE_ALREADY_USED') {
+          throw new Error(
+            '⚠️ This payment authorization has already been used. Please refresh and try again.'
+          );
+        }
+
+        // Default error message
+        throw new Error(errorData.error?.message || errorData.message || 'Payment failed');
       }
 
       const result = await paymentResponse.json();
 
       // Store session ID in localStorage for restoration on page reload
+      const now = Date.now();
       if (result.sessionId && gameId) {
         localStorage.setItem(`game_session_${gameId}`, result.sessionId);
-        localStorage.setItem(`game_session_${gameId}_timestamp`, Date.now().toString());
+        localStorage.setItem(`game_session_${gameId}_timestamp`, now.toString());
       }
 
       setSessionId(result.sessionId);
+      setSessionCreatedAt(new Date(now).toISOString());
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Payment failed');
     } finally {
@@ -325,13 +373,130 @@ export function Game() {
 
   // Render available game - Snake
   if (gameInfo.status === 'available' && gameId === 'snake') {
+    // Callback to fetch rankings after game over
+    const handleFetchRankings = async (score: number) => {
+      console.log('[Game.tsx] handleFetchRankings called with score:', score);
+      console.log('[Game.tsx] API_URL:', API_URL);
+      try {
+        // Add timestamp to bust cache and ensure fresh data
+        const url = `${API_URL}/api/v1/leaderboard/snake/daily?limit=10&t=${Date.now()}`;
+        console.log('[Game.tsx] Fetching from:', url);
+        const response = await fetch(url, {
+          cache: 'no-store', // Disable browser caching
+        });
+        console.log('[Game.tsx] Response status:', response.status, response.statusText);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[Game.tsx] Leaderboard data:', data);
+          // Transform leaderboard entries to RankingEntry format
+          const transformed = data.entries.map((entry: any) => ({
+            rank: entry.rank,
+            playerAddress: entry.playerAddress,
+            score: entry.score,
+            isCurrentPlayer: address && entry.playerAddress.toLowerCase() === address.toLowerCase(),
+          }));
+          console.log('[Game.tsx] Transformed rankings:', transformed);
+          return transformed;
+        } else {
+          console.error('[Game.tsx] Response not OK:', response.status, await response.text());
+        }
+      } catch (error) {
+        console.error('[Game.tsx] Failed to fetch rankings:', error);
+      }
+      return [];
+    };
+
     // If payment successful and session created, render the game
-    if (sessionId) {
+    if (sessionId && sessionCreatedAt) {
       return (
-        <div className="w-full min-h-screen flex items-center justify-center px-4 py-12">
-          <div className="max-w-4xl mx-auto">
-            <SnakeGame />
+        <div className="w-full min-h-screen flex flex-col items-center justify-center px-4 py-12 gap-6">
+          {/* Session Timer */}
+          <SessionTimer sessionCreatedAt={sessionCreatedAt} onExpired={handleSessionExpired} />
+
+          {/* Game + Live Leaderboard Layout */}
+          <div className="flex flex-col lg:flex-row items-start justify-center gap-6 w-full max-w-7xl mx-auto">
+            {/* Game */}
+            <div className="flex-shrink-0">
+              <SnakeGame
+                sessionId={sessionId}
+                playerAddress={address}
+                enableScoreSubmission={true}
+                onFetchRankings={handleFetchRankings}
+              />
+            </div>
+
+            {/* Live Leaderboard Widget */}
+            <div className="flex-shrink-0">
+              <LiveLeaderboardWidget
+                gameType="snake"
+                periodType="daily"
+                playerAddress={address}
+                pollInterval={15000}
+                limit={10}
+              />
+            </div>
           </div>
+
+          {/* Session Expiration Modal */}
+          {showExpirationModal && (
+            <div
+              className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+              onClick={() => setShowExpirationModal(false)}
+            >
+              <div
+                className={cn(
+                  'bg-[#1a1a2e]',
+                  'border-2 border-red-500/50',
+                  'rounded-xl',
+                  'p-8',
+                  'max-w-md',
+                  'shadow-[0_0_30px_rgba(239,68,68,0.4)]'
+                )}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="text-center">
+                  <div className="text-6xl mb-4">⏱️</div>
+                  <h2 className="text-2xl font-bold text-white mb-4">Session Expired</h2>
+                  <p className="text-white/70 mb-6">
+                    Your 15-minute game session has expired. Pay ${GAME_PRICES[gameId]} USDC to play
+                    again and submit your score.
+                  </p>
+
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={handlePayAgain}
+                      className={cn(
+                        'px-6 py-3',
+                        'rounded-lg',
+                        'bg-gradient-to-r from-[#00ffff] to-[#ff00ff]',
+                        'text-black font-bold',
+                        'hover:scale-105',
+                        'transition-all duration-200'
+                      )}
+                    >
+                      Pay & Play Again
+                    </button>
+
+                    <button
+                      onClick={() => navigate('/play')}
+                      className={cn(
+                        'px-6 py-3',
+                        'rounded-lg',
+                        'bg-[#0f0f1a]',
+                        'border border-[#2d2d4a]',
+                        'text-white font-semibold',
+                        'hover:border-[#00ffff]',
+                        'hover:text-[#00ffff]',
+                        'transition-all duration-200'
+                      )}
+                    >
+                      Exit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -364,11 +529,21 @@ export function Game() {
                 'rounded-lg',
                 'bg-[#1a1a2e]',
                 'border border-[#2d2d4a]',
-                'mb-6'
+                'mb-3'
               )}
             >
               <p className="text-2xl font-bold text-white">${GAME_PRICES[gameId]} USDC</p>
               <p className="text-sm text-white/60 mt-1">Gasless payment via x402</p>
+            </div>
+
+            {/* Session Duration Info */}
+            <div className="mb-6">
+              <p className="text-sm text-[#00ffff] font-semibold">
+                ⏱️ 15 minutes of gameplay per payment
+              </p>
+              <p className="text-xs text-white/50 mt-1">
+                Complete your game within 15 minutes to save your score
+              </p>
             </div>
 
             {/* Prize Pool Display - Daily Only */}

@@ -21,6 +21,8 @@ export interface SubmitScoreRequest {
   sessionId: string;
   /** Final game score */
   score: number;
+  /** Player's wallet address */
+  playerAddress: string;
 }
 
 /**
@@ -142,7 +144,7 @@ export function isValidScore(score: unknown): score is number {
  * }
  * ```
  */
-export async function submitScore(sessionId: string, score: number): Promise<SubmitScoreResponse> {
+export async function submitScore(sessionId: string, score: number, playerAddress: string): Promise<SubmitScoreResponse> {
   // Step 1: Validate sessionId
   if (!isValidSessionId(sessionId)) {
     throw new ScoreSubmissionError('INVALID_SESSION_ID', `Invalid session ID format: ${sessionId}`);
@@ -157,24 +159,33 @@ export async function submitScore(sessionId: string, score: number): Promise<Sub
     );
   }
 
-  // Step 3: Build request URL
-  const apiUrl = env.VITE_API_URL;
-  const endpoint = `${apiUrl}/api/score/${sessionId}`;
+  // Step 3: Validate playerAddress
+  if (!playerAddress || typeof playerAddress !== 'string') {
+    throw new ScoreSubmissionError(
+      'INVALID_PLAYER_ADDRESS',
+      'Player address is required',
+      { playerAddress }
+    );
+  }
 
-  // Step 4: Make authenticated request
+  // Step 4: Build request URL
+  const apiUrl = env.VITE_API_URL;
+  const endpoint = `${apiUrl}/api/v1/score/submit`;
+
+  // Step 5: Make authenticated request
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ score }),
+      body: JSON.stringify({ sessionId, score, playerAddress }),
     });
 
     // Step 5: Handle response
     if (!response.ok) {
       // Parse error response
-      let errorBody: { error?: string; errorCode?: string } = {};
+      let errorBody: { error?: string; errorCode?: string; message?: string } = {};
       try {
         errorBody = await response.json();
       } catch {
@@ -183,9 +194,22 @@ export async function submitScore(sessionId: string, score: number): Promise<Sub
 
       // Map HTTP status to error code
       const errorCode = mapStatusToErrorCode(response.status, errorBody.errorCode);
+
+      // Create user-friendly error message
+      let errorMessage = errorBody.error || errorBody.message || `Server returned ${response.status}`;
+
+      // Enhance error messages based on error code
+      if (errorCode === 'SESSION_NOT_FOUND') {
+        errorMessage = 'Session not found. Please start a new game by paying again.';
+      } else if (errorCode === 'SESSION_NOT_ACTIVE') {
+        errorMessage = 'Your session has expired. Pay to play again and submit your score.';
+      } else if (errorCode === 'ALREADY_COMPLETED') {
+        errorMessage = 'This session was already completed. Start a new game to play again.';
+      }
+
       throw new ScoreSubmissionError(
         errorCode,
-        errorBody.error || `Server returned ${response.status}`,
+        errorMessage,
         { status: response.status }
       );
     }
@@ -266,6 +290,7 @@ function mapStatusToErrorCode(status: number, serverCode?: string): ScoreErrorCo
 export async function submitScoreWithRetry(
   sessionId: string,
   score: number,
+  playerAddress: string,
   maxRetries = 3,
   retryDelayMs = 1000
 ): Promise<SubmitScoreResponse> {
@@ -273,7 +298,7 @@ export async function submitScoreWithRetry(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await submitScore(sessionId, score);
+      return await submitScore(sessionId, score, playerAddress);
     } catch (error) {
       if (!(error instanceof ScoreSubmissionError)) {
         throw error;

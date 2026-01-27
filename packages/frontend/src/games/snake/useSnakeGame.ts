@@ -65,6 +65,8 @@ export interface UseSnakeGameOptions {
   onGameOver?: (score: number, sessionId?: string) => void;
   /** Callback to fetch rankings after game over */
   onFetchRankings?: (score: number) => Promise<RankingEntry[]>;
+  /** External session ID from payment/backend */
+  sessionId?: string;
 }
 
 /**
@@ -138,7 +140,7 @@ export function useSnakeGame(
   difficulty: SnakeDifficulty = 'normal',
   options: UseSnakeGameOptions = {}
 ): UseSnakeGameReturn {
-  const { onGameOver, onFetchRankings } = options;
+  const { onGameOver, onFetchRankings, sessionId: externalSessionId } = options;
   // ============================================================================
   // State Initialization
   // ============================================================================
@@ -361,7 +363,7 @@ export function useSnakeGame(
         setState((prevState) => {
           // If in menu, start the game
           if (!prevState.isPlaying && !prevState.isGameOver) {
-            return startGame(prevState);
+            return startGame(prevState, externalSessionId);
           }
           // If playing, toggle pause
           else if (prevState.isPlaying && !prevState.isGameOver) {
@@ -479,9 +481,13 @@ export function useSnakeGame(
 
       // Fetch rankings if callback provided
       if (onFetchRankings) {
+        console.log('[useSnakeGame] Fetching rankings for score:', score);
         setIsLoadingRankings(true);
-        onFetchRankings(score)
-          .then((fetchedRankings) => {
+        // Wait 1 second for backend to process score submission
+        setTimeout(() => {
+          onFetchRankings(score)
+            .then((fetchedRankings) => {
+            console.log('[useSnakeGame] Fetched rankings:', fetchedRankings);
             setRankings(fetchedRankings);
             // Find player's rank from the rankings
             const playerEntry = fetchedRankings.find((r) => r.isCurrentPlayer);
@@ -489,13 +495,14 @@ export function useSnakeGame(
               setPlayerRank(playerEntry.rank);
             }
           })
-          .catch(() => {
-            // Rankings fetch failed - silently handle as this is non-critical
-            // Rankings will simply not be displayed
-          })
-          .finally(() => {
-            setIsLoadingRankings(false);
-          });
+            .catch((error) => {
+              console.error('[useSnakeGame] Failed to fetch rankings:', error);
+              // Rankings fetch failed - non-critical, rankings won't be displayed
+            })
+            .finally(() => {
+              setIsLoadingRankings(false);
+            });
+        }, 1000); // Wait 1 second for backend to process score
       }
     }
   }, [state.isGameOver, state.score, state.gameSpecific?.sessionId, onGameOver, onFetchRankings]);
@@ -523,8 +530,8 @@ export function useSnakeGame(
    * Transitions from menu to playing state.
    */
   const start = useCallback(() => {
-    setState((prevState) => startGame(prevState));
-  }, []);
+    setState((prevState) => startGame(prevState, externalSessionId));
+  }, [externalSessionId]);
 
   /**
    * Toggle pause state during gameplay.

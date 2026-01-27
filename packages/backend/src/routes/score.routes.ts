@@ -98,42 +98,17 @@ router.post('/submit', async (req: Request, res: Response) => {
     return;
   }
 
-  // Call GameService.completeSession() - throws on error
-  let session;
-  try {
-    session = await gameService.completeSession(sessionId, score);
-  } catch (error) {
-    if (error instanceof Error) {
-      // Determine appropriate status code based on error message
-      if (error.message.includes('Session not found')) {
-        res.status(404).json({
-          error: 'Not found',
-          message: error.message,
-        });
-        return;
-      } else if (error.message.includes('Cannot complete session')) {
-        // Session exists but is not active (completed, expired, failed)
-        res.status(409).json({
-          error: 'Conflict',
-          message: error.message,
-        });
-        return;
-      } else {
-        // Other unexpected errors
-        res.status(500).json({
-          error: 'Internal server error',
-          message: 'Failed to complete game session',
-        });
-        return;
-      }
-    }
-    // Non-Error exception
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'Unexpected error completing game session',
+  // Check if session is active (don't complete it, allow multiple plays)
+  if (existingSession.status !== 'active') {
+    res.status(409).json({
+      error: 'Conflict',
+      message: `Session is not active. Status: ${existingSession.status}`,
     });
     return;
   }
+
+  // Use existing session (keep it active for multiple games within 15-minute window)
+  const session = existingSession;
 
   // Add entry to leaderboard and get ranking
   let dailyRanking = null;
@@ -141,7 +116,7 @@ router.post('/submit', async (req: Request, res: Response) => {
   let alltimeRanking = null;
 
   try {
-    await leaderboardService.addEntry(session.id, session.gameType, playerAddress, session.score!);
+    await leaderboardService.addEntry(session.id, session.gameType, playerAddress, score);
 
     // Get current period dates
     const periods = LeaderboardService.getCurrentPeriods();
@@ -189,16 +164,16 @@ router.post('/submit', async (req: Request, res: Response) => {
     console.error('Failed to add leaderboard entry:', error);
   }
 
-  // Return 200 with updated session and rankings
+  // Return 200 with session info and rankings
   res.status(200).json({
     message: 'Score submitted successfully',
     session: {
       sessionId: session.id,
       gameType: session.gameType,
       status: session.status,
-      score: session.score,
-      completedAt: session.completedAt,
-      gameDurationMs: session.gameDurationMs,
+      score: score, // The score just submitted (session may have multiple scores)
+      createdAt: session.createdAt,
+      expiresAt: new Date(new Date(session.createdAt).getTime() + 15 * 60 * 1000).toISOString(),
     },
     rankings: {
       daily: dailyRanking,
