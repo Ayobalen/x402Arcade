@@ -1,0 +1,12 @@
+{
+  "name": "x402arcade-api",
+  "buildCommand": "cd packages/backend && pnpm install && pnpm build",
+  "installCommand": "pnpm install",
+  "outputDirectory": "packages/backend/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/packages/backend/api/index"
+    }
+  ]
+}
