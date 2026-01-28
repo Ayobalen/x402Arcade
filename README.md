@@ -2,7 +2,7 @@
 
 > **"Insert a Penny, Play for Glory"**
 
-A gasless arcade gaming platform on Cronos blockchain that makes micropayment gaming economically viable for the first time. Built for the **Cronos x402 Hackathon**.
+A gasless arcade gaming platform on Cronos blockchain that makes micropayment gaming economically viable for the first time. Built for the **Cronos x402 Hackathon**
 
 🎮 **[Live Demo](https://x402arcade.vercel.app)** | 📹 **[Video Demo](#)** | 🏆 **Hackathon Submission**
 
