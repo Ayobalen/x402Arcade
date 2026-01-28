@@ -26,11 +26,7 @@ import { getEnv, revalidateEnv, validateEnv, type ValidationResult } from './con
 
 // Load environment variables from packages/backend/.env
 const envPath = join(__dirname, '../.env');
- 
-console.log('📄 Loading .env from:', envPath);
 dotenv.config({ path: envPath });
- 
-console.log('🔧 CORS_ORIGIN from process.env:', process.env.CORS_ORIGIN);
 
 // Re-validate environment after loading .env (clears cache and re-parses with actual values)
 revalidateEnv();

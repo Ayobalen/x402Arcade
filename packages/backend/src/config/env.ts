@@ -29,18 +29,11 @@ export const envSchema = z.object({
     .string()
     .default('http://localhost:5173')
     .transform((val) => {
-       
-      console.log('🔍 Zod transform - input:', val, 'hasComma:', val.includes(','));
       // Handle comma-separated list of origins
       if (val.includes(',')) {
-        const result = val.split(',').map((origin) => origin.trim());
-         
-        console.log('🔍 Zod transform - output (array):', result);
-        return result;
+        return val.split(',').map((origin) => origin.trim());
       }
       // Single origin - return as string for cors middleware
-       
-      console.log('🔍 Zod transform - output (string):', val);
       return val;
     })
     .describe(
@@ -199,9 +192,20 @@ export const envSchema = z.object({
   // - Leaderboard checks (~20-30 requests)
   // - Prize pool queries (~10-20 requests)
   // Total: ~50-90 requests in a 15-minute active gaming session
-  RATE_LIMIT_ENABLED: z.coerce
-    .boolean()
-    .default(false)
+  RATE_LIMIT_ENABLED: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((val) => {
+      // Handle undefined - default to false
+      if (val === undefined || val === null) return false;
+      // Handle actual boolean
+      if (typeof val === 'boolean') return val;
+      // Handle boolean-like strings
+      const strVal = String(val).toLowerCase().trim();
+      if (strVal === 'false' || strVal === '0' || strVal === 'no' || strVal === '') return false;
+      if (strVal === 'true' || strVal === '1' || strVal === 'yes') return true;
+      return false; // Default to false for any unexpected value
+    })
     .describe('Enable IP-based rate limiting middleware for API endpoints'),
   RATE_LIMIT_MAX_REQUESTS: z.coerce
     .number()

@@ -128,8 +128,6 @@ export function createApp(): Express {
   // Configure allowed headers for x402 payment protocol
 
 
-  console.log('🔧 CORS configuration:', env.CORS_ORIGIN);
-
   // Dynamic CORS origin validator to support Vercel preview deployments
   const corsOrigin = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps, curl, etc.)
