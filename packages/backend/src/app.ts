@@ -126,12 +126,39 @@ export function createApp(): Express {
 
   // CORS: Enable cross-origin requests from frontend
   // Configure allowed headers for x402 payment protocol
-   
+
 
   console.log('🔧 CORS configuration:', env.CORS_ORIGIN);
+
+  // Dynamic CORS origin validator to support Vercel preview deployments
+  const corsOrigin = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Parse configured origins
+    const allowedOrigins = Array.isArray(env.CORS_ORIGIN)
+      ? env.CORS_ORIGIN
+      : [env.CORS_ORIGIN as string];
+
+    // Check if origin exactly matches any configured origin
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow all *.vercel.app domains (production + preview deployments)
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+
+    // Reject other origins
+    return callback(new Error('Not allowed by CORS'));
+  };
+
   app.use(
     cors({
-      origin: env.CORS_ORIGIN as string | string[],
+      origin: corsOrigin,
       credentials: true,
       allowedHeaders: [
         'Content-Type',
