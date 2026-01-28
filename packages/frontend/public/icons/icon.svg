@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- x402 Arcade PWA Icon -->
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#0a0a0f"/>
+
+  <!-- Cabinet body - scaled to fit with padding -->
+  <g transform="translate(96, 64) scale(10)">
+    <!-- Cabinet -->
+    <path fill="#00D4FF" d="M4 2h14l8 10v18H4V2z"/>
+    <!-- Screen cutout -->
+    <path fill="#0a0a0f" d="M6 4h10l5 6v8H6V4z"/>
+    <!-- Coin -->
+    <rect fill="#00D4FF" x="19" y="0" width="10" height="10" rx="1.5" transform="rotate(20 24 5)"/>
+  </g>
+</svg>

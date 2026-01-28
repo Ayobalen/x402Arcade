@@ -24,29 +24,8 @@ import { Balance } from '@/components/wallet/Balance';
 import { useOnboardingStore } from '@/stores';
 import { HelpCircle, Keyboard, Settings } from 'lucide-react';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
+import { ArcadeLogo } from '@/components/ui/ArcadeLogo';
 import type { HeaderProps } from './Header.types';
-
-/**
- * Gamepad icon for branding
- */
-function GamepadIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 12h4" />
-      <path d="M14 12h.01" />
-      <path d="M17 12h.01" />
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-    </svg>
-  );
-}
 
 /**
  * Hamburger menu icon that animates to X when open
@@ -156,8 +135,9 @@ export function Header({
           'group'
         )}
       >
-        <GamepadIcon
-          className={cn('w-6 h-6', 'group-hover:scale-110', 'transition-transform duration-150')}
+        <ArcadeLogo
+          size={28}
+          className={cn('group-hover:scale-110', 'transition-transform duration-150')}
         />
         <span className="font-bold text-lg hidden sm:inline">x402 Arcade</span>
         <span className="font-bold text-lg sm:hidden">x402</span>

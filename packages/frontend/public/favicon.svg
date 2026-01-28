@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- x402 Arcade Logo - Arcade Cabinet with Coin -->
+  <!-- Primary color: Cyan #00D4FF for dark backgrounds -->
+  <defs>
+    <style>
+      .cabinet { fill: #00D4FF; }
+      .screen { fill: #0a0a0f; }
+    </style>
+  </defs>
+  <!-- Cabinet body -->
+  <path class="cabinet" d="M4 2h14l8 10v18H4V2z"/>
+  <!-- Screen cutout -->
+  <path class="screen" d="M6 4h10l5 6v8H6V4z"/>
+  <!-- Coin -->
+  <rect class="cabinet" x="19" y="0" width="10" height="10" rx="1.5" transform="rotate(20 24 5)"/>
+</svg>
