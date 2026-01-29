@@ -1,36 +1,54 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, interpolate, Easing } from 'remotion';
 import { colors } from '../lib/designTokens';
-import { fadeIn, scaleUp } from '../lib/animations';
 import { NoiseOverlay } from '../components/NoiseOverlay';
 import { GlowText } from '../components/GlowText';
 import { GradientText } from '../components/GradientText';
+import { ArcadeLogo } from '../components/ArcadeLogo';
 
 /**
- * Scene 6: CTA (55-60s)
- * Logo reveal + call to action
+ * Scene 6: CTA (3s = 90 frames @ 30fps)
+ * Logo reveal + call to action - punchy ending
  */
 export const Scene6_CTA: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
 
-  // Logo reveal
-  const logoOpacity = fadeIn(frame, fps, 0.8, 0);
-  const logoScale = scaleUp(frame, fps, 1, 0);
+  // Logo reveal - fast and punchy
+  const logoOpacity = interpolate(frame, [0, 12], [0, 1], {
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
 
-  // Tagline
-  const taglineOpacity = fadeIn(frame, fps, 0.6, 1);
+  const logoScale = interpolate(frame, [0, 15], [0.8, 1], {
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.back(1.5)),
+  });
+
+  // Text reveal
+  const textOpacity = interpolate(frame, [10, 20], [0, 1], {
+    extrapolateRight: 'clamp',
+  });
 
   // Links
-  const linksOpacity = fadeIn(frame, fps, 0.6, 2);
+  const linksOpacity = interpolate(frame, [20, 30], [0, 1], {
+    extrapolateRight: 'clamp',
+  });
+
+  // Hackathon badge
+  const badgeOpacity = interpolate(frame, [30, 40], [0, 1], {
+    extrapolateRight: 'clamp',
+  });
+
+  // Glow pulse for logo
+  const glowPulse = Math.sin(frame * 0.15) * 0.3 + 1;
 
   return (
     <AbsoluteFill
       style={{
-        background: `linear-gradient(135deg, ${colors.bgPrimary} 0%, #1a0f1f 100%)`,
+        background: `radial-gradient(ellipse at center, #1a1a2e 0%, ${colors.bgPrimary} 70%)`,
       }}
     >
-      <NoiseOverlay />
+      <NoiseOverlay opacity={0.03} />
 
       <AbsoluteFill
         style={{
@@ -38,34 +56,44 @@ export const Scene6_CTA: React.FC = () => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 50,
+          gap: 30,
         }}
       >
-        {/* Logo */}
+        {/* Logo + Name Row */}
         <div
           style={{
             opacity: logoOpacity,
             transform: `scale(${logoScale})`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 30,
           }}
         >
-          <GradientText fontSize={120} fontWeight={900}>
+          {/* Arcade Logo */}
+          <div
+            style={{
+              filter: `drop-shadow(0 0 ${25 * glowPulse}px ${colors.primary}80)`,
+            }}
+          >
+            <ArcadeLogo
+              size={120}
+              color={colors.primary}
+              animateCoin={true}
+              startFrame={0}
+              duration={20}
+            />
+          </div>
+
+          {/* Name */}
+          <GradientText fontSize={100} fontWeight={900}>
             x402Arcade
           </GradientText>
         </div>
 
         {/* Tagline */}
-        <div style={{ opacity: taglineOpacity }}>
-          <GlowText
-            fontSize={42}
-            fontFamily="body"
-            glow="cyan"
-            style={{
-              fontWeight: 600,
-              textAlign: 'center',
-              maxWidth: 1000,
-            }}
-          >
-            The killer app for x402 Protocol
+        <div style={{ opacity: textOpacity }}>
+          <GlowText fontSize={36} fontFamily="body" glow="cyan" style={{ fontWeight: 500 }}>
+            $0.01 games • $0.00 gas fees
           </GlowText>
         </div>
 
@@ -74,35 +102,31 @@ export const Scene6_CTA: React.FC = () => {
           style={{
             opacity: linksOpacity,
             display: 'flex',
-            flexDirection: 'column',
-            gap: 25,
-            marginTop: 30,
+            gap: 40,
+            marginTop: 10,
           }}
         >
-          <GlowText fontSize={32} fontFamily="mono" glow="green" style={{ textAlign: 'center' }}>
+          <GlowText fontSize={26} fontFamily="mono" glow="green">
             x402arcade.vercel.app
           </GlowText>
-
-          <GlowText
-            fontSize={28}
-            fontFamily="mono"
-            glow="none"
-            color={colors.textSecondary}
-            style={{ textAlign: 'center' }}
-          >
+          <GlowText fontSize={26} fontFamily="mono" glow="none" color={colors.textSecondary}>
             github.com/Ayobalen/x402Arcade
           </GlowText>
         </div>
 
-        {/* Final message */}
-        <div style={{ opacity: linksOpacity, marginTop: 40 }}>
-          <GlowText
-            fontSize={36}
-            fontFamily="body"
-            glow="magenta"
-            style={{ fontWeight: 700, textAlign: 'center' }}
-          >
-            Built for DoraHacks x Cronos
+        {/* Hackathon badge */}
+        <div
+          style={{
+            opacity: badgeOpacity,
+            marginTop: 20,
+            padding: '12px 30px',
+            borderRadius: 8,
+            border: `2px solid ${colors.secondary}`,
+            boxShadow: glows.magentaMd,
+          }}
+        >
+          <GlowText fontSize={24} fontFamily="display" glow="magenta" style={{ fontWeight: 600 }}>
+            DoraHacks x Cronos Hackathon
           </GlowText>
         </div>
       </AbsoluteFill>

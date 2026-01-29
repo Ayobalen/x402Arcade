@@ -15,6 +15,8 @@ test-reports/
 .env
 .env.local
 .env.*.local
+.env.vercel
+.env.vercel.*
 
 # IDE
 .idea/
@@ -65,3 +67,20 @@ yarn.lock
 storybook-static
 .vercel
 .env*.local
+
+# Internal documentation (not for public repo)
+SESSION_*.md
+UI_REVAMP_PROGRESS.md
+VIDEO_STRATEGY.md
+WINNING_MESSAGE.md
+
+# Development experiments
+manim-demo/
+logo.html
+generate_auth.mjs
+test_payment.mjs
+*.tar.gz
+
+# Python cache
+__pycache__/
+*.pyc

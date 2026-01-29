@@ -1,39 +1,51 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, interpolate, Easing } from 'remotion';
 import { colors } from '../lib/designTokens';
-import { fadeIn, glitch, scaleUp } from '../lib/animations';
 import { NoiseOverlay } from '../components/NoiseOverlay';
 import { GradientText } from '../components/GradientText';
 import { GlowText } from '../components/GlowText';
 
 /**
- * Scene 1: HOOK (0-3s)
- * "$0.01" glitches onto screen with dramatic reveal
- * Message: "What if you could play a blockchain game for a penny?"
+ * Scene 1: HOOK (2s = 60 frames @ 30fps)
+ * "$0.01" punches onto screen - fast and impactful
  */
 export const Scene1_Hook: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
 
-  // Main number reveal
-  const numberOpacity = fadeIn(frame, fps, 0.6, 0.2);
-  const numberScale = scaleUp(frame, fps, 0.8, 0.2, 0.5, 1);
+  // Fast number reveal with punch
+  const numberOpacity = interpolate(frame, [0, 8], [0, 1], {
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
 
-  // Glitch effect in first few frames
-  const glitchX = frame < 15 ? glitch(frame, fps, 8) : 0;
+  const numberScale = interpolate(frame, [0, 8, 15], [0.5, 1.05, 1], {
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
 
-  // Subtitle fade in
-  const subtitleY = fadeIn(frame, fps, 0.4, 1) * 40; // Slide up from 40px
+  // Quick glitch effect
+  const glitchX = frame < 8 ? Math.sin(frame * 5) * 10 : 0;
+
+  // Subtitle appears right after
+  const subtitleOpacity = interpolate(frame, [12, 22], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const subtitleY = interpolate(frame, [12, 22], [20, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
 
   return (
     <AbsoluteFill
       style={{
-        background: `linear-gradient(135deg, ${colors.bgPrimary} 0%, #1a0f1f 100%)`,
+        background: `radial-gradient(ellipse at center, #1a1a2e 0%, ${colors.bgPrimary} 70%)`,
       }}
     >
-      <NoiseOverlay />
+      <NoiseOverlay opacity={0.03} />
 
-      {/* Content */}
       <AbsoluteFill
         style={{
           display: 'flex',
@@ -42,37 +54,36 @@ export const Scene1_Hook: React.FC = () => {
           justifyContent: 'center',
         }}
       >
-        {/* Main number */}
+        {/* Main number - BIG and punchy */}
         <div
           style={{
             opacity: numberOpacity,
             transform: `scale(${numberScale}) translateX(${glitchX}px)`,
           }}
         >
-          <GradientText fontSize={180} fontWeight={900}>
+          <GradientText fontSize={220} fontWeight={900}>
             $0.01
           </GradientText>
         </div>
 
-        {/* Subtitle */}
+        {/* Subtitle - quick and clean */}
         <div
           style={{
-            opacity: 1 - subtitleY / 40, // Fade as it slides
+            opacity: subtitleOpacity,
             transform: `translateY(${subtitleY}px)`,
-            marginTop: 40,
+            marginTop: 30,
           }}
         >
           <GlowText
-            fontSize={42}
+            fontSize={48}
             fontFamily="body"
             glow="cyan"
             style={{
               fontWeight: 600,
               textAlign: 'center',
-              maxWidth: 900,
             }}
           >
-            to play a blockchain game
+            to play on blockchain
           </GlowText>
         </div>
       </AbsoluteFill>
