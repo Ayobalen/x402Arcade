@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config } from '@/config/wagmi';
 import { Layout } from '@/components/layout/Layout';
 import { PageTransition } from '@/components/transitions';
-import { ProtectedRoute } from '@/components/guards';
+import { ProtectedRoute, MobileGate } from '@/components/guards';
 import {
   OnboardingFlow,
   HelpModal,
@@ -175,18 +175,20 @@ function App() {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <Layout showBalance maxWidth="full">
-          <AnimatedRoutes />
+        <MobileGate>
+          <Layout showBalance maxWidth="full">
+            <AnimatedRoutes />
 
-          {/* Onboarding & Help Components */}
-          <OnboardingFlow />
-          <HelpModal />
-          <GameTutorial />
-          <KeyboardShortcutsGuide />
+            {/* Onboarding & Help Components */}
+            <OnboardingFlow />
+            <HelpModal />
+            <GameTutorial />
+            <KeyboardShortcutsGuide />
 
-          {/* Background Music with Mute Control */}
-          <BackgroundMusic autoPlay initialVolume={0.3} />
-        </Layout>
+            {/* Background Music with Mute Control */}
+            <BackgroundMusic autoPlay initialVolume={0.3} />
+          </Layout>
+        </MobileGate>
       </QueryClientProvider>
     </WagmiProvider>
   );

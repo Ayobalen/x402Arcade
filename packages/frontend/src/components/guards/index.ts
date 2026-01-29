@@ -5,3 +5,4 @@
  */
 
 export { ProtectedRoute } from './ProtectedRoute';
+export { MobileGate } from './MobileGate';
