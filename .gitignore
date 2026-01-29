@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+**/node_modules/
 .pnpm-store/
 
 # Build outputs
@@ -79,7 +80,12 @@ manim-demo/
 logo.html
 generate_auth.mjs
 test_payment.mjs
+check_usdc_domain.mjs
+mint_usdc.mjs
 *.tar.gz
+
+# Video render outputs
+x402arcade-video/out/
 
 # Python cache
 __pycache__/
